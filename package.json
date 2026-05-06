@@ -1,0 +1,21 @@
+{
+  "name": "mirrorverse",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5",
+    "typescript": "^5.9.3",
+    "prettier": "^3.8.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "@mirrorverse/typescript-config/react-library.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "*.ts", "*.tsx"],
+  "exclude": ["node_modules", "dist", ".turbo"]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@mirrorverse/env",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./web": {
+      "types": "./src/web.ts",
+      "default": "./src/web.ts"
+    },
+    "./website": {
+      "types": "./src/website.ts",
+      "default": "./src/website.ts"
+    },
+    "./api": {
+      "types": "./src/api.ts",
+      "default": "./src/api.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo node_modules"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.8",
+    "@t3-oss/env-nextjs": "^0.13.8",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@mirrorverse/typescript-config": "workspace:*",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.3"
+  }
+}

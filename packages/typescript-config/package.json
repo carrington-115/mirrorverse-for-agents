@@ -1,0 +1,15 @@
+{
+  "name": "@mirrorverse/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "files": [
+    "base.json",
+    "nextjs.json",
+    "react-library.json",
+    "node.json"
+  ]
+}

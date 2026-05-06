@@ -1,0 +1,82 @@
+# Dependencies
+node_modules
+.pnpm-store
+.yarn
+.npm
+
+# Build output
+.next
+.next-internal
+out
+build
+dist
+.swc
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Turbo
+.turbo
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
+.env.test
+.env.test.local
+!.env.example
+!.env.*.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Lockfiles for other package managers (we use pnpm)
+package-lock.json
+yarn.lock
+bun.lockb
+
+# Testing & coverage
+coverage
+*.lcov
+.nyc_output
+
+# IDE & editors
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.swp
+*.swo
+*.code-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Sentry
+.sentryclirc
+
+# Misc
+*.pem
+*.local
+.cache
+.parcel-cache
