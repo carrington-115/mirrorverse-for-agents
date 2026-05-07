@@ -1,4 +1,4 @@
-import { MirrropilotChat } from "../_components/MirrropilotChat";
+import { MirrropilotChat } from "../_components/mirrropilot-chat";
 
 // The page stays a Server Component — it resolves params and
 // passes the sessionId down to the client component.
@@ -12,7 +12,7 @@ export default async function MirrropilotPage({
   const { sessionId } = await params;
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex size-full flex-col">
       <MirrropilotChat sessionId={sessionId} />
     </div>
   );

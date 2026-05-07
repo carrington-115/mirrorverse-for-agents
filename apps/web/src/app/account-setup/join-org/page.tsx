@@ -1,6 +1,6 @@
 "use client";
 
-import OrganizationElement from "../_components/Organization";
+import OrganizationElement from "../_components/organization";
 import { orgSample } from "@/lib/data";
 import {
   Card,
@@ -34,12 +34,12 @@ export default function JoinOrganization() {
 
   return (
     <div>
-      <Card className="w-[430px] bg-[var(--accent-0)]">
+      <Card className="w-[430px] bg-(--accent-0)">
         <CardHeader>
           <CardTitle>Join an organization</CardTitle>
           <CardDescription>Select an organization to join</CardDescription>
         </CardHeader>
-        <CardContent className="!px-0">
+        <CardContent className="px-0!">
           {orgSample.map((org) => (
             <ComposedOrgComponent key={org.organizationName} {...org} />
           ))}
@@ -83,8 +83,8 @@ const ComposedOrgComponent = ({
         <DialogHeader>
           <DialogTitle>Do you want to proceed?</DialogTitle>
           <DialogDescription>
-            This action cannot be undone. Are you absolutely sure you want to
-            join this organization?
+            This action cannot be undone. Are you absolutely sure you want to join this
+            organization?
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

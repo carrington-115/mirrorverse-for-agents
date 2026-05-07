@@ -1,4 +1,3 @@
-// Export all types here
-import { user } from "./auth.types";
+import type { user } from "./auth.types.js";
 
-export { user as userSchemaType };
+export type { user as userSchemaType };

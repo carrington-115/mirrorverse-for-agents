@@ -1,18 +1,14 @@
 "use client";
 
-import DashboardHeader from "@/components/custom/DashboardHeader";
-import DashboardLayout from "@/components/custom/DashboardLayout";
+import DashboardHeader from "@/components/custom/dashboard-header";
+import DashboardLayout from "@/components/custom/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Plus, Workflow } from "lucide-react";
 import { toast } from "sonner";
 
-export default function WorkflowsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function WorkflowsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="max-w-[calc(100%-16px)] h-[calc(100vh-12px)] max-h-[calc(100%-12px)] border border-border relative overflow-y-scroll my-[6px] mx-[8px] rounded-lg">
+    <div className="relative mx-[8px] my-[6px] h-[calc(100vh-12px)] max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-y-scroll rounded-lg border border-border">
       <DashboardLayout
         header={
           <DashboardHeader
@@ -30,7 +26,7 @@ export default function WorkflowsLayout({
           />
         }
       >
-        <div className="w-[90%] flex flex-col gap-[var(--xl)] items-center !pt-0 p-[var(--lg)]">
+        <div className="pt-0! flex w-[90%] flex-col items-center gap-(--xl) p-(--lg)">
           {children}
         </div>
       </DashboardLayout>

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
@@ -75,24 +69,15 @@ export default function UserRole() {
         <CardHeader>
           <CardTitle>How do you want to continue?</CardTitle>
           <CardDescription>
-            Create a new organization to set up your workspace, or join an
-            existing one
+            Create a new organization to set up your workspace, or join an existing one
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-[var(--sm)]">
-          <Button
-            onClick={handleJoinOrg}
-            className={cn("cursor-pointer")}
-            variant="default"
-          >
+        <CardContent className="flex flex-col gap-(--sm)">
+          <Button onClick={handleJoinOrg} className={cn("cursor-pointer")} variant="default">
             {isPendingJoin && <Loader2 className="h-4 w-4 animate-spin" />}
             Join an organization
           </Button>
-          <Button
-            onClick={handleCreateOrg}
-            className={cn("cursor-pointer")}
-            variant="outline"
-          >
+          <Button onClick={handleCreateOrg} className={cn("cursor-pointer")} variant="outline">
             {isPendingCreate && <Loader2 className="h-4 w-4 animate-spin" />}
             Create an organization
           </Button>

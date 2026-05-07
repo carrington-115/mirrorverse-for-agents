@@ -4,4 +4,4 @@ interface user {
   age?: number;
 }
 
-export { user };
+export type { user };

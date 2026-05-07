@@ -1,6 +1,4 @@
-import ConversationsTable, {
-  WhatsAppConversation,
-} from "../_components/ConversationsTable";
+import ConversationsTable, { WhatsAppConversation } from "../_components/conversations-table";
 
 const now = new Date();
 const daysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000);

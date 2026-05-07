@@ -1,13 +1,13 @@
-import AnalyticsChart from "./_components/AnalyticsChart";
-import CallsChart from "./_components/CallsChart";
-import EmailsChart from "./_components/EmailsChart";
-import ChatsChart from "./_components/ChatsChart";
+import AnalyticsChart from "./_components/analytics-chart";
+import CallsChart from "./_components/calls-chart";
+import EmailsChart from "./_components/emails-chart";
+import ChatsChart from "./_components/chats-chart";
 
 export default function AnalyticsPage() {
   return (
     <>
       <AnalyticsChart />
-      <div className="w-full flex justify-between gap-[10px]">
+      <div className="flex w-full justify-between gap-[10px]">
         <CallsChart />
         <EmailsChart />
         <ChatsChart />

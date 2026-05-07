@@ -1,4 +1,4 @@
-import EmptyTabState from "../_components/EmptyTabState";
+import EmptyTabState from "../_components/empty-tab-state";
 
 export default function Page() {
   return (

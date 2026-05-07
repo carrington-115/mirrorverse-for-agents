@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
   const {
     handleSubmit,
     control,
-    formState: { isSubmitting, errors: formErrors },
+    formState: { isSubmitting, errors: _formErrors },
   } = useForm<FormValues>({
     defaultValues: {
       email: "",
@@ -55,8 +55,7 @@ export default function ForgotPasswordPage() {
         return;
       }
 
-      const { error: sendCodeError } =
-        await signIn.resetPasswordEmailCode.sendCode();
+      const { error: sendCodeError } = await signIn.resetPasswordEmailCode.sendCode();
       if (sendCodeError) {
         console.error(JSON.stringify(sendCodeError, null, 2));
         toast.error(sendCodeError.message || "Failed to send reset code");
@@ -66,9 +65,7 @@ export default function ForgotPasswordPage() {
       console.log("Reset code sent successfully");
       toast.success("Reset code sent to your email!");
 
-      router.push(
-        `/account-setup/reset-password?email=${encodeURIComponent(email)}`,
-      );
+      router.push(`/account-setup/reset-password?email=${encodeURIComponent(email)}`);
     } catch (error: any) {
       console.error("Unexpected error:", error);
 
@@ -84,7 +81,7 @@ export default function ForgotPasswordPage() {
 
   if (!isLoaded) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4">
+      <div className="gap-4 flex h-screen w-screen flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
@@ -92,23 +89,19 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="h-[100vh] w-[100vw] flex flex-col items-center overflow-y-hidden justify-center">
-      <div className="w-[430px] flex flex-col gap-[var(--xl)] items-center">
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col gap-[24px] w-full"
-        >
+    <div className="flex h-screen w-screen flex-col items-center justify-center overflow-y-hidden">
+      <div className="flex w-[430px] flex-col items-center gap-(--xl)">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-[24px]">
           <div className="flex flex-col items-center">
-            <h2 className="text-[24px] text-foreground font-semibold leading-[var(--heading-3-line-height)]">
+            <h2 className="font-semibold text-[24px] leading-(--heading-3-line-height) text-foreground">
               Forgot password?
             </h2>
-            <p className="text-sm text-muted-foreground font-normal leading-[var(--body-1-line-height)] text-center mt-2">
-              Enter your email address and we'll send you a code to reset your
-              password
+            <p className="text-sm font-normal mt-2 text-center leading-(--body-1-line-height) text-muted-foreground">
+              Enter your email address and we&apos;ll send you a code to reset your password
             </p>
           </div>
 
-          <div className="flex flex-col gap-[var(--sm)]">
+          <div className="flex flex-col gap-(--sm)">
             <Controller
               name="email"
               control={control}
@@ -121,33 +114,25 @@ export default function ForgotPasswordPage() {
                     placeholder="email@example.com"
                     autoComplete="email"
                     type="email"
-                    className="w-full h-10 border-[var(--border-3)]"
+                    className="h-10 w-full border-(--border-3)"
                     disabled={isSubmitting}
                   />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
             />
 
-            <Button
-              type="submit"
-              className="w-full h-10 cursor-pointer"
-              disabled={isSubmitting}
-            >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+            <Button type="submit" className="h-10 w-full cursor-pointer" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Send Reset Code
             </Button>
           </div>
         </form>
 
-        <div className="w-full flex justify-center items-center">
+        <div className="flex w-full items-center justify-center">
           <Link
             href="/sign-in"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Back to sign in
           </Link>

@@ -13,7 +13,7 @@ export interface NavigationPosition {
   setActive?: () => void;
 }
 
-type AppIconProps = IconBaseProps;
+type _AppIconProps = IconBaseProps;
 export type IconComponent = React.ComponentType<IconBaseProps>;
 
 export interface appStructure {
@@ -219,11 +219,7 @@ export interface AgentKnowledgeItem {
   lastUpdated: Date;
 }
 
-export type AgentToolProvider =
-  | "salesforce"
-  | "zendesk"
-  | "slack"
-  | "google-sheet";
+export type AgentToolProvider = "salesforce" | "zendesk" | "slack" | "google-sheet";
 
 export interface AgentToolItem {
   id: string;

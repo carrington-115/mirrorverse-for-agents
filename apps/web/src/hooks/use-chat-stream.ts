@@ -7,9 +7,8 @@ import type {
   ThinkingBlock,
   TextBlock,
   ToolUseBlock,
-  MessageStatus,
-} from "@/app/(dashboard)/mirrropilot/_components/AgentMessage";
-import type { ChatPayload } from "@/app/(dashboard)/mirrropilot/_components/ChatInput";
+} from "@/app/(dashboard)/mirrropilot/_components/agent-message";
+import type { ChatPayload } from "@/app/(dashboard)/mirrropilot/_components/chat-input";
 
 // ─────────────────────────────────────────
 // SSE event types — mirror the Anthropic SDK
@@ -93,11 +92,7 @@ export function useChatStream(apiUrl: string = "/api/v1/chat/stream") {
   );
 
   const updateBlock = useCallback(
-    (
-      messageId: string,
-      blockIndex: number,
-      updater: (block: ContentBlock) => ContentBlock,
-    ) => {
+    (messageId: string, blockIndex: number, updater: (block: ContentBlock) => ContentBlock) => {
       setMessages((prev) =>
         prev.map((m) => {
           if (m.id !== messageId) return m;
@@ -293,8 +288,7 @@ export function useChatStream(apiUrl: string = "/api/v1/chat/stream") {
             prev.map((m) => {
               if (m.id !== agentMsgId) return m;
               const blocks = m.blocks.map((b) => {
-                if (b.type !== "tool_use" || b.toolId !== event.tool_use_id)
-                  return b;
+                if (b.type !== "tool_use" || b.toolId !== event.tool_use_id) return b;
                 return {
                   ...b,
                   result: event.result,
@@ -334,9 +328,7 @@ export function useChatStream(apiUrl: string = "/api/v1/chat/stream") {
         if (idx < 1) return prev;
         const userMsg = prev[idx - 1];
         if (userMsg.role !== "user") return prev;
-        const textBlock = userMsg.blocks.find(
-          (b): b is TextBlock => b.type === "text",
-        );
+        const textBlock = userMsg.blocks.find((b): b is TextBlock => b.type === "text");
         if (textBlock) {
           setTimeout(
             () => send({ message: textBlock.content, mode: "orchestrate", context: [] }),

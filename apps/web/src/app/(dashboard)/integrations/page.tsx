@@ -1,4 +1,4 @@
-import IntegrationPage from "./_components/Integration";
+import IntegrationPage from "./_components/integration";
 
 export default function Integrations() {
   return <IntegrationPage />;

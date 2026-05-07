@@ -1,19 +1,8 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { nextConfig } from "@mirrorverse/eslint-config/next";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const config = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default [
+  ...nextConfig,
   {
-    ignores: [".next/**", "node_modules/**", ".turbo/**"],
+    ignores: [".next/**", "node_modules/**", ".turbo/**", "next-env.d.ts"],
   },
 ];
-
-export default config;

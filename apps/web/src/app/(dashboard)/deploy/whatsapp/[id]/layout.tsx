@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { MOCK_WHATSAPP_CHANNELS } from "@/lib/data";
-import WhatsAppDetailHeader from "./_components/WhatsAppDetailHeader";
+import WhatsAppDetailHeader from "./_components/whats-app-detail-header";
 
 export default async function WhatsAppDetailLayout({
   children,
@@ -14,7 +14,7 @@ export default async function WhatsAppDetailLayout({
   if (!channel) notFound();
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="gap-4 flex w-full flex-col">
       <WhatsAppDetailHeader channel={channel} />
       {children}
     </div>

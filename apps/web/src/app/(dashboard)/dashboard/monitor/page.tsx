@@ -1,12 +1,12 @@
-import CurrentActivityCard from "./_components/ActivityCard";
-import AgentsTable from "./_components/AgentsTable";
-import AgentConversationsTable from "./_components/ConversationsTable";
-import ToolsTable from "./_components/ToolsTable";
+import CurrentActivityCard from "./_components/activity-card";
+import AgentsTable from "./_components/agents-table";
+import AgentConversationsTable from "./_components/conversations-table";
+import ToolsTable from "./_components/tools-table";
 
 export default function MonitorPage() {
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <div className="max-w-full grid grid-cols-3 gap-4">
+    <div className="gap-4 flex w-full flex-col">
+      <div className="gap-4 grid max-w-full grid-cols-3">
         <div className="col-span-2">
           <AgentsTable />
         </div>

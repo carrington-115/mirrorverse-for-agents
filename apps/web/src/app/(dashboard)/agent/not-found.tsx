@@ -12,14 +12,14 @@ import {
   EmptyDescription,
   EmptyContent,
 } from "@/components/ui/empty";
-import CreateAgentSheet from "./_components/CreateAgentSheet";
+import CreateAgentSheet from "./_components/create-agent-sheet";
 
 export default function AgentNotFound() {
   const [createAgentOpen, setCreateAgentOpen] = useState(false);
 
   return (
     <>
-      <div className="flex flex-1 items-center justify-center min-h-[60vh] w-full">
+      <div className="flex min-h-[60vh] w-full flex-1 items-center justify-center">
         <Empty className="max-w-sm border-0">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -41,10 +41,7 @@ export default function AgentNotFound() {
         </Empty>
       </div>
 
-      <CreateAgentSheet
-        open={createAgentOpen}
-        onOpenChange={setCreateAgentOpen}
-      />
+      <CreateAgentSheet open={createAgentOpen} onOpenChange={setCreateAgentOpen} />
     </>
   );
 }

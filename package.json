@@ -6,14 +6,35 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "turbo run format",
+    "lint:fix": "turbo run lint -- --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,yaml,yml}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,yaml,yml}\" --ignore-path .gitignore",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@mirrorverse/eslint-config": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.5",
+    "eslint": "^9.39.1",
+    "eslint-plugin-unicorn": "^61.0.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.2",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "tailwindcss": "^4.2.4",
     "turbo": "^2.5.5",
     "typescript": "^5.9.3",
-    "prettier": "^3.8.1"
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^4.1.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "eslint": "^9.39.1"
+    }
   },
   "engines": {
     "node": ">=20"

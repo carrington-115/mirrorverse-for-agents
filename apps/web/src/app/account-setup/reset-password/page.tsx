@@ -32,7 +32,7 @@ export default function ResetPasswordPage() {
   const {
     handleSubmit,
     control,
-    formState: { isSubmitting, errors: formErrors },
+    formState: { isSubmitting, errors: _formErrors },
   } = useForm<FormValues>({
     defaultValues: {
       password: "",
@@ -106,11 +106,10 @@ export default function ResetPasswordPage() {
           <CardHeader>
             <CardTitle>Reset Password</CardTitle>
             <CardDescription>
-              Enter your email address and we'll send you a link to reset your
-              password.
+              Enter your email address and we&apos;ll send you a link to reset your password.
             </CardDescription>
           </CardHeader>
-          <CardContent className="my-[var(--md)] flex flex-col gap-[var(--xs)]">
+          <CardContent className="my-(--md) flex flex-col gap-(--xs)">
             <Controller
               control={control}
               name="password"
@@ -122,11 +121,9 @@ export default function ResetPasswordPage() {
                     aria-invalid={fieldState.invalid}
                     type="password"
                     placeholder="Enter your password"
-                    className="w-full h-10 border-[var(--border-3)]"
+                    className="h-10 w-full border-(--border-3)"
                   />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
             />
@@ -141,27 +138,21 @@ export default function ResetPasswordPage() {
                     aria-invalid={fieldState.invalid}
                     type="password"
                     placeholder="Confirm your password"
-                    className="w-full h-10 border-[var(--border-3)]"
+                    className="h-10 w-full border-(--border-3)"
                   />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
             />
           </CardContent>
-          <CardFooter className="flex flex-col gap-[var(--2xs)]">
+          <CardFooter className="flex flex-col gap-(--2xs)">
             <Button
               type="submit"
               onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               className="w-full"
             >
-              {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                "Reset Password"
-              )}
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Reset Password"}
             </Button>
             <Link
               href="/sign-in"

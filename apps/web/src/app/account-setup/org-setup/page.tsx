@@ -1,4 +1,4 @@
-import { CompanyRegistrationForm } from "../_components/OrgSetupForm";
+import { CompanyRegistrationForm } from "../_components/org-setup-form";
 
 export default function OrganizationSetup() {
   return (

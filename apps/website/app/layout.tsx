@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { Roboto, Geist } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
-import NavBar from "@/components/NavBar";
+import NavBar from "@/components/nav-bar";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-
-export const roboto = Roboto({
-  variable: "--font-roboto",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Mirrro AI",

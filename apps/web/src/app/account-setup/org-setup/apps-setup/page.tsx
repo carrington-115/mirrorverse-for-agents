@@ -1,4 +1,4 @@
-import AppsForm from "@/app/account-setup/_components/AppsForm";
+import AppsForm from "@/app/account-setup/_components/apps-form";
 
 export default function AppsSetup() {
   return (

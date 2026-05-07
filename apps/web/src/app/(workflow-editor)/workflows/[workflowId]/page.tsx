@@ -1,4 +1,4 @@
-import WorkflowDetailPage from "./_components/WorkflowDetailPage";
+import WorkflowDetailPage from "./_components/workflow-detail-page";
 
 interface WorkflowPageProps {
   params: Promise<{ workflowId: string }>;

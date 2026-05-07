@@ -1,4 +1,4 @@
-import DeployForm from "@/app/account-setup/_components/DeployForm";
+import DeployForm from "@/app/account-setup/_components/deploy-form";
 
 export default function OrgsDeployStrategy() {
   return (

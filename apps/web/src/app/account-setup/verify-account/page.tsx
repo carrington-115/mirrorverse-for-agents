@@ -70,7 +70,7 @@ function VerifyEmailContent() {
   };
 
   // password verification
-  const handlePasscodeVerification = async () => {
+  const _handlePasscodeVerification = async () => {
     if (!isLoaded || !signUp) {
       toast.error("Please wait, loading...");
       return;
@@ -146,7 +146,7 @@ function VerifyEmailContent() {
   // Show loading state while Clerk initializes
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <div className="gap-4 flex min-h-screen flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
@@ -156,11 +156,9 @@ function VerifyEmailContent() {
   // Show error if no email provided
   if (!email) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-foreground font-medium">No email address provided</p>
-        <p className="text-sm text-muted-foreground">
-          Please start the sign-up process again
-        </p>
+      <div className="gap-4 flex min-h-screen flex-col items-center justify-center">
+        <p className="font-medium text-foreground">No email address provided</p>
+        <p className="text-sm text-muted-foreground">Please start the sign-up process again</p>
         <Link href="/sign-up">
           <Button variant="outline">Back to Sign Up</Button>
         </Link>
@@ -169,13 +167,13 @@ function VerifyEmailContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-[430px] flex flex-col gap-[var(--lg)] items-center">
-        <div className="flex flex-col items-center gap-[var(--xxs)]">
-          <h1 className="text-center text-[24px] font-semibold text-foreground leading-[var(--heading-3-line-height)]">
+    <div className="p-4 flex min-h-screen flex-col items-center justify-center">
+      <div className="flex w-full max-w-[430px] flex-col items-center gap-(--lg)">
+        <div className="flex flex-col items-center gap-(--xxs)">
+          <h1 className="font-semibold text-center text-[24px] leading-(--heading-3-line-height) text-foreground">
             Verify your account
           </h1>
-          <p className="text-center text-muted-foreground font-normal leading-[var(--body-1-line-height)] mt-2">
+          <p className="font-normal mt-2 text-center leading-(--body-1-line-height) text-muted-foreground">
             Enter the 6-digit code sent to
             <br />
             <strong className="text-foreground">{email}</strong>
@@ -184,7 +182,7 @@ function VerifyEmailContent() {
 
         <form
           onSubmit={handleVerification}
-          className="w-full flex flex-col gap-[var(--lg)] items-center"
+          className="flex w-full flex-col items-center gap-(--lg)"
         >
           <InputOTP
             maxLength={6}
@@ -209,7 +207,7 @@ function VerifyEmailContent() {
             type="submit"
             variant="default"
             size="lg"
-            className="cursor-pointer w-full"
+            className="w-full cursor-pointer"
             disabled={code.length !== 6 || isVerifying || isResending}
           >
             {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -217,19 +215,17 @@ function VerifyEmailContent() {
           </Button>
         </form>
 
-        <div className="flex flex-col gap-3 items-center mt-4">
-          <p className="text-sm text-muted-foreground">
-            Didn't receive the code?
-          </p>
+        <div className="gap-3 mt-4 flex flex-col items-center">
+          <p className="text-sm text-muted-foreground">Didn&apos;t receive the code?</p>
 
           <button
             type="button"
             onClick={handleResendCode}
-            className="text-sm text-primary hover:underline font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isVerifying || isResending}
           >
             {isResending ? (
-              <span className="flex items-center gap-2">
+              <span className="gap-2 flex items-center">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Resending...
               </span>
@@ -240,7 +236,7 @@ function VerifyEmailContent() {
 
           <Link
             href="/sign-up"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             ← Back to sign up
           </Link>
@@ -256,7 +252,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex min-h-screen items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       }

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getAgentStore } from "@/lib/agent-store";
-import AgentConfigurationForm from "./_components/AgentConfigurationForm";
+import AgentConfigurationForm from "./_components/agent-configuration-form";
 
 export default async function AgentConfigurationPage({
   params,

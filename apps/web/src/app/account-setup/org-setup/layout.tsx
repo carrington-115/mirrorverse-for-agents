@@ -1,15 +1,11 @@
 "use client";
 
-import OrgNavComponent from "@/app/account-setup/_components/OrgNav";
+import OrgNavComponent from "@/app/account-setup/_components/org-nav";
 import { NavigationPosition } from "@/lib/types";
 import { useOrgSetup } from "@/store/use-org-setup";
 import { usePathname } from "next/navigation";
 
-export default function OrganizationSetupLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function OrganizationSetupLayout({ children }: { children: React.ReactNode }) {
   const { organization, apps, deploy } = useOrgSetup();
   const pathname = usePathname();
   const navBtns: NavigationPosition[] = [

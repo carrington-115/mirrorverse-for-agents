@@ -1,12 +1,8 @@
 import { MOCK_CALL_LOGS } from "@/lib/data";
-import CallLogsTable from "../_components/CallLogsTable";
-import EmptyTabState from "../_components/EmptyTabState";
+import CallLogsTable from "../_components/call-logs-table";
+import EmptyTabState from "../_components/empty-tab-state";
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const callLogs = MOCK_CALL_LOGS.filter((log) => log.phoneNumberId === id);
 

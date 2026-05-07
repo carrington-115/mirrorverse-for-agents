@@ -1,16 +1,10 @@
-import AuthDetail from "./_components/AuthDetail";
+import AuthDetail from "./_components/auth-detail";
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex w-full h-screen">
+    <div className="flex h-screen w-full">
       <AuthDetail />
-      <div className="w-1/2 flex flex-col items-center justify-center">
-        {children}
-      </div>
+      <div className="flex w-1/2 flex-col items-center justify-center">{children}</div>
     </div>
   );
 }

@@ -2,4 +2,4 @@
 
 // for server actions
 
-async function triggerUserUpdateAction() {}
+async function _triggerUserUpdateAction() {}

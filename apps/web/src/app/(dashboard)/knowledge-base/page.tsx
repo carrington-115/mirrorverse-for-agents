@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Globe, Type, FileText, FolderOpen } from "lucide-react";
-import { KnowledgeBaseCard } from "./_components/KnowledgeBaseCard";
-import { KnowledgeBaseTable } from "./_components/KnowledgeBaseTable";
+import { KnowledgeBaseCard } from "./_components/knowledge-base-card";
+import { KnowledgeBaseTable } from "./_components/knowledge-base-table";
 import {
   AddUrlDialog,
   AddTextDialog,
   AddFileDialog,
   CreateFolderDialog,
-} from "./_components/Dialogs";
+} from "./_components/dialogs";
 import type { KnowledgeBaseProps, KnowledgeBaseItem } from "@/lib/types";
 
 const SAMPLE_ITEMS: KnowledgeBaseItem[] = [
@@ -47,14 +47,12 @@ export default function KnowledgeBase({
 
   return (
     <div className="w-full">
-      <div className={cn("w-[70%] flex flex-col gap-4", className)}>
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold text-foreground">
-            Knowledge base
-          </h2>
+      <div className={cn("gap-4 flex w-[70%] flex-col", className)}>
+        <div className="gap-3 flex items-center">
+          <h2 className="text-xl font-semibold text-foreground">Knowledge base</h2>
         </div>
 
-        <div className="flex gap-3">
+        <div className="gap-3 flex">
           <KnowledgeBaseCard
             icon={<Globe className="size-6" />}
             label="Add URL"
@@ -93,10 +91,7 @@ export default function KnowledgeBase({
       <AddUrlDialog open={addUrlOpen} onOpenChange={setAddUrlOpen} />
       <AddTextDialog open={addTextOpen} onOpenChange={setAddTextOpen} />
       <AddFileDialog open={addFileOpen} onOpenChange={setAddFileOpen} />
-      <CreateFolderDialog
-        open={createFolderOpen}
-        onOpenChange={setCreateFolderOpen}
-      />
+      <CreateFolderDialog open={createFolderOpen} onOpenChange={setCreateFolderOpen} />
     </div>
   );
 }

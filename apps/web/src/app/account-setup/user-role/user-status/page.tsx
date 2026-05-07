@@ -11,7 +11,7 @@ import {
 import { Suspense, useEffect, useState, useCallback } from "react";
 import UserStatusComponent, {
   UserStatusSkeleton,
-} from "@/app/account-setup/_components/UserStatus";
+} from "@/app/account-setup/_components/user-status";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
@@ -54,11 +54,7 @@ export default function UserStatus() {
       if (!name || !role || !team) {
         console.error("Missing fields in response:", { name, role, team });
         throw new Error(
-          `Incomplete profile data — missing: ${[
-            !name && "name",
-            !role && "role",
-            !team && "team",
-          ]
+          `Incomplete profile data — missing: ${[!name && "name", !role && "role", !team && "team"]
             .filter(Boolean)
             .join(", ")}`,
         );
@@ -93,7 +89,7 @@ export default function UserStatus() {
   if (!isLoaded || isFetching) {
     return (
       <Card className="w-[429px]">
-        <CardContent className="flex items-center justify-center py-10">
+        <CardContent className="py-10 flex items-center justify-center">
           <Loader2 className="animate-spin h-10 w-10" />
         </CardContent>
       </Card>
@@ -105,13 +101,12 @@ export default function UserStatus() {
       <CardHeader>
         <CardTitle>You have successfully joined Mirrro</CardTitle>
         <CardDescription>
-          Continue to your dashboard now and start creating agents to automate
-          your business.
+          Continue to your dashboard now and start creating agents to automate your business.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {fetchError ? (
-          <div className="flex flex-col items-center gap-2 py-4 text-center">
+          <div className="gap-2 py-4 flex flex-col items-center text-center">
             <p className="text-sm text-red-500">{fetchError}</p>
             <Button variant="outline" size="sm" onClick={fetchUserProfile}>
               Retry
@@ -129,7 +124,7 @@ export default function UserStatus() {
           </Suspense>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col gap-[var(--2xs)] bg-transparent">
+      <CardFooter className="flex flex-col gap-(--2xs) bg-transparent">
         <Link
           href={`/dashboard?orgId=${orgId}`}
           className={buttonVariants({ className: "w-full cursor-pointer" })}

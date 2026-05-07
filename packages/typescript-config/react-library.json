@@ -6,6 +6,5 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx",
     "noEmit": true
-  },
-  "include": ["**/*.ts", "**/*.tsx"]
+  }
 }

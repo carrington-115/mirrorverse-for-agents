@@ -45,7 +45,7 @@ if (config.env !== "test") {
 }
 
 if (config.env !== "test") {
-  const db = connectToDatabase();
+  connectToDatabase();
 }
 
 app.use(loggingMiddleware);

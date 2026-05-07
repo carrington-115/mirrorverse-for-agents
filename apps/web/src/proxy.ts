@@ -10,10 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/account-setup/reset-password(.*)",
 ]);
 
-const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/account-setup(.*)",
-]);
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/account-setup(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
@@ -39,6 +36,8 @@ export default clerkMiddleware(async (auth, req) => {
   if (!userId) {
     await auth.protect();
   }
+
+  return NextResponse.next();
 });
 
 export const config = {

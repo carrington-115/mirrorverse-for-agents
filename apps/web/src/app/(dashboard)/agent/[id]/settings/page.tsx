@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getAgentStore } from "@/lib/agent-store";
-import EscalationSettingsForm from "./_components/EscalationSettingsForm";
+import EscalationSettingsForm from "./_components/escalation-settings-form";
 
 const DEFAULT_ESCALATION = {
   scenarios: {
@@ -18,16 +18,10 @@ const DEFAULT_ESCALATION = {
   },
 };
 
-export default async function AgentSettingsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function AgentSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const agent = getAgentStore().find((a) => a.id === id);
   if (!agent) notFound();
 
-  return (
-    <EscalationSettingsForm initial={agent.escalation ?? DEFAULT_ESCALATION} />
-  );
+  return <EscalationSettingsForm initial={agent.escalation ?? DEFAULT_ESCALATION} />;
 }

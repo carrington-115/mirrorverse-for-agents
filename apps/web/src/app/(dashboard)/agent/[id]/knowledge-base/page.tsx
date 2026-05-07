@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getAgentStore } from "@/lib/agent-store";
-import KnowledgeBasePanel from "./_components/KnowledgeBasePanel";
+import KnowledgeBasePanel from "./_components/knowledge-base-panel";
 
 export default async function AgentKnowledgeBasePage({
   params,

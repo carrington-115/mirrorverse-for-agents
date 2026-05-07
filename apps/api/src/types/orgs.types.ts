@@ -14,4 +14,4 @@ interface organization {
   deploymentStrategies: defaultApp[];
 }
 
-export { organization };
+export type { organization };

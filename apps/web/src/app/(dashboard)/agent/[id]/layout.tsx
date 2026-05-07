@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getAgentStore } from "@/lib/agent-store";
-import AgentDetailHeader from "./_components/AgentDetailHeader";
-import AgentTabNav from "./_components/AgentTabNav";
+import AgentDetailHeader from "./_components/agent-detail-header";
+import AgentTabNav from "./_components/agent-tab-nav";
 
 export default async function AgentDetailLayout({
   children,
@@ -15,11 +15,11 @@ export default async function AgentDetailLayout({
   if (!agent) notFound();
 
   return (
-    <div className="flex flex-col gap-[var(--xl)] w-full">
+    <div className="flex w-full flex-col gap-(--xl)">
       <AgentDetailHeader agent={agent} />
-      <div className="rounded-[var(--radius)] border-[5px] border-[var(--border-1)] bg-[var(--body-background)] overflow-hidden">
+      <div className="overflow-hidden rounded-(--radius) border-[5px] border-(--border-1) bg-(--body-background)">
         <AgentTabNav id={id} />
-        <div className="p-[var(--xl)]">{children}</div>
+        <div className="p-(--xl)">{children}</div>
       </div>
     </div>
   );

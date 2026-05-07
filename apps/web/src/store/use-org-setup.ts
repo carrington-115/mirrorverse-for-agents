@@ -53,7 +53,7 @@ export const useOrgSetup = create<OrgSetupState>()((set) => ({
     })),
 
   setOrgId: (orgId: string) =>
-    set((state) => ({
+    set((_state) => ({
       orgId,
     })),
 }));
