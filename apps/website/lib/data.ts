@@ -142,8 +142,7 @@ export const featureData: featureDataProps[] = [
   {
     icon: monitoringImage,
     title: "Monitoring",
-    description:
-      "Realtime Monitoring delivers full visibility into agent actions and performance",
+    description: "Realtime Monitoring delivers full visibility into agent actions and performance",
   },
 
   {
@@ -161,8 +160,7 @@ export const featureData: featureDataProps[] = [
   {
     icon: multiuserImage,
     title: "Multi-user support",
-    description:
-      "Multi-User Support enables realtime collaboration with role-based access",
+    description: "Multi-User Support enables realtime collaboration with role-based access",
   },
   {
     icon: marketplaceImage,
@@ -194,8 +192,7 @@ export const darkFeatureData: featureDataProps[] = [
   {
     icon: darkmonitoringImage,
     title: "Monitoring",
-    description:
-      "Realtime Monitoring delivers full visibility into agent actions and performance",
+    description: "Realtime Monitoring delivers full visibility into agent actions and performance",
   },
 
   {
@@ -213,8 +210,7 @@ export const darkFeatureData: featureDataProps[] = [
   {
     icon: darkmultiuserImage,
     title: "Multi-user support",
-    description:
-      "Multi-User Support enables realtime collaboration with role-based access",
+    description: "Multi-User Support enables realtime collaboration with role-based access",
   },
   {
     icon: darkmarketplaceImage,

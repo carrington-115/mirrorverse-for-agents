@@ -326,12 +326,7 @@ export const sidebarData: SidebarGroup[] = [
   },
 ];
 
-import {
-  SiStripe,
-  SiSalesforce,
-  SiGoogleanalytics,
-  SiHubspot,
-} from "react-icons/si";
+import { SiStripe, SiSalesforce, SiGoogleanalytics, SiHubspot } from "react-icons/si";
 import { LuCalendar } from "react-icons/lu";
 
 export const CATEGORIES: IntegrationCategory[] = [
@@ -360,8 +355,7 @@ export const INTEGRATIONS: Integration[] = [
   {
     id: "notion",
     name: "Notion",
-    description:
-      "All-in-one workspace for notes, databases, wikis, and project documentation.",
+    description: "All-in-one workspace for notes, databases, wikis, and project documentation.",
     icon: SiNotion,
     iconColor: "text-foreground",
     category: ["Productivity", "Collaboration"],
@@ -441,8 +435,7 @@ export const INTEGRATIONS: Integration[] = [
   {
     id: "calendly",
     name: "Calendly",
-    description:
-      "Automated scheduling tool for booking meetings without back-and-forth emails.",
+    description: "Automated scheduling tool for booking meetings without back-and-forth emails.",
     icon: SiCalendly,
     iconColor: "text-[#006BFF]",
     category: ["Scheduling", "Productivity"],
@@ -959,49 +952,48 @@ export const MOCK_AGENTS: Agent[] = [
   },
 ];
 
-export const MOCK_WORKSPACE_KNOWLEDGE_BASES: import("./types").AgentKnowledgeItem[] =
-  [
-    {
-      id: "kb-w1",
-      name: "Product FAQ",
-      sourceLabel: "notion.so/faq",
-      sourceUrl: "#",
-      createdByEmail: "melvis@melsplace.com",
-      createdByInitial: "M",
-      createdByColor: "bg-rose-600",
-      lastUpdated: new Date("2026-01-10T10:00:00"),
-    },
-    {
-      id: "kb-w2",
-      name: "Return Policy",
-      sourceLabel: "docs.internal/returns",
-      sourceUrl: "#",
-      createdByEmail: "melvis@melsplace.com",
-      createdByInitial: "M",
-      createdByColor: "bg-rose-600",
-      lastUpdated: new Date("2026-01-15T09:30:00"),
-    },
-    {
-      id: "kb-w3",
-      name: "Pricing Guide",
-      sourceLabel: "notion.so/pricing",
-      sourceUrl: "#",
-      createdByEmail: "melvis@melsplace.com",
-      createdByInitial: "M",
-      createdByColor: "bg-rose-600",
-      lastUpdated: new Date("2026-02-01T14:00:00"),
-    },
-    {
-      id: "kb-w4",
-      name: "Shipping Policy",
-      sourceLabel: "docs.internal/shipping",
-      sourceUrl: "#",
-      createdByEmail: "melvis@melsplace.com",
-      createdByInitial: "M",
-      createdByColor: "bg-rose-600",
-      lastUpdated: new Date("2026-02-10T11:00:00"),
-    },
-  ];
+export const MOCK_WORKSPACE_KNOWLEDGE_BASES: import("./types").AgentKnowledgeItem[] = [
+  {
+    id: "kb-w1",
+    name: "Product FAQ",
+    sourceLabel: "notion.so/faq",
+    sourceUrl: "#",
+    createdByEmail: "melvis@melsplace.com",
+    createdByInitial: "M",
+    createdByColor: "bg-rose-600",
+    lastUpdated: new Date("2026-01-10T10:00:00"),
+  },
+  {
+    id: "kb-w2",
+    name: "Return Policy",
+    sourceLabel: "docs.internal/returns",
+    sourceUrl: "#",
+    createdByEmail: "melvis@melsplace.com",
+    createdByInitial: "M",
+    createdByColor: "bg-rose-600",
+    lastUpdated: new Date("2026-01-15T09:30:00"),
+  },
+  {
+    id: "kb-w3",
+    name: "Pricing Guide",
+    sourceLabel: "notion.so/pricing",
+    sourceUrl: "#",
+    createdByEmail: "melvis@melsplace.com",
+    createdByInitial: "M",
+    createdByColor: "bg-rose-600",
+    lastUpdated: new Date("2026-02-01T14:00:00"),
+  },
+  {
+    id: "kb-w4",
+    name: "Shipping Policy",
+    sourceLabel: "docs.internal/shipping",
+    sourceUrl: "#",
+    createdByEmail: "melvis@melsplace.com",
+    createdByInitial: "M",
+    createdByColor: "bg-rose-600",
+    lastUpdated: new Date("2026-02-10T11:00:00"),
+  },
+];
 
 export const MOCK_WORKSPACE_TOOLS: import("./types").AgentToolItem[] = [
   {

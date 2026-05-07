@@ -1,12 +1,4 @@
-import {
-  Communication,
-  Features,
-  Footer,
-  Hero,
-  Product,
-  Updates,
-  FAQ,
-} from "@/sections";
+import { Communication, Features, Footer, Hero, Product, Updates, FAQ } from "@/sections";
 
 export default function Home() {
   return (

@@ -14,8 +14,7 @@ export const roboto = Roboto({
 
 export const metadata: Metadata = {
   title: "Mirroverse",
-  description:
-    "The platform to broaden collaboration between humans and agents",
+  description: "The platform to broaden collaboration between humans and agents",
 };
 
 export default function RootLayout({

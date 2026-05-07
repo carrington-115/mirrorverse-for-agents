@@ -89,16 +89,13 @@ export const handleCreateOrganization = async (
 
 export const handleUpdateOrgApps = async (orgId: string, apps: string[]) => {
   try {
-    const response = await fetch(
-      `${fetchUrl}/api/v1/orgs/${orgId}/default-apps`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ defaultApps: apps }),
+    const response = await fetch(`${fetchUrl}/api/v1/orgs/${orgId}/default-apps`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ defaultApps: apps }),
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -113,28 +110,20 @@ export const handleUpdateOrgApps = async (orgId: string, apps: string[]) => {
   }
 };
 
-export const handleUpdateOrgDeploy = async (
-  orgId: string,
-  deploy: string[],
-) => {
+export const handleUpdateOrgDeploy = async (orgId: string, deploy: string[]) => {
   try {
-    const response = await fetch(
-      `${fetchUrl}/api/v1/orgs/${orgId}/deployment-strategies`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ deploymentStrategies: deploy }),
+    const response = await fetch(`${fetchUrl}/api/v1/orgs/${orgId}/deployment-strategies`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ deploymentStrategies: deploy }),
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Update org deploy server response:", errorData);
-      throw new Error(
-        errorData?.error || "Failed to update organization deploy",
-      );
+      throw new Error(errorData?.error || "Failed to update organization deploy");
     }
 
     return await response.json();
@@ -146,15 +135,12 @@ export const handleUpdateOrgDeploy = async (
 
 export const getUserProfile = async (userId: string, orgId: string) => {
   try {
-    const response = await fetch(
-      `${fetchUrl}/api/v1/auth/${userId}/profile?orgId=${orgId}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+    const response = await fetch(`${fetchUrl}/api/v1/auth/${userId}/profile?orgId=${orgId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+    });
 
     if (!response.ok) {
       const errorData = await response.json();

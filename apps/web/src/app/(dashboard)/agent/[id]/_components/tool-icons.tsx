@@ -16,12 +16,7 @@ export function ToolProviderIcon({
       return <FileText className={`${c} text-emerald-600`} aria-hidden />;
     case "slack":
       return (
-        <svg
-          viewBox="0 0 24 24"
-          className={c}
-          aria-hidden
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg viewBox="0 0 24 24" className={c} aria-hidden xmlns="http://www.w3.org/2000/svg">
           <path
             fill="#E01E5A"
             d="M5 15.5a2.5 2.5 0 1 1-2.5-2.5H5zm1.25 0a2.5 2.5 0 0 1 5 0v6.25a2.5 2.5 0 0 1-5 0z"

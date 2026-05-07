@@ -9,9 +9,7 @@ export const signUpSchema = z
   .object({
     email: z.email("Invalid email"),
     password: z.string().min(6, "Password must be at least 6 characters long"),
-    confirmPassword: z
-      .string()
-      .min(6, "Confirm Password must be at least 6 characters long"),
+    confirmPassword: z.string().min(6, "Confirm Password must be at least 6 characters long"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -20,9 +18,7 @@ export const signUpSchema = z
 
 export const companyRegistrationSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters long"),
-  companyName: z
-    .string()
-    .min(3, "Company name must be at least 3 characters long"),
+  companyName: z.string().min(3, "Company name must be at least 3 characters long"),
   website: z.url("Invalid website"),
   industry: z.string().nonempty("Please select an industry"),
   size: z.number().min(1, "Company size must be greater than 1"),
