@@ -1,9 +1,12 @@
+import { Suspense } from "react";
 import DeployForm from "@/app/account-setup/_components/deploy-form";
 
 export default function OrgsDeployStrategy() {
   return (
     <div className="flex items-center justify-center">
-      <DeployForm />
+      <Suspense fallback={null}>
+        <DeployForm />
+      </Suspense>
     </div>
   );
 }
