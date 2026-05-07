@@ -13,7 +13,6 @@ dist
 .swc
 .vercel
 *.tsbuildinfo
-next-env.d.ts
 
 # Turbo
 .turbo
