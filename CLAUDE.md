@@ -26,19 +26,26 @@ Workspace package names are scoped under `@mirrorverse/*`.
 
 Run from the repo root unless otherwise noted.
 
-| Command              | What it does                                                        |
-| -------------------- | ------------------------------------------------------------------- |
-| `pnpm install`       | Install all workspace deps                                          |
-| `pnpm dev`           | Start dev servers in parallel (web :3000, api :3001, website :3002) |
-| `pnpm build`         | Build every workspace via Turbo                                     |
-| `pnpm lint`          | ESLint across the workspace                                         |
-| `pnpm lint:fix`      | ESLint with `--fix`                                                 |
-| `pnpm format`        | Prettier write across the repo                                      |
-| `pnpm format:check`  | Prettier check (used in CI)                                         |
-| `pnpm typecheck`     | `tsc --noEmit` across the workspace                                 |
-| `pnpm test`          | Run all unit tests                                                  |
-| `pnpm test:coverage` | Tests + 80% coverage gate                                           |
-| `pnpm clean`         | Remove all build/cache output and node_modules                      |
+| Command              | What it does                                                                   |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `pnpm install`       | Install all workspace deps                                                     |
+| `pnpm dev`           | Start all dev servers (web :3000, api :3001, website :3002) + package watchers |
+| `pnpm dev:web`       | Start only `apps/web` (:3000) + package watchers                               |
+| `pnpm dev:website`   | Start only `apps/website` (:3002) + package watchers                           |
+| `pnpm dev:api`       | Start only `apps/api` (:3001) + package watchers                               |
+| `pnpm build`         | Build every workspace via Turbo                                                |
+| `pnpm lint`          | ESLint across the workspace                                                    |
+| `pnpm lint:fix`      | ESLint with `--fix`                                                            |
+| `pnpm format`        | Prettier write across the repo                                                 |
+| `pnpm format:check`  | Prettier check (used in CI)                                                    |
+| `pnpm typecheck`     | `tsc --noEmit` across the workspace                                            |
+| `pnpm test`          | Run all unit tests                                                             |
+| `pnpm test:coverage` | Tests + 80% coverage gate                                                      |
+| `pnpm clean`         | Remove all build/cache output and node_modules                                 |
+| `pnpm db:push`       | Push Drizzle schema to the database                                            |
+| `pnpm db:generate`   | Generate Drizzle migration files                                               |
+| `pnpm db:migrate`    | Run pending Drizzle migrations                                                 |
+| `pnpm db:studio`     | Open Drizzle Studio (database GUI)                                             |
 
 Filter to a single workspace with `--filter`, e.g. `pnpm --filter @mirrorverse/web dev`.
 
