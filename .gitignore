@@ -52,6 +52,11 @@ coverage
 *.lcov
 .nyc_output
 
+# Cypress
+**/cypress/videos/
+**/cypress/screenshots/
+**/cypress/downloads/
+
 # IDE & editors
 .idea
 .vscode/*

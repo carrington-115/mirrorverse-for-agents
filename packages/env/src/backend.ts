@@ -12,8 +12,8 @@ export const env = createEnv({
     REDIS_URL: z.string().url(),
     REDIS_PASSWORD: z.string().optional(),
 
-    CLERK_SECRET_KEY: z.string().min(1),
-    CLERK_PUBLISHABLE_KEY: z.string().min(1),
+    SUPABASE_URL: z.string().url(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     JWT_SECRET: z.string().min(1),
     JWT_EXPIRES_IN: z.string().default("7d"),
 

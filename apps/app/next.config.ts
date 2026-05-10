@@ -4,10 +4,8 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@mirrorverse/ui", "@mirrorverse/env"],
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "img.clerk.com",
-      },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "graph.microsoft.com" },
     ],
   },
 };

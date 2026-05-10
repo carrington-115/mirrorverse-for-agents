@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Roboto } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -25,13 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className={`${geist.variable} antialiased`}>
-        <ClerkProvider
-          taskUrls={{
-            "reset-password": "/account-setup/reset-password",
-          }}
-        >
-          {children}
-        </ClerkProvider>
+        {children}
         <Toaster />
       </body>
     </html>

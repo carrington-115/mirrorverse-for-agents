@@ -15,9 +15,9 @@ export const config = {
   },
 
   auth: {
-    clerk: {
-      secretKey: env.CLERK_SECRET_KEY,
-      publishableKey: env.CLERK_PUBLISHABLE_KEY,
+    supabase: {
+      url: env.SUPABASE_URL,
+      serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
     },
     jwt: {
       secret: env.JWT_SECRET,

@@ -19,6 +19,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
+    "e2e": "pnpm --filter @mirrorverse/app e2e",
+    "e2e:open": "pnpm --filter @mirrorverse/app cy:open",
     "clean": "turbo run clean && rm -rf node_modules",
     "prepare": "husky"
   },
