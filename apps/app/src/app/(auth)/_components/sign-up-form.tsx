@@ -81,8 +81,8 @@ export default function SignUpForm() {
 
       await signUp.sso({
         strategy: "oauth_google",
-        redirectUrl: "/account-setup/user-role",
-        redirectCallbackUrl: "/account-setup/user-role",
+        redirectUrl: "/mirrropilot",
+        redirectCallbackUrl: "/mirrropilot",
       });
     } catch (error: any) {
       console.error("Google OAuth error:", error);

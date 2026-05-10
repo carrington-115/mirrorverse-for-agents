@@ -56,7 +56,7 @@ export default function SignInForm() {
       if (signIn.status === "complete") {
         await signIn.finalize({
           navigate: ({ decorateUrl }) => {
-            const url = decorateUrl("/dashboard");
+            const url = decorateUrl("/mirrropilot");
 
             if (url.startsWith("http")) {
               window.location.href = url;
@@ -84,8 +84,8 @@ export default function SignInForm() {
 
       await signIn.sso({
         strategy: "oauth_google",
-        redirectUrl: "/dashboard",
-        redirectCallbackUrl: "/dashboard",
+        redirectUrl: "/mirrropilot",
+        redirectCallbackUrl: "/mirrropilot",
       });
     } catch (error: any) {
       console.error("Google sign-in error:", error);

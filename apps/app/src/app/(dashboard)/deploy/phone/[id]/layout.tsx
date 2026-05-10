@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { MOCK_PHONE_NUMBERS } from "@/lib/data";
 import PhoneDetailHeader from "./_components/phone-detail-header";
-import PhoneTabNav from "./_components/phone-tab-nav";
 
 export default async function PhoneDetailLayout({
   children,
@@ -17,7 +16,6 @@ export default async function PhoneDetailLayout({
   return (
     <div className="gap-4 flex w-full flex-col">
       <PhoneDetailHeader phone={phone} />
-      <PhoneTabNav id={id} />
       {children}
     </div>
   );

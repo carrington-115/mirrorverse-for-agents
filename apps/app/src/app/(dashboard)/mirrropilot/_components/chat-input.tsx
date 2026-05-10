@@ -16,6 +16,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -28,23 +31,50 @@ import {
   X,
   Paperclip,
   ImageIcon,
-  Search,
-  FileText,
-  Settings,
-  Workflow,
-  AtSign,
-  Hash,
-  Slash,
   Globe,
   Zap,
+  Hash,
   Square,
+  Check,
+  Wrench,
+  Cpu,
+  Megaphone,
+  Grid2x2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ManageIntegrationsDialog,
+  AddIntegrationSheet,
+} from "@/app/(dashboard)/integrations/_components/integration";
 
 // ─────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────
 
-export type MirrropilotMode = "auto" | "orchestrate" | "deep-search" | "report" | "configure";
+const CLAUDE_MODELS = [
+  {
+    id: "claude-opus-4-7",
+    label: "Claude Opus 4.7",
+    description: "Most powerful model — excels at complex reasoning and nuanced tasks",
+  },
+  {
+    id: "claude-sonnet-4-6",
+    label: "Claude Sonnet 4.6",
+    description: "Balanced speed and intelligence for everyday workflows",
+  },
+  {
+    id: "claude-haiku-4-5",
+    label: "Claude Haiku 4.5",
+    description: "Fast and lightweight — ideal for simple, high-volume tasks",
+  },
+  {
+    id: "claude-sonnet-3-7",
+    label: "Claude Sonnet 3.7",
+    description: "Previous-gen Sonnet — reliable and cost-efficient",
+  },
+] as const;
+
+export type ClaudeModel = (typeof CLAUDE_MODELS)[number]["id"];
 
 export interface ContextChip {
   id: string;
@@ -60,56 +90,17 @@ export interface ChatInputProps {
   placeholder?: string;
   className?: string;
   isStreaming?: boolean;
-  defaultMode?: MirrropilotMode;
 }
 
 export interface ChatPayload {
   message: string;
-  mode: MirrropilotMode;
+  model: ClaudeModel;
   context: ContextChip[];
 }
 
 // ─────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────
-
-const MODES: {
-  id: MirrropilotMode;
-  label: string;
-  icon: React.ElementType;
-  description: string;
-}[] = [
-  {
-    id: "auto",
-    label: "Auto",
-    icon: Square,
-    description: "Mirrropilot selects mode",
-  },
-  {
-    id: "orchestrate",
-    label: "Orchestrate",
-    icon: Workflow,
-    description: "Coordinate and supervise agents",
-  },
-  {
-    id: "deep-search",
-    label: "Deep search",
-    icon: Search,
-    description: "Research across all sources",
-  },
-  {
-    id: "report",
-    label: "Report",
-    icon: FileText,
-    description: "Generate structured reports",
-  },
-  {
-    id: "configure",
-    label: "Configure",
-    icon: Settings,
-    description: "Edit tools, agents, workflows",
-  },
-];
 
 const ACCEPTED_FILE_TYPES = [
   "image/png",
@@ -128,16 +119,13 @@ const MAX_FILE_SIZE_MB = 25;
 const MAX_CONTEXT_CHIPS = 8;
 
 // ─────────────────────────────────────────
-// SUB-COMPONENT: Mode Badge
+// SUB-COMPONENT: Claude Icon (✳ asterisk)
 // ─────────────────────────────────────────
 
-function ModeBadge({ mode }: { mode: MirrropilotMode }) {
-  const config = MODES.find((m) => m.id === mode)!;
-  const Icon = config.icon;
+function ClaudeIcon({ className }: { className?: string }) {
   return (
-    <span className="gap-1.5 flex items-center">
-      <Icon className="size-3.5" />
-      <span>{config.label}</span>
+    <span className={cn("font-bold leading-none text-[#E8572A]", className)} aria-hidden>
+      ✳
     </span>
   );
 }
@@ -179,15 +167,11 @@ function ContextChipItem({
 }
 
 // ─────────────────────────────────────────
-// SUB-COMPONENT: @mention Popup
+// SUB-COMPONENT: @mention / #tool Popup
 // ─────────────────────────────────────────
 
 const MENTIONABLE_AGENTS = [
-  {
-    id: "inventory-agent",
-    label: "Inventory inquiry agent",
-    type: "agent" as const,
-  },
+  { id: "inventory-agent", label: "Inventory inquiry agent", type: "agent" as const },
   { id: "sales-agent", label: "Sales agent", type: "agent" as const },
   { id: "support-agent", label: "Support agent", type: "agent" as const },
   { id: "billing-agent", label: "Billing agent", type: "agent" as const },
@@ -254,10 +238,9 @@ export default function ChatInput({
   placeholder = "How can I help you today?",
   className,
   isStreaming = false,
-  defaultMode = "auto",
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
-  const [mode, setMode] = useState<MirrropilotMode>(defaultMode);
+  const [model, setModel] = useState<ClaudeModel>("claude-opus-4-7");
   const [contextChips, setContextChips] = useState<ContextChip[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -268,6 +251,10 @@ export default function ChatInput({
     startIndex: number;
   } | null>(null);
 
+  const [manageIntegrationsOpen, setManageIntegrationsOpen] = useState(false);
+  const [addIntegrationSheetOpen, setAddIntegrationSheetOpen] = useState(false);
+
+  const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -293,11 +280,11 @@ export default function ChatInput({
       return;
     }
     if (!hasContent) return;
-    onSend?.({ message: message.trim(), mode, context: contextChips });
+    onSend?.({ message: message.trim(), model, context: contextChips });
     setMessage("");
     setContextChips([]);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-  }, [isStreaming, hasContent, message, mode, contextChips, onSend, onStop]);
+  }, [isStreaming, hasContent, message, model, contextChips, onSend, onStop]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -305,7 +292,6 @@ export default function ChatInput({
         e.preventDefault();
         handleSend();
       }
-      // Dismiss mention on Escape
       if (e.key === "Escape" && mentionState?.active) {
         setMentionState(null);
       }
@@ -321,7 +307,6 @@ export default function ChatInput({
     const cursor = e.target.selectionStart ?? val.length;
     const textBeforeCursor = val.slice(0, cursor);
 
-    // Detect @ or # trigger
     const match = textBeforeCursor.match(/(?:^|\s)([@#])(\w*)$/);
     if (match) {
       const trigger = match[1] as "@" | "#";
@@ -339,11 +324,9 @@ export default function ChatInput({
         setMentionState(null);
         return;
       }
-      // Remove the @/# trigger text from the message
       const before = message.slice(0, mentionState.startIndex);
       const after = message.slice(mentionState.startIndex + 1 + mentionState.query.length);
       setMessage(before + after);
-
       addContextChip({ id: item.id, type: item.type, label: item.label });
       setMentionState(null);
       textareaRef.current?.focus();
@@ -370,7 +353,6 @@ export default function ChatInput({
       Array.from(files).forEach((file) => {
         if (!ACCEPTED_FILE_TYPES.includes(file.type)) return;
         if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) return;
-
         const type = file.type.startsWith("image/") ? "image" : "file";
         addContextChip({ type, label: file.name, mimeType: file.type, file });
       });
@@ -424,10 +406,9 @@ export default function ChatInput({
   // ── Voice recording ───────────────────────
   const toggleRecording = useCallback(() => {
     setIsRecording((prev) => !prev);
-    // Wire to Web Speech API or Whisper here
   }, []);
 
-  const _currentMode = MODES.find((m) => m.id === mode)!;
+  const selectedModel = CLAUDE_MODELS.find((m) => m.id === model)!;
 
   return (
     <TooltipProvider delayDuration={400}>
@@ -451,7 +432,7 @@ export default function ChatInput({
           </div>
         )}
 
-        {/* ── Context chips bar (shown when chips exist) ── */}
+        {/* ── Context chips bar ── */}
         {contextChips.length > 0 && (
           <div className="mb-2.5 gap-1.5 flex flex-wrap">
             {contextChips.map((chip) => (
@@ -490,23 +471,7 @@ export default function ChatInput({
         <div className="mt-3 flex w-full items-center justify-between">
           {/* Left tools */}
           <div className="gap-0.5 flex items-center">
-            {/* Attach button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-9 rounded-full"
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label="Attach file or image"
-                >
-                  <Plus className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Attach file or image</TooltipContent>
-            </Tooltip>
-
+            {/* Hidden file input */}
             <input
               ref={fileInputRef}
               type="file"
@@ -516,84 +481,86 @@ export default function ChatInput({
               onChange={handleFileSelect}
             />
 
-            {/* Mode selector */}
+            {/* Plus dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
                   variant="ghost"
-                  className="h-9 gap-1.5 px-3 text-sm font-medium rounded-full text-muted-foreground hover:text-foreground"
+                  size="icon"
+                  className="size-9 shrink-0 rounded-full"
+                  aria-label="Add attachment or connection"
                 >
-                  <ModeBadge mode={mode} />
-                  <ChevronDown className="size-3.5" />
+                  <Plus className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-52">
-                {MODES.map((m) => {
-                  const Icon = m.icon;
-                  return (
-                    <DropdownMenuItem
-                      key={m.id}
-                      onClick={() => setMode(m.id)}
-                      className={cn(
-                        "gap-2.5 py-2.5 flex items-start",
-                        mode === m.id && "bg-accent",
-                      )}
-                    >
-                      <Icon className="mt-0.5 size-3.5 shrink-0" />
-                      <div className="gap-0.5 flex flex-col">
-                        <span className="text-sm font-medium">{m.label}</span>
-                        <span className="text-xs text-muted-foreground">{m.description}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  );
-                })}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-xs text-muted-foreground">
-                  Auto — Mirrropilot selects mode
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                  <Paperclip className="size-4 mr-2 shrink-0" />
+                  Attach file
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setManageIntegrationsOpen(true)}>
+                  <Grid2x2 className="size-4 mr-2 shrink-0" />
+                  Connect apps
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAddIntegrationSheetOpen(true)}>
+                  <Wrench className="size-4 mr-2 shrink-0" />
+                  Connect tool
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/integrations")}>
+                  <Cpu className="size-4 mr-2 shrink-0" />
+                  Connect MCP
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Megaphone className="size-4 mr-2 shrink-0" />
+                    Configure channel
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => router.push("/deploy/whatsapp")}>
+                      WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/deploy/phone")}>
+                      Phone
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Mention agent — @ */}
-            <Tooltip>
-              <TooltipTrigger asChild>
+            {/* Model selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon"
-                  className="size-9 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    setMessage((prev) => prev + "@");
-                    textareaRef.current?.focus();
-                  }}
-                  aria-label="Mention agent"
+                  className="h-9 gap-2 px-3 text-sm font-medium rounded-full text-muted-foreground hover:text-foreground"
                 >
-                  <AtSign className="size-4" />
+                  <ClaudeIcon className="text-base" />
+                  <span>{selectedModel.label}</span>
+                  <ChevronDown className="size-3.5" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Mention agent (@)</TooltipContent>
-            </Tooltip>
-
-            {/* Mention tool — # */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-9 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    setMessage((prev) => prev + "#");
-                    textareaRef.current?.focus();
-                  }}
-                  aria-label="Mention tool"
-                >
-                  <Slash className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Mention tool (#)</TooltipContent>
-            </Tooltip>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                {CLAUDE_MODELS.map((m) => (
+                  <DropdownMenuItem
+                    key={m.id}
+                    onClick={() => setModel(m.id)}
+                    className="gap-2 py-2.5 items-start"
+                  >
+                    <ClaudeIcon className="text-sm mt-0.5 shrink-0" />
+                    <div className="gap-0.5 flex flex-1 flex-col">
+                      <span className="text-sm font-medium">{m.label}</span>
+                      <span className="text-xs leading-snug text-muted-foreground">
+                        {m.description}
+                      </span>
+                    </div>
+                    {model === m.id && <Check className="mt-0.5 size-4 shrink-0" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Right tools */}
@@ -606,7 +573,7 @@ export default function ChatInput({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "size-9 rounded-full text-muted-foreground hover:text-foreground",
+                    "size-9 rounded-full bg-secondary text-muted-foreground hover:text-foreground",
                     isRecording && "text-destructive hover:text-destructive",
                   )}
                   onClick={toggleRecording}
@@ -643,6 +610,16 @@ export default function ChatInput({
           </div>
         </div>
       </div>
+
+      <ManageIntegrationsDialog
+        open={manageIntegrationsOpen}
+        onOpenChange={setManageIntegrationsOpen}
+      />
+      <AddIntegrationSheet
+        open={addIntegrationSheetOpen}
+        onOpenChange={setAddIntegrationSheetOpen}
+        integration={null}
+      />
     </TooltipProvider>
   );
 }
