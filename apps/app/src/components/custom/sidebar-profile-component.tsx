@@ -51,6 +51,7 @@ export default function SidebarProfileComponent({ name, email, image }: sidebarP
               <button
                 className="flex cursor-pointer items-center justify-center rounded-full"
                 aria-label={name}
+                data-testid="user-menu-trigger"
               >
                 <Avatar size="sm">
                   <AvatarImage src={image} />
@@ -79,6 +80,7 @@ export default function SidebarProfileComponent({ name, email, image }: sidebarP
           <DropdownMenuGroup>
             <DropdownMenuItem
               className="text-red-500"
+              data-testid="sign-out"
               onSelect={(event) => {
                 event.preventDefault();
                 handleSignOut();
@@ -109,7 +111,13 @@ export default function SidebarProfileComponent({ name, email, image }: sidebarP
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size={"icon"} variant={"ghost"} className="cursor-pointer">
+          <Button
+            size={"icon"}
+            variant={"ghost"}
+            className="cursor-pointer"
+            aria-label="Open user menu"
+            data-testid="user-menu-trigger"
+          >
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
@@ -131,6 +139,7 @@ export default function SidebarProfileComponent({ name, email, image }: sidebarP
           <DropdownMenuGroup>
             <DropdownMenuItem
               className="text-red-500"
+              data-testid="sign-out"
               onSelect={(event) => {
                 event.preventDefault();
                 handleSignOut();

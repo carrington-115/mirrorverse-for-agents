@@ -50,7 +50,13 @@ declare global {
   }
 }
 
-const OTP_INTERCEPT_RESPONSE = { statusCode: 200, body: { messageId: null } };
+// Mirrors a real Supabase /auth/v1/otp success response shape, with the
+// content-type header that supabase-js needs to parse the body as JSON.
+const OTP_INTERCEPT_RESPONSE = {
+  statusCode: 200,
+  headers: { "content-type": "application/json" },
+  body: { messaging_provider: null, messageId: null },
+};
 // Regex match against the full URL — globs in cy.intercept are minimatch-flavored
 // and have edge cases with `**` across the protocol/host boundary.
 const OTP_URL_REGEX = /\/auth\/v1\/otp(\?|$)/;

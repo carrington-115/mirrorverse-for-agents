@@ -90,16 +90,12 @@ describe("Authentication", () => {
   });
 
   describe("sign-out", () => {
-    it("signs the user out from the dashboard sidebar and redirects to /sign-in", () => {
+    it("signs the user out from the sidebar profile menu and redirects to /sign-in", () => {
       cy.uniqueTestEmail().then((email) => {
         cy.signInViaAdminOtp(email);
 
-        // Open the sidebar profile menu and click Logout.
-        cy.contains("button", /ellipsis|menu/i)
-          .filter(":visible")
-          .first()
-          .click({ force: true });
-        cy.contains(/^logout$/i).click({ force: true });
+        cy.get('[data-testid="user-menu-trigger"]').filter(":visible").first().click();
+        cy.get('[data-testid="sign-out"]').filter(":visible").first().click();
 
         cy.location("pathname", { timeout: 15_000 }).should("eq", "/sign-in");
         cy.getAllCookies().then((cookies) => {
