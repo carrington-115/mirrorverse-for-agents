@@ -9,12 +9,13 @@ Mirrorverse is a pnpm + Turborepo monorepo.
 ```
 mirrorverse/
 ├── apps/
-│   ├── web/         Main Next.js 16 app (Clerk + Drizzle, port 3000)
-│   ├── website/     Marketing landing page (Next.js, port 3002)
-│   └── api/         Express + tRPC backend (port 3001)
+│   ├── app/         Main Next.js 16 product app (Clerk, port 3000)
+│   ├── marketing/   Marketing landing page (Next.js, port 3002)
+│   └── backend/     Express + tRPC backend (port 3001)
 ├── packages/
 │   ├── ui/                shadcn components, theme, cn, hooks
-│   ├── env/               @t3-oss/env schemas (web / website / api)
+│   ├── db/                Drizzle schema, client, and migrations
+│   ├── env/               @t3-oss/env schemas (app / marketing / backend)
 │   ├── eslint-config/     Shared flat ESLint configs (base / next / node)
 │   └── typescript-config/ Shared tsconfig presets (base / nextjs / react-library / node)
 └── turbo.json, pnpm-workspace.yaml, package.json
@@ -26,28 +27,28 @@ Workspace package names are scoped under `@mirrorverse/*`.
 
 Run from the repo root unless otherwise noted.
 
-| Command              | What it does                                                                   |
-| -------------------- | ------------------------------------------------------------------------------ |
-| `pnpm install`       | Install all workspace deps                                                     |
-| `pnpm dev`           | Start all dev servers (web :3000, api :3001, website :3002) + package watchers |
-| `pnpm dev:web`       | Start only `apps/web` (:3000) + package watchers                               |
-| `pnpm dev:website`   | Start only `apps/website` (:3002) + package watchers                           |
-| `pnpm dev:api`       | Start only `apps/api` (:3001) + package watchers                               |
-| `pnpm build`         | Build every workspace via Turbo                                                |
-| `pnpm lint`          | ESLint across the workspace                                                    |
-| `pnpm lint:fix`      | ESLint with `--fix`                                                            |
-| `pnpm format`        | Prettier write across the repo                                                 |
-| `pnpm format:check`  | Prettier check (used in CI)                                                    |
-| `pnpm typecheck`     | `tsc --noEmit` across the workspace                                            |
-| `pnpm test`          | Run all unit tests                                                             |
-| `pnpm test:coverage` | Tests + 80% coverage gate                                                      |
-| `pnpm clean`         | Remove all build/cache output and node_modules                                 |
-| `pnpm db:push`       | Push Drizzle schema to the database                                            |
-| `pnpm db:generate`   | Generate Drizzle migration files                                               |
-| `pnpm db:migrate`    | Run pending Drizzle migrations                                                 |
-| `pnpm db:studio`     | Open Drizzle Studio (database GUI)                                             |
+| Command              | What it does                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| `pnpm install`       | Install all workspace deps                                                           |
+| `pnpm dev`           | Start all dev servers (app :3000, backend :3001, marketing :3002) + package watchers |
+| `pnpm dev:app`       | Start only `apps/app` (:3000) + package watchers                                     |
+| `pnpm dev:marketing` | Start only `apps/marketing` (:3002) + package watchers                               |
+| `pnpm dev:backend`   | Start only `apps/backend` (:3001) + package watchers                                 |
+| `pnpm build`         | Build every workspace via Turbo                                                      |
+| `pnpm lint`          | ESLint across the workspace                                                          |
+| `pnpm lint:fix`      | ESLint with `--fix`                                                                  |
+| `pnpm format`        | Prettier write across the repo                                                       |
+| `pnpm format:check`  | Prettier check (used in CI)                                                          |
+| `pnpm typecheck`     | `tsc --noEmit` across the workspace                                                  |
+| `pnpm test`          | Run all unit tests                                                                   |
+| `pnpm test:coverage` | Tests + 80% coverage gate                                                            |
+| `pnpm clean`         | Remove all build/cache output and node_modules                                       |
+| `pnpm db:push`       | Push Drizzle schema to the database                                                  |
+| `pnpm db:generate`   | Generate Drizzle migration files                                                     |
+| `pnpm db:migrate`    | Run pending Drizzle migrations                                                       |
+| `pnpm db:studio`     | Open Drizzle Studio (database GUI)                                                   |
 
-Filter to a single workspace with `--filter`, e.g. `pnpm --filter @mirrorverse/web dev`.
+Filter to a single workspace with `--filter`, e.g. `pnpm --filter @mirrorverse/app dev`.
 
 ## Turbo conventions
 
@@ -85,6 +86,10 @@ The exception: Next.js dynamic segment files (`[id].tsx`, `[...slug].tsx`) and r
 
 React component identifiers stay PascalCase — only the **filename** is kebab. So `dashboard-card.tsx` exports `DashboardCard`.
 
+### Git commits
+
+Do not add `Co-Authored-By: Claude` (or any Claude Code attribution) trailers to commit messages. Commit messages should contain only the human-authored subject and body.
+
 ### Pre-commit (Husky + lint-staged)
 
 `.husky/pre-commit` runs:
@@ -113,12 +118,12 @@ If a commit gets blocked, fix the underlying issue rather than `--no-verify`. Th
 
 Each app/package extends a shared preset:
 
-| Workspace                  | Extends                                             |
-| -------------------------- | --------------------------------------------------- |
-| `apps/web`, `apps/website` | `@mirrorverse/typescript-config/nextjs.json`        |
-| `apps/api`                 | `@mirrorverse/typescript-config/node.json`          |
-| `packages/ui`              | `@mirrorverse/typescript-config/react-library.json` |
-| `packages/env`             | `@mirrorverse/typescript-config/react-library.json` |
+| Workspace                     | Extends                                             |
+| ----------------------------- | --------------------------------------------------- |
+| `apps/app`, `apps/marketing`  | `@mirrorverse/typescript-config/nextjs.json`        |
+| `apps/backend`                | `@mirrorverse/typescript-config/node.json`          |
+| `packages/ui`                 | `@mirrorverse/typescript-config/react-library.json` |
+| `packages/env`, `packages/db` | `@mirrorverse/typescript-config/react-library.json` |
 
 #### Rules for tsconfig (read before touching any tsconfig.json)
 
@@ -157,11 +162,11 @@ When you're writing or editing TypeScript in this repo:
 
 Each workspace's `eslint.config.mjs` consumes the shared flat config:
 
-| Workspace                  | Imports                                                     |
-| -------------------------- | ----------------------------------------------------------- |
-| `apps/web`, `apps/website` | `@mirrorverse/eslint-config/next` (includes Tailwind rules) |
-| `apps/api`, `packages/env` | `@mirrorverse/eslint-config/node`                           |
-| `packages/ui`              | `@mirrorverse/eslint-config/base` + `tailwind`              |
+| Workspace                                     | Imports                                                     |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `apps/app`, `apps/marketing`                  | `@mirrorverse/eslint-config/next` (includes Tailwind rules) |
+| `apps/backend`, `packages/env`, `packages/db` | `@mirrorverse/eslint-config/node`                           |
+| `packages/ui`                                 | `@mirrorverse/eslint-config/base` + `tailwind`              |
 
 #### Rule severity policy
 
@@ -223,9 +228,9 @@ The shared theme is in `packages/ui/src/styles/globals.css`. App-level `globals.
 Never call `process.env.X` directly in app code. Use the appropriate import:
 
 ```ts
-import { env } from "@mirrorverse/env/web"; // Next.js web app
-import { env } from "@mirrorverse/env/website"; // Next.js website
-import { env } from "@mirrorverse/env/api"; // Node api
+import { env } from "@mirrorverse/env/app"; // Next.js product app
+import { env } from "@mirrorverse/env/marketing"; // Next.js marketing site
+import { env } from "@mirrorverse/env/backend"; // Express backend
 ```
 
 To add a new variable: edit the relevant schema file in `packages/env/src/`, add it to the `.env.example` of the consuming app.

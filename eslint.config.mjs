@@ -12,8 +12,12 @@ import { tailwindConfig } from "@mirrorverse/eslint-config/tailwind";
  * right paths so a single root invocation lints the whole repo correctly.
  */
 
-const APPS_NEXT = ["apps/web/**/*.{ts,tsx,js,jsx}", "apps/website/**/*.{ts,tsx,js,jsx}"];
-const APPS_NODE = ["apps/api/**/*.{ts,tsx,js,jsx}", "packages/env/**/*.{ts,tsx,js,jsx}"];
+const APPS_NEXT = ["apps/app/**/*.{ts,tsx,js,jsx}", "apps/marketing/**/*.{ts,tsx,js,jsx}"];
+const APPS_NODE = [
+  "apps/backend/**/*.{ts,tsx,js,jsx}",
+  "packages/env/**/*.{ts,tsx,js,jsx}",
+  "packages/db/**/*.{ts,tsx,js,jsx}",
+];
 const PKG_UI = ["packages/ui/**/*.{ts,tsx,js,jsx}"];
 const PKG_ESLINT = ["packages/eslint-config/**/*.js"];
 

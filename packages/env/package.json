@@ -4,17 +4,17 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./web": {
-      "types": "./src/web.ts",
-      "default": "./src/web.ts"
+    "./app": {
+      "types": "./src/app.ts",
+      "default": "./src/app.ts"
     },
-    "./website": {
-      "types": "./src/website.ts",
-      "default": "./src/website.ts"
+    "./marketing": {
+      "types": "./src/marketing.ts",
+      "default": "./src/marketing.ts"
     },
-    "./api": {
-      "types": "./src/api.ts",
-      "default": "./src/api.ts"
+    "./backend": {
+      "types": "./src/backend.ts",
+      "default": "./src/backend.ts"
     }
   },
   "scripts": {

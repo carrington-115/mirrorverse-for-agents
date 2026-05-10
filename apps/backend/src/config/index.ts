@@ -1,4 +1,4 @@
-import { env } from "@mirrorverse/env/api";
+import { env } from "@mirrorverse/env/backend";
 
 export const config = {
   env: env.NODE_ENV,

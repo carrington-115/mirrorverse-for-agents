@@ -1,6 +1,6 @@
 "use server";
 
-import { env } from "@mirrorverse/env/web";
+import { env } from "@mirrorverse/env/app";
 
 const fetchUrl = env.NEXT_PUBLIC_API_URL;
 
