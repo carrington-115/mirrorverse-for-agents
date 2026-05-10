@@ -72,7 +72,7 @@ export default function SidebarActivityButton({
           </CollapsibleTrigger>
         </SidebarMenuItem>
         <CollapsibleContent>
-          <SidebarGroupContent className="ml-[1rem] border-l border-border pl-[.5rem]">
+          <SidebarGroupContent className="pl-4 ml-2 border-l border-border">
             {sub.map((subItem) => (
               <SidebarMenuItem key={subItem.name}>
                 <SidebarActivityButton href={subItem.url} name={subItem.name} />

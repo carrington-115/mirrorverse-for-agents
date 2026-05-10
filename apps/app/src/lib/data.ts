@@ -27,14 +27,7 @@ import {
   SiCalendly,
 } from "react-icons/si";
 import { MdOutlineLocalPhone, MdOutlineEmail } from "react-icons/md";
-import {
-  Folder,
-  Megaphone,
-  Shapes,
-  SquareUserRound,
-  Workflow as WorkflowIcon,
-  Wrench,
-} from "lucide-react";
+import { Megaphone, Shapes, Workflow as WorkflowIcon } from "lucide-react";
 
 export const industries = [
   {
@@ -242,15 +235,15 @@ export const teamsData: Team[] = [
     id: "marketing",
     name: "Marketting team",
     initials: "MG",
-    orgName: "Mel's place",
+    orgName: "Mirrorverse",
   },
   {
     id: "customer-support",
     name: "Customer support",
     initials: "CS",
-    orgName: "Mel's place",
+    orgName: "Mirrorverse",
   },
-  { id: "sales", name: "Sales", initials: "SS", orgName: "Mel's place" },
+  { id: "sales", name: "Sales", initials: "SS", orgName: "Mirrorverse" },
 ];
 
 export interface SidebarSubItem {
@@ -275,26 +268,10 @@ export const sidebarData: SidebarGroup[] = [
     name: "Create",
     actions: [
       {
-        name: "Agent",
-        url: "/agent",
-        icon: SquareUserRound,
-        type: "creative",
-      },
-      {
         name: "Workflows",
         url: "/workflows",
         icon: WorkflowIcon,
         type: "creative",
-      },
-      {
-        name: "Knowledge base",
-        url: "/knowledge-base",
-        icon: Folder,
-      },
-      {
-        name: "Tools",
-        url: "/tools",
-        icon: Wrench,
       },
     ],
   },
@@ -307,14 +284,8 @@ export const sidebarData: SidebarGroup[] = [
         icon: Megaphone,
         type: "collapsible",
         sub: [
-          {
-            name: "Phone",
-            url: "/deploy/phone",
-          },
-          {
-            name: "WhatsApp",
-            url: "/deploy/whatsapp",
-          },
+          { name: "Phone", url: "/deploy/phone" },
+          { name: "WhatsApp", url: "/deploy/whatsapp" },
         ],
       },
       {

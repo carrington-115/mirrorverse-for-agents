@@ -10,7 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/account-setup/reset-password(.*)",
 ]);
 
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/account-setup(.*)"]);
+const isProtectedRoute = createRouteMatcher(["/mirrropilot(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
@@ -18,7 +18,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (pathname === "/") {
     if (userId) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      return NextResponse.redirect(new URL("/mirrropilot", req.url));
     } else {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }

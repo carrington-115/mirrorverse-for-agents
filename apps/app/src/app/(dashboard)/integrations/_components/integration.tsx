@@ -169,8 +169,6 @@ export function AddIntegrationSheet({
   const [credentialType, setCredentialType] = useState("bot-oauth-id");
   const [credentialValue, setCredentialValue] = useState("");
 
-  if (!integration) return null;
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-sm">
@@ -212,20 +210,28 @@ export function AddIntegrationSheet({
           </TabsContent>
 
           <TabsContent value="tools" className="mt-4">
-            <p className="text-sm text-muted-foreground">Configure tools for {integration.name}.</p>
+            <p className="text-sm text-muted-foreground">
+              {integration
+                ? `Configure tools for ${integration.name}.`
+                : "Select an integration to configure its tools."}
+            </p>
           </TabsContent>
 
           <TabsContent value="about" className="mt-4">
-            <div className="gap-3 flex flex-col">
-              <div className="gap-3 flex items-center">
-                <integration.icon className={cn("size-8", integration.iconColor)} />
-                <div>
-                  <p className="font-medium">{integration.name}</p>
-                  <p className="text-xs text-muted-foreground">Integration</p>
+            {integration ? (
+              <div className="gap-3 flex flex-col">
+                <div className="gap-3 flex items-center">
+                  <integration.icon className={cn("size-8", integration.iconColor)} />
+                  <div>
+                    <p className="font-medium">{integration.name}</p>
+                    <p className="text-xs text-muted-foreground">Integration</p>
+                  </div>
                 </div>
+                <p className="text-sm text-muted-foreground">{integration.description}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{integration.description}</p>
-            </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No integration selected.</p>
+            )}
           </TabsContent>
         </Tabs>
 

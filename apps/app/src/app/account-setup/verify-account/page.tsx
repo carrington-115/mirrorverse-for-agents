@@ -7,6 +7,7 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { handleRegisterUser } from "../actions";
 import { useSignUp, useClerk, useSignIn } from "@clerk/nextjs";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -47,10 +48,14 @@ function VerifyEmailContent() {
       }
 
       if (signUp.status === "complete") {
-        // ✅ Simplified finalize - no session task check
+        try {
+          await handleRegisterUser(email, signUp.createdUserId!);
+        } catch (err) {
+          console.error("Failed to register user:", err);
+        }
         await signUp.finalize({
           navigate: ({ decorateUrl }) => {
-            const url = decorateUrl("/account-setup");
+            const url = decorateUrl("/mirrropilot");
 
             if (url.startsWith("http")) {
               window.location.href = url;
