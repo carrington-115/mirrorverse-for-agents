@@ -1,0 +1,7 @@
+{
+  "extends": "@mirrorverse/typescript-config/react-library.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

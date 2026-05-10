@@ -25,9 +25,12 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:verify": "node scripts/verify.mjs",
+    "db:sync-directory": "node scripts/sync-directory.mjs"
   },
   "dependencies": {
+    "@mirrorverse/types": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "postgres": "^3.4.8"
   },
