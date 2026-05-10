@@ -19,7 +19,7 @@ const FULL_ENV = {
   POSTHOG_API_KEY: "key",
 };
 
-describe("api env", () => {
+describe("backend env", () => {
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
@@ -33,7 +33,7 @@ describe("api env", () => {
 
   it("parses all required vars and applies defaults", async () => {
     process.env = { ...FULL_ENV } as NodeJS.ProcessEnv;
-    const { env } = await import("./api");
+    const { env } = await import("./backend");
     expect(env.NODE_ENV).toBe("test");
     expect(env.PORT).toBe(4000);
     expect(env.API_VERSION).toBe("v1");
@@ -44,7 +44,7 @@ describe("api env", () => {
 
   it("coerces PORT from string to number", async () => {
     process.env = { ...FULL_ENV, PORT: "8080" } as NodeJS.ProcessEnv;
-    const { env } = await import("./api");
+    const { env } = await import("./backend");
     expect(env.PORT).toBe(8080);
     expect(typeof env.PORT).toBe("number");
   });
@@ -52,11 +52,11 @@ describe("api env", () => {
   it("throws when DATABASE_URL is missing", async () => {
     const { DATABASE_URL: _omit, ...rest } = FULL_ENV;
     process.env = rest as NodeJS.ProcessEnv;
-    await expect(import("./api")).rejects.toThrow();
+    await expect(import("./backend")).rejects.toThrow();
   });
 
   it("skips validation when SKIP_ENV_VALIDATION is set", async () => {
     process.env = { SKIP_ENV_VALIDATION: "1" } as NodeJS.ProcessEnv;
-    await expect(import("./api")).resolves.toBeDefined();
+    await expect(import("./backend")).resolves.toBeDefined();
   });
 });

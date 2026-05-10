@@ -12,7 +12,7 @@ import { loggingMiddleware } from "@middleware/logging.middleware";
 import { rateLimitMiddleware } from "@middleware/ratelimit.middleware";
 
 import apiV1Routes from "@api/index";
-import { connectToDatabase } from "./database/connection.db";
+import { connectToDatabase } from "@mirrorverse/db";
 import { monitoringMiddleware } from "./middleware/monitoring.middleware";
 
 const app: Express = express();
@@ -45,7 +45,7 @@ if (config.env !== "test") {
 }
 
 if (config.env !== "test") {
-  connectToDatabase();
+  connectToDatabase(config.database.url);
 }
 
 app.use(loggingMiddleware);
