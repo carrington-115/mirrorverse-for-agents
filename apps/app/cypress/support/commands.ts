@@ -26,13 +26,13 @@ declare global {
 
       /**
        * Drives the sign-in form with the given email and waits for the redirect
-       * to /account-setup/verify-account. Mocks the OTP send — no real email.
+       * to /onboarding/verify-account. Mocks the OTP send — no real email.
        */
       submitSignInEmail(email: string): Chainable<void>;
 
       /**
        * Drives the sign-up form with the given email and waits for the redirect
-       * to /account-setup/verify-account. Mocks the OTP send — no real email.
+       * to /onboarding/verify-account. Mocks the OTP send — no real email.
        */
       submitSignUpEmail(email: string): Chainable<void>;
 
@@ -40,10 +40,10 @@ declare global {
        * End-to-end UI sign-in for tests that need a real session.
        *
        * Bypasses the sign-in form (which would send an extra email) and goes
-       * straight to /account-setup/verify-account, then verifies a real OTP
+       * straight to /onboarding/verify-account, then verifies a real OTP
        * obtained via the admin API. Uses 1 email per call.
        *
-       * Returns the user to whatever `next` says — defaults to /mirrropilot.
+       * Returns the user to whatever `next` says — defaults to /mirropilot.
        */
       signInViaAdminOtp(email: string, next?: string): Chainable<void>;
     }
@@ -57,16 +57,32 @@ const OTP_INTERCEPT_RESPONSE = {
   headers: { "content-type": "application/json" },
   body: { messaging_provider: null, messageId: null },
 };
-// Regex match against the full URL — globs in cy.intercept are minimatch-flavored
-// and have edge cases with `**` across the protocol/host boundary.
-const OTP_URL_REGEX = /\/auth\/v1\/otp(\?|$)/;
+
+// CORS preflight response. supabase-js sends an `apikey` header which is not on
+// the CORS-safe list, so the browser issues an OPTIONS preflight before the
+// POST. If we don't stub it, the preflight escapes to real Supabase and burns
+// rate limit / can fail.
+const PREFLIGHT_RESPONSE = {
+  statusCode: 204,
+  headers: {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST, GET, OPTIONS",
+    "access-control-allow-headers": "*",
+    "access-control-max-age": "86400",
+  },
+};
+
+const OTP_URL_REGEX = /supabase\.co\/auth\/v1\/otp(?:\?|$)/;
 
 Cypress.Commands.add("uniqueTestEmail", (prefix = "e2e") => {
   const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  return cy.wrap(`${prefix}-${id}@e2e.mirrorverse.test`);
+  // example.com is the universal "test" domain (RFC 2606). zod 4's z.email()
+  // accepts it; reserved TLDs like .test can be rejected by stricter validators.
+  return cy.wrap(`${prefix}-${id}@example.com`);
 });
 
 Cypress.Commands.add("mockOtpRequest", () => {
+  cy.intercept({ method: "OPTIONS", url: OTP_URL_REGEX }, PREFLIGHT_RESPONSE).as("otpPreflight");
   cy.intercept({ method: "POST", url: OTP_URL_REGEX }, OTP_INTERCEPT_RESPONSE).as("otpRequest");
 });
 
@@ -76,9 +92,9 @@ Cypress.Commands.add("submitSignInEmail", (email: string) => {
   cy.get('input[type="email"]').type(email);
   cy.contains("button", "Sign in with email").click();
   cy.wait("@otpRequest");
-  cy.location("pathname", { timeout: 15_000 }).should("eq", "/account-setup/verify-account");
+  cy.location("pathname", { timeout: 15_000 }).should("eq", "/onboarding/verify-account");
   cy.location("search").should("include", `email=${encodeURIComponent(email)}`);
-  cy.location("search").should("include", "next=%2Fmirrropilot");
+  cy.location("search").should("include", "next=%2Fmirropilot");
 });
 
 Cypress.Commands.add("submitSignUpEmail", (email: string) => {
@@ -89,19 +105,19 @@ Cypress.Commands.add("submitSignUpEmail", (email: string) => {
   // so we scope the selector to the form's submit button (type="submit").
   cy.get('form button[type="submit"]').click();
   cy.wait("@otpRequest");
-  cy.location("pathname", { timeout: 15_000 }).should("eq", "/account-setup/verify-account");
+  cy.location("pathname", { timeout: 15_000 }).should("eq", "/onboarding/verify-account");
   cy.location("search").should("include", `email=${encodeURIComponent(email)}`);
-  cy.location("search").should("include", "next=%2Fmirrropilot");
+  cy.location("search").should("include", "next=%2Fmirropilot");
 });
 
-Cypress.Commands.add("signInViaAdminOtp", (email: string, next: string = "/mirrropilot") => {
+Cypress.Commands.add("signInViaAdminOtp", (email: string, next: string = "/mirropilot") => {
   cy.task<GeneratedOtp>("generateOtp", { email, shouldCreateUser: true }).then((otp) => {
     const code = otp.email_otp;
     if (typeof code !== "string" || code.length !== 6) {
       throw new Error(`Expected 6-digit OTP from admin API, got: ${JSON.stringify(otp)}`);
     }
     const params = new URLSearchParams({ email, next });
-    cy.visit(`/account-setup/verify-account?${params.toString()}`);
+    cy.visit(`/onboarding/verify-account?${params.toString()}`);
     cy.get('[data-input-otp="true"]').type(code);
     cy.contains("button", "Continue").click();
     cy.location("pathname", { timeout: 15_000 }).should("eq", next);
