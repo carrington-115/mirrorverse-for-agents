@@ -1,7 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { signOutAction } from "@/app/(dashboard)/actions";
+import { toast } from "sonner";
 
 interface sidebarProfileProps {
   name: string;
@@ -24,6 +27,19 @@ interface sidebarProfileProps {
 export default function SidebarProfileComponent({ name, email, image }: sidebarProfileProps) {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const [isSigningOut, startSignOut] = useTransition();
+
+  const handleSignOut = () => {
+    startSignOut(async () => {
+      try {
+        await signOutAction();
+      } catch (error) {
+        // Next.js redirect() throws a special signal we should let through.
+        if (error instanceof Error && error.message === "NEXT_REDIRECT") throw error;
+        toast.error(error instanceof Error ? error.message : "Failed to sign out");
+      }
+    });
+  };
 
   // Collapsed "icon" mode — show only the avatar with a dropdown
   if (isCollapsed) {
@@ -61,7 +77,17 @@ export default function SidebarProfileComponent({ name, email, image }: sidebarP
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem className="text-red-500">Logout</DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-red-500"
+              onSelect={(event) => {
+                event.preventDefault();
+                handleSignOut();
+              }}
+              disabled={isSigningOut}
+            >
+              {isSigningOut && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -103,7 +129,17 @@ export default function SidebarProfileComponent({ name, email, image }: sidebarP
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem className="text-red-500">Logout</DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-red-500"
+              onSelect={(event) => {
+                event.preventDefault();
+                handleSignOut();
+              }}
+              disabled={isSigningOut}
+            >
+              {isSigningOut && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>

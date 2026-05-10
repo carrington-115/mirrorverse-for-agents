@@ -11,13 +11,17 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "clean": "rm -rf .turbo .next node_modules coverage"
+    "cy:open": "cypress open --e2e --browser chrome",
+    "cy:run": "cypress run --e2e",
+    "e2e": "cypress run --e2e",
+    "clean": "rm -rf .turbo .next node_modules coverage cypress/videos cypress/screenshots"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.0.4",
     "@hookform/resolvers": "^5.2.2",
     "@mirrorverse/env": "workspace:*",
     "@mirrorverse/ui": "workspace:*",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-table": "^8.21.3",
     "@wavesurfer/react": "^1.0.12",
     "@xyflow/react": "^12.10.2",
@@ -52,6 +56,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.5",
+    "cypress": "^15.14.2",
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.9",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",

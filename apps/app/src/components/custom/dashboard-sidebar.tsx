@@ -26,10 +26,26 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { generateSessionId } from "@/app/(dashboard)/mirrropilot/actions";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
+import type { UserMetadata } from "@supabase/supabase-js";
 
 export default function DashboardSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const { user } = useSupabaseUser();
+
+  // user_metadata is user-editable — display only, never trust for authorization.
+  const metadata: UserMetadata = user ? user.user_metadata : {};
+  const fullName = typeof metadata.full_name === "string" ? metadata.full_name : "";
+  const fallbackName = typeof metadata.name === "string" ? metadata.name : "";
+  const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : "";
+  const fallbackAvatar = typeof metadata.picture === "string" ? metadata.picture : "";
+  const email = user && user.email ? user.email : "";
+
+  const displayName =
+    fullName.length > 0 ? fullName : fallbackName.length > 0 ? fallbackName : email;
+  const displayImage = avatarUrl.length > 0 ? avatarUrl : fallbackAvatar;
+
   return (
     <Sidebar className={cn("border-none bg-transparent!", isCollapsed && "items-center")}>
       <SidebarHeader>
@@ -56,11 +72,7 @@ export default function DashboardSidebar() {
       <SidebarFooter>
         <SidebarGroup className="group-data-[collapsible=icon]:p-0">
           <SidebarGroupContent>
-            <SidebarProfileComponent
-              name="John Doe"
-              email="john@test.com"
-              image="https://github.com/shadcn.png"
-            />
+            <SidebarProfileComponent name={displayName} email={email} image={displayImage} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarFooter>

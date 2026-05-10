@@ -1,50 +1,43 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-const isPublicRoute = createRouteMatcher([
-  "/account-setup/verify-account(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/sso-callback(.*)",
-  "/account-setup/forgot-password(.*)",
-  "/account-setup/reset-password(.*)",
-]);
+const PUBLIC_ROUTE_PREFIXES = [
+  "/sign-in",
+  "/sign-up",
+  "/account-setup/verify-account",
+  "/auth/callback",
+];
 
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/account-setup(.*)"]);
+const PROTECTED_ROUTE_PREFIXES = ["/dashboard", "/account-setup"];
 
-export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
-  const { pathname } = req.nextUrl;
+function matchesPrefix(pathname: string, prefixes: string[]) {
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+export default async function proxy(request: NextRequest) {
+  const { response, user } = await updateSession(request);
+  const { pathname } = request.nextUrl;
 
   if (pathname === "/") {
-    if (userId) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    } else {
-      return NextResponse.redirect(new URL("/sign-in", req.url));
-    }
+    const target = user ? "/dashboard" : "/sign-in";
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
-  if (isProtectedRoute(req) && !userId) {
-    const signInUrl = new URL("/sign-in", req.url);
-    signInUrl.searchParams.set("redirect_url", req.url);
+  const isPublic = matchesPrefix(pathname, PUBLIC_ROUTE_PREFIXES);
+  const isProtected = matchesPrefix(pathname, PROTECTED_ROUTE_PREFIXES);
+
+  if (isProtected && !user && !isPublic) {
+    const signInUrl = new URL("/sign-in", request.url);
+    signInUrl.searchParams.set("redirect_url", request.url);
     return NextResponse.redirect(signInUrl);
   }
 
-  if (isPublicRoute(req)) {
-    return NextResponse.next();
-  }
-  if (!userId) {
-    await auth.protect();
-  }
-
-  return NextResponse.next();
-});
+  return response;
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 };

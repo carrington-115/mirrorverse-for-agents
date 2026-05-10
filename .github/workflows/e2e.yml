@@ -1,0 +1,110 @@
+name: E2E
+
+# Cypress E2E for the auth flow.
+#
+# Runs on:
+#   - Manual dispatch (Actions tab → "E2E" → "Run workflow")
+#   - Push to any branch named e2e/* (so you can iterate without burning the quota
+#     on every main PR; promote to pull_request: branches: [main] when stable).
+#
+# Required GitHub repository secrets:
+#   E2E_SUPABASE_URL                 — URL of a *separate* test Supabase project
+#   E2E_SUPABASE_ANON_KEY            — anon key of the same test project
+#   E2E_SUPABASE_SERVICE_ROLE_KEY    — service-role key (used by cy.task to fetch OTP codes)
+#
+# Tests will create + delete real users in the configured Supabase project. Do
+# NOT point this at your production or dev Supabase project.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "e2e/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+  SKIP_ENV_VALIDATION: true
+
+jobs:
+  cypress:
+    name: Cypress
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/mirrorverse_e2e
+      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Verify required secrets are present
+        run: |
+          if [ -z "${{ secrets.E2E_SUPABASE_URL }}" ] || [ -z "${{ secrets.E2E_SUPABASE_ANON_KEY }}" ] || [ -z "${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "::error::Required secrets E2E_SUPABASE_URL / E2E_SUPABASE_ANON_KEY / E2E_SUPABASE_SERVICE_ROLE_KEY are not set."
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - run: pnpm --filter @mirrorverse/app exec cypress install
+
+      - name: Build app
+        run: pnpm --filter @mirrorverse/app build
+
+      - name: Run Cypress against the built app
+        working-directory: apps/app
+        run: |
+          pnpm start --port 3000 &
+          APP_PID=$!
+          # Wait for the server to respond.
+          for i in $(seq 1 60); do
+            if curl -fs http://localhost:3000/sign-in > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          pnpm e2e
+          STATUS=$?
+          kill $APP_PID || true
+          exit $STATUS
+
+      - name: Upload Cypress screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: apps/app/cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Cypress videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: apps/app/cypress/videos
+          if-no-files-found: ignore
+          retention-days: 7

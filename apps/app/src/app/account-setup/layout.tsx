@@ -2,6 +2,8 @@ import DashboardLogo from "../../assets/logo-light.svg";
 import Image from "next/image";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default function AccountSetupLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-between">

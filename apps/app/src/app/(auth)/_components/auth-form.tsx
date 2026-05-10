@@ -8,17 +8,54 @@ import { Field, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { FaGoogle } from "react-icons/fa";
-import { useSignIn, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import OAuthButtons from "./oauth-buttons";
 
-export default function SignInForm() {
-  const { signIn } = useSignIn();
-  const { loaded: isLoaded, user } = useClerk();
+export type AuthMode = "sign-in" | "sign-up";
+
+interface AuthFormProps {
+  mode: AuthMode;
+}
+
+interface ModeCopy {
+  heading: string;
+  subheading: string;
+  submitLabel: string;
+  next: string;
+  footerText: string;
+  footerLinkHref: string;
+  footerLinkLabel: string;
+}
+
+function copyFor(mode: AuthMode): ModeCopy {
+  if (mode === "sign-up") {
+    return {
+      heading: "Create an account",
+      subheading: "Enter your email and we'll send you a 6-digit code",
+      submitLabel: "Continue",
+      next: "/account-setup/user-role",
+      footerText: "Already have an account?",
+      footerLinkHref: "/sign-in",
+      footerLinkLabel: "Sign in",
+    };
+  }
+  return {
+    heading: "Welcome back",
+    subheading: "Enter your email and we'll send you a 6-digit code",
+    submitLabel: "Sign in with email",
+    next: "/dashboard",
+    footerText: "Don't have an account?",
+    footerLinkHref: "/sign-up",
+    footerLinkLabel: "Sign up",
+  };
+}
+
+export default function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
+  const copy = copyFor(mode);
 
   type FormZodValues = z.infer<typeof signInSchema>;
 
@@ -27,96 +64,45 @@ export default function SignInForm() {
     control,
     formState: { isSubmitting, errors: _formErrors },
   } = useForm<FormZodValues>({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "" },
     resolver: zodResolver(signInSchema),
   });
 
   const onSubmit = async (data: FormZodValues) => {
-    if (!isLoaded || !signIn) {
-      toast.error("Please wait, loading...");
+    const supabase = createClient();
+    const { email } = data;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(copy.next)}`,
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
       return;
     }
 
-    const { email, password } = data;
-
-    try {
-      const { error } = await signIn.password({
-        emailAddress: email,
-        password: password,
-      });
-
-      if (error) {
-        toast.error(error.message || "Failed to sign in");
-        return;
-      }
-
-      if (signIn.status === "complete") {
-        await signIn.finalize({
-          navigate: ({ decorateUrl }) => {
-            const url = decorateUrl("/dashboard");
-
-            if (url.startsWith("http")) {
-              window.location.href = url;
-            } else {
-              router.push(url);
-            }
-          },
-        });
-      } else {
-        toast.error("Sign-in incomplete");
-      }
-    } catch (error: any) {
-      toast.error(error?.errors?.[0]?.message || "Sign-in failed");
-    }
+    toast.success("Check your email for a 6-digit code");
+    const params = new URLSearchParams({ email, next: copy.next });
+    router.push(`/account-setup/verify-account?${params.toString()}`);
   };
-
-  const handleGoogleSignIn = async () => {
-    if (!isLoaded || !signIn) {
-      toast.error("Please wait, loading...");
-      return;
-    }
-
-    try {
-      console.log("Starting Google sign-in...");
-
-      await signIn.sso({
-        strategy: "oauth_google",
-        redirectUrl: "/dashboard",
-        redirectCallbackUrl: "/dashboard",
-      });
-    } catch (error: any) {
-      console.error("Google sign-in error:", error);
-      toast.error(error?.errors?.[0]?.message || "Failed to sign in with Google");
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      router.push("/");
-    }
-  }, [user]);
-
-  if (!isLoaded) {
-    return (
-      <div className="gap-4 flex min-h-[400px] w-full flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex w-full flex-col items-center gap-(--xl)">
-      <form onSubmit={handleSubmit(onSubmit)} className="flex w-[350px] flex-col gap-[24px]">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="flex w-[350px] flex-col gap-[24px]"
+      >
         <div className="flex flex-col items-center">
           <h2 className="font-semibold text-[24px] leading-(--heading-3-line-height) text-foreground">
-            Welcome back
+            {copy.heading}
           </h2>
           <p className="text-sm font-normal leading-(--body-1-line-height) text-muted-foreground">
-            Enter your details to sign in to your account
+            {copy.subheading}
           </p>
         </div>
 
@@ -141,33 +127,9 @@ export default function SignInForm() {
             )}
           />
 
-          <Controller
-            name="password"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <Input
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Password"
-                  autoComplete="current-password"
-                  type="password"
-                  className="h-10 w-full border-(--border-3)"
-                  disabled={isSubmitting}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-
-          <Link href="/forgot-password" className="text-sm text-right text-primary hover:underline">
-            Forgot password?
-          </Link>
-
           <Button type="submit" className="h-10 w-full cursor-pointer" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue
+            {copy.submitLabel}
           </Button>
         </div>
       </form>
@@ -181,16 +143,7 @@ export default function SignInForm() {
           <span className="h-px w-1/4 bg-border" />
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="h-10 w-full cursor-pointer"
-          onClick={handleGoogleSignIn}
-          disabled={isSubmitting}
-        >
-          <FaGoogle className="mr-2" />
-          Continue with Google
-        </Button>
+        <OAuthButtons redirectPath={copy.next} disabled={isSubmitting} />
       </div>
 
       <div className="flex w-full items-center justify-center">
@@ -217,9 +170,9 @@ export default function SignInForm() {
 
       <div className="flex w-full items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/sign-up" className="font-medium text-primary hover:underline">
-            Sign up
+          {copy.footerText}{" "}
+          <Link href={copy.footerLinkHref} className="font-medium text-primary hover:underline">
+            {copy.footerLinkLabel}
           </Link>
         </p>
       </div>

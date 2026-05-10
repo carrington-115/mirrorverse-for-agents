@@ -31,6 +31,10 @@
       "outputs": ["coverage/**"],
       "inputs": ["$TURBO_DEFAULT$", "vitest.config.*", "vitest.setup.*", "jest.config.*"]
     },
+    "e2e": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    },
     "db:push": {
       "cache": false
     },

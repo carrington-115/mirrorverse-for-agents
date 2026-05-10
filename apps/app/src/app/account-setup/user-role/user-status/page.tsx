@@ -14,14 +14,15 @@ import UserStatusComponent, {
 } from "@/app/account-setup/_components/user-status";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
 import { getUserProfile } from "../../actions";
 import { useOrgSetup } from "@/store/use-org-setup";
 import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
+import type { UserMetadata } from "@supabase/supabase-js";
 
 export default function UserStatus() {
-  const { user, isLoaded } = useUser(); // ← also pull isLoaded
+  const { user, isLoaded } = useSupabaseUser();
   const [profileImg, setProfileImg] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -32,12 +33,11 @@ export default function UserStatus() {
 
   const orgId = useOrgSetup((state) => state.orgId);
 
+  const userId = user ? user.id : null;
+
   const fetchUserProfile = useCallback(async () => {
-    if (!user?.id || !orgId) {
-      console.warn("fetchUserProfile: missing user.id or orgId", {
-        userId: user?.id,
-        orgId,
-      });
+    if (!userId || !orgId) {
+      console.warn("fetchUserProfile: missing userId or orgId", { userId, orgId });
       return null;
     }
 
@@ -45,37 +45,50 @@ export default function UserStatus() {
       setIsFetching(true);
       setFetchError(null);
 
-      const res = await getUserProfile(user.id, orgId);
+      const res = await getUserProfile(userId, orgId);
+      const { user: profileUser, organizationMember } = res.data;
 
-      const name = res?.data?.user?.name;
-      const role = res?.data?.organizationMember?.role;
-      const team = res?.data?.organizationMember?.team;
+      const missing: string[] = [];
+      if (!profileUser.name) missing.push("name");
+      if (!organizationMember.role) missing.push("role");
+      if (!organizationMember.team) missing.push("team");
 
-      if (!name || !role || !team) {
-        console.error("Missing fields in response:", { name, role, team });
-        throw new Error(
-          `Incomplete profile data — missing: ${[!name && "name", !role && "role", !team && "team"]
-            .filter(Boolean)
-            .join(", ")}`,
-        );
+      if (missing.length > 0) {
+        throw new Error(`Incomplete profile data — missing: ${missing.join(", ")}`);
       }
 
-      return { name, role, team };
-    } catch (error: any) {
+      return {
+        name: profileUser.name,
+        role: organizationMember.role,
+        team: organizationMember.team,
+      };
+    } catch (error) {
       console.error("fetchUserProfile error:", error);
-      setFetchError(error?.message || "Failed to fetch user profile");
+      const message = error instanceof Error ? error.message : "Failed to fetch user profile";
+      setFetchError(message);
       return null;
     } finally {
       setIsFetching(false);
     }
-  }, [user?.id, orgId]);
+  }, [userId, orgId]);
 
   useEffect(() => {
     if (!isLoaded || !user || !orgId) return;
 
-    setProfileImg(user.imageUrl);
-    setName(user.firstName ?? "");
-    setEmail(user.emailAddresses[0].emailAddress);
+    // user_metadata is user-editable — display only, never trust for authorization.
+    const metadata: UserMetadata = user.user_metadata;
+    const rawFullName = typeof metadata.full_name === "string" ? metadata.full_name : "";
+    const rawName = typeof metadata.name === "string" ? metadata.name : "";
+    const rawAvatar = typeof metadata.avatar_url === "string" ? metadata.avatar_url : "";
+    const rawPicture = typeof metadata.picture === "string" ? metadata.picture : "";
+
+    const fullName = rawFullName.length > 0 ? rawFullName : rawName;
+    const avatarUrl = rawAvatar.length > 0 ? rawAvatar : rawPicture;
+    const firstName = fullName.split(" ")[0];
+
+    setProfileImg(avatarUrl);
+    setName(firstName === undefined ? "" : firstName);
+    setEmail(user.email === undefined ? "" : user.email);
 
     fetchUserProfile().then((profile) => {
       if (!profile) return;

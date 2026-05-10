@@ -14,7 +14,7 @@ Mirrorverse is a pnpm + Turborepo monorepo.
 ```
 mirrorverse/
 ├── apps/
-│   ├── app/         Main Next.js 16 product app (Clerk, port 3000)
+│   ├── app/         Main Next.js 16 product app (Supabase Auth, port 3000)
 │   ├── marketing/   Marketing landing page (Next.js, port 3002)
 │   └── backend/     Express + tRPC backend (port 3001)
 ├── packages/
@@ -140,15 +140,15 @@ Each app/package extends a shared preset:
 
 #### Strict TypeScript rules and how to satisfy them
 
-| Rule                                     | Where it lives | How to satisfy                                                                                                                                                                           |
-| ---------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `strict: true`                           | base           | Type things properly; never use `any` to dodge it (use `unknown` + narrow).                                                                                                              |
-| `noImplicitReturns: true`                | base           | Every code path of a non-void function must `return`. If a path is unreachable in practice, return explicitly anyway (e.g. `return NextResponse.next()` at the end of Clerk middleware). |
-| `noFallthroughCasesInSwitch: true`       | base           | Every `case` ends with `break`, `return`, or `throw`.                                                                                                                                    |
-| `noUnusedLocals: true` (node only)       | node           | If you must declare an unused local, prefix it with `_` (e.g. `const _unused = ...`). Otherwise delete it.                                                                               |
-| `noUnusedParameters: true` (node only)   | node           | Unused params must be prefixed with `_` (e.g. `(_req, res) => ...`). TS treats `_`-prefixed params as intentionally unused.                                                              |
-| `isolatedModules: true`                  | nextjs + node  | Re-exporting types requires `export type { Foo }`, not `export { Foo }`.                                                                                                                 |
-| `forceConsistentCasingInFileNames: true` | base           | Imports must match the on-disk filename casing exactly. Combined with our kebab-case file rule, never write `import x from "./MyFile"` — it's always `./my-file`.                        |
+| Rule                                     | Where it lives | How to satisfy                                                                                                                                                                          |
+| ---------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `strict: true`                           | base           | Type things properly; never use `any` to dodge it (use `unknown` + narrow).                                                                                                             |
+| `noImplicitReturns: true`                | base           | Every code path of a non-void function must `return`. If a path is unreachable in practice, return explicitly anyway (e.g. `return NextResponse.next()` at the end of edge middleware). |
+| `noFallthroughCasesInSwitch: true`       | base           | Every `case` ends with `break`, `return`, or `throw`.                                                                                                                                   |
+| `noUnusedLocals: true` (node only)       | node           | If you must declare an unused local, prefix it with `_` (e.g. `const _unused = ...`). Otherwise delete it.                                                                              |
+| `noUnusedParameters: true` (node only)   | node           | Unused params must be prefixed with `_` (e.g. `(_req, res) => ...`). TS treats `_`-prefixed params as intentionally unused.                                                             |
+| `isolatedModules: true`                  | nextjs + node  | Re-exporting types requires `export type { Foo }`, not `export { Foo }`.                                                                                                                |
+| `forceConsistentCasingInFileNames: true` | base           | Imports must match the on-disk filename casing exactly. Combined with our kebab-case file rule, never write `import x from "./MyFile"` — it's always `./my-file`.                       |
 
 #### Code-generation rules
 
@@ -196,7 +196,7 @@ Each workspace's `eslint.config.mjs` consumes the shared flat config:
 | Rule                                      | Why off                                                                                            |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `@typescript-eslint/no-unused-vars`       | Replaced by `unused-imports/*`.                                                                    |
-| `@typescript-eslint/no-explicit-any`      | Existing app code uses `any` widely (chart props, Clerk error catches, form generics).             |
+| `@typescript-eslint/no-explicit-any`      | Existing app code uses `any` widely (chart props, error catches, form generics).                   |
 | `react-hooks/exhaustive-deps`             | Existing hooks have known missing deps (`router`, etc.).                                           |
 | `react-hooks/set-state-in-effect`         | React Compiler rule — pre-existing patterns.                                                       |
 | `react-hooks/immutability`                | React Compiler rule — pre-existing patterns.                                                       |

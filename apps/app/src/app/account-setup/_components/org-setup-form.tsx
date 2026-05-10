@@ -20,7 +20,7 @@ import { useOrgSetup } from "@/store/use-org-setup";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { handleCreateOrganization, handleUpdateOwner } from "../actions";
-import { useUser } from "@clerk/nextjs";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,13 +43,14 @@ export function CompanyRegistrationForm() {
   });
   const { setOrganization } = useOrgSetup();
   const router = useRouter();
-  const { user } = useUser();
+  const { user } = useSupabaseUser();
 
   const onSubmit = async (data: CompanyRegistrationFormProps) => {
-    if (!user?.id) {
+    if (!user || !user.id) {
       toast.error("Session expired. Please reload the page.");
       return;
     }
+    const userId = user.id;
 
     try {
       setOrganization(true);
@@ -59,17 +60,18 @@ export function CompanyRegistrationForm() {
         data.website,
         data.industry,
         data.size.toString(),
-        user.id,
-        user.id,
+        userId,
+        userId,
       );
-      const orgId = organization?.data?.id;
 
-      if (!organization?.success) {
+      if (!organization.success) {
         throw new Error("Failed to create organization");
       }
 
-      const updatedOwner = await handleUpdateOwner(user.id, data.name);
-      if (!updatedOwner?.success) {
+      const orgId = organization.data.id;
+
+      const updatedOwner = await handleUpdateOwner(userId, data.name);
+      if (!updatedOwner.success) {
         throw new Error("Failed to update owner");
       }
 

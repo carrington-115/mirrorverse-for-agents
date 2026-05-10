@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useUser } from "@clerk/nextjs";
+import { useSupabaseUser } from "@/hooks/use-supabase-user";
 import { handleRegisterUser } from "../actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 
 export default function UserRole() {
-  const { user } = useUser();
+  const { user } = useSupabaseUser();
   const router = useRouter();
   const [isPendingJoin, startTransitionJoin] = useTransition();
   const [isPendingCreate, startTransitionCreate] = useTransition();
@@ -20,15 +20,14 @@ export default function UserRole() {
     if (!user) return;
     try {
       const userId = user.id;
-      const email = user.emailAddresses[0].emailAddress;
-      console.log("User credentials", userId, email);
+      const email = user.email;
 
       if (!userId) {
-        toast.error("Failed to retrieve user ID from Clerk");
+        toast.error("Failed to retrieve user ID");
         return;
       }
       if (!email) {
-        toast.error("Failed to retrieve email from Clerk");
+        toast.error("Failed to retrieve email");
         return;
       }
       startTransitionJoin(async () => {
@@ -44,14 +43,14 @@ export default function UserRole() {
     if (!user) return;
     try {
       const userId = user.id;
-      const email = user.emailAddresses[0].emailAddress;
+      const email = user.email;
 
       if (!userId) {
-        toast.error("Failed to retrieve user ID from Clerk");
+        toast.error("Failed to retrieve user ID");
         return;
       }
       if (!email) {
-        toast.error("Failed to retrieve email from Clerk");
+        toast.error("Failed to retrieve email");
         return;
       }
       startTransitionCreate(async () => {
