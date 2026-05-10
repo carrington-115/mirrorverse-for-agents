@@ -35,7 +35,7 @@ declare global {
       enterOtpFromAdmin(email: string, options?: { shouldCreateUser?: boolean }): Chainable<void>;
 
       /**
-       * Convenience: end-to-end sign-in to /dashboard for an arbitrary email.
+       * Convenience: end-to-end sign-in to /mirrropilot for an arbitrary email.
        * Uses the verify-account UI; does NOT bypass the app session boundary.
        */
       signInViaUi(email: string): Chainable<void>;
@@ -54,7 +54,7 @@ Cypress.Commands.add("submitSignInEmail", (email: string) => {
   cy.contains("button", "Sign in with email").click();
   cy.location("pathname", { timeout: 15_000 }).should("eq", "/account-setup/verify-account");
   cy.location("search").should("include", `email=${encodeURIComponent(email)}`);
-  cy.location("search").should("include", "next=%2Fdashboard");
+  cy.location("search").should("include", "next=%2Fmirrropilot");
 });
 
 Cypress.Commands.add("submitSignUpEmail", (email: string) => {
@@ -65,7 +65,7 @@ Cypress.Commands.add("submitSignUpEmail", (email: string) => {
   cy.get('form button[type="submit"]').click();
   cy.location("pathname", { timeout: 15_000 }).should("eq", "/account-setup/verify-account");
   cy.location("search").should("include", `email=${encodeURIComponent(email)}`);
-  cy.location("search").should("include", "next=%2Faccount-setup%2Fuser-role");
+  cy.location("search").should("include", "next=%2Fmirrropilot");
 });
 
 Cypress.Commands.add(
@@ -89,7 +89,7 @@ Cypress.Commands.add(
 Cypress.Commands.add("signInViaUi", (email: string) => {
   cy.submitSignInEmail(email);
   cy.enterOtpFromAdmin(email);
-  cy.location("pathname", { timeout: 15_000 }).should("eq", "/dashboard");
+  cy.location("pathname", { timeout: 15_000 }).should("eq", "/mirrropilot");
 });
 
 export {};

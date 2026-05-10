@@ -23,7 +23,7 @@ function VerifyAccountContent() {
   const emailParam = searchParams.get("email");
   const nextParam = searchParams.get("next");
   const email = emailParam === null ? "" : emailParam;
-  const next = nextParam === null ? "/dashboard" : nextParam;
+  const next = nextParam === null ? "/mirrropilot" : nextParam;
 
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);

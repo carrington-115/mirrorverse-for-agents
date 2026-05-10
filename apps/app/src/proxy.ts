@@ -8,7 +8,13 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/auth/callback",
 ];
 
-const PROTECTED_ROUTE_PREFIXES = ["/dashboard", "/account-setup"];
+const PROTECTED_ROUTE_PREFIXES = [
+  "/mirrropilot",
+  "/workflows",
+  "/integrations",
+  "/deploy",
+  "/account-setup",
+];
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -19,7 +25,7 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/") {
-    const target = user ? "/dashboard" : "/sign-in";
+    const target = user ? "/mirrropilot" : "/sign-in";
     return NextResponse.redirect(new URL(target, request.url));
   }
 

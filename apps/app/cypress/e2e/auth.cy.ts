@@ -2,8 +2,8 @@
 
 describe("Authentication", () => {
   describe("middleware route gating", () => {
-    it("redirects to /sign-in when an unauthenticated user visits /dashboard", () => {
-      cy.visit("/dashboard", { failOnStatusCode: false });
+    it("redirects to /sign-in when an unauthenticated user visits /mirrropilot", () => {
+      cy.visit("/mirrropilot", { failOnStatusCode: false });
       cy.location("pathname", { timeout: 10_000 }).should("eq", "/sign-in");
       cy.location("search").should("include", "redirect_url");
     });
@@ -43,11 +43,11 @@ describe("Authentication", () => {
       });
     });
 
-    it("accepts the correct code and lands on /dashboard with cookies set", () => {
+    it("accepts the correct code and lands on /mirrropilot with cookies set", () => {
       cy.uniqueTestEmail().then((email) => {
         cy.submitSignInEmail(email);
         cy.enterOtpFromAdmin(email);
-        cy.location("pathname", { timeout: 15_000 }).should("eq", "/dashboard");
+        cy.location("pathname", { timeout: 15_000 }).should("eq", "/mirrropilot");
         cy.getAllCookies().then((cookies) => {
           const hasSupabaseAuth = cookies.some((c) => /^sb-.*-auth-token/.test(c.name));
           expect(hasSupabaseAuth, "Supabase auth cookie should be set").to.equal(true);
@@ -63,11 +63,11 @@ describe("Authentication", () => {
   });
 
   describe("sign-up form", () => {
-    it("submits and routes the post-OTP redirect to /account-setup/user-role", () => {
+    it("submits and routes the post-OTP redirect to /mirrropilot", () => {
       cy.uniqueTestEmail().then((email) => {
         cy.submitSignUpEmail(email);
         cy.enterOtpFromAdmin(email);
-        cy.location("pathname", { timeout: 15_000 }).should("eq", "/account-setup/user-role");
+        cy.location("pathname", { timeout: 15_000 }).should("eq", "/mirrropilot");
         cy.task("deleteUserByEmail", { email });
       });
     });

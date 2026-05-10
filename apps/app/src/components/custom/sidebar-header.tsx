@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronsUpDown, Plus, Check } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import { teamsData, type Team } from "@/lib/data";
 import Image from "next/image";
 import mirrroLogo from "@/assets/mirrropilot-icon.svg";
@@ -59,7 +59,7 @@ export default function SidebarHeaderComponent() {
     );
   }
 
-  // Expanded mode — full header with logo, org name, team, chevron
+  // Expanded mode — logo + org name
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -68,19 +68,9 @@ export default function SidebarHeaderComponent() {
           aria-label="Switch team"
         >
           <Image src={mirrroLogo} alt="mirrro logo" width={27} height={20} className="shrink-0" />
-
-          <span className="text-lg shrink-0 text-muted-foreground">/</span>
-
-          <div className="min-w-0 flex flex-col items-start">
-            <span className="text-base font-medium truncate leading-[16px] text-foreground">
-              {selectedTeam.orgName}
-            </span>
-            <span className="text-xs leading-normal truncate text-accent-foreground">
-              {selectedTeam.name}
-            </span>
-          </div>
-
-          <ChevronsUpDown className="size-4 ml-auto shrink-0 text-muted-foreground" />
+          <span className="text-base font-medium truncate text-foreground">
+            {selectedTeam.orgName}
+          </span>
         </button>
       </PopoverTrigger>
 

@@ -12,7 +12,10 @@ interface OAuthButtonsProps {
   disabled?: boolean;
 }
 
-export default function OAuthButtons({ redirectPath = "/dashboard", disabled }: OAuthButtonsProps) {
+export default function OAuthButtons({
+  redirectPath = "/mirrropilot",
+  disabled,
+}: OAuthButtonsProps) {
   const [pending, setPending] = useState<"google" | null>(null);
 
   const handleOAuth = async (provider: "google") => {

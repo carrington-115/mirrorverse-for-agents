@@ -80,7 +80,7 @@ export function MirrropilotChat({ sessionId }: MirrropilotChatProps) {
       // Truncate messages up to and including this user message,
       // then re-send with the edited content
       // (useChatStream's retry handles truncation — extend as needed)
-      send({ message: newContent, mode: "orchestrate", context: [] });
+      send({ message: newContent, model: "claude-opus-4-7", context: [] });
     },
     [send],
   );

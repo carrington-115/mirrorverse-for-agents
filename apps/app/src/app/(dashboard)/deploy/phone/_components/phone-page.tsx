@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -60,7 +61,15 @@ export default function PhonePage() {
       key: "number",
       header: "Phone number",
       sortable: true,
-      render: (row) => <span className="font-medium font-mono">{row.number}</span>,
+      render: (row) => (
+        <Link
+          href={`/deploy/phone/${row.id}/call-logs`}
+          className="font-medium font-mono hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.number}
+        </Link>
+      ),
     },
     {
       key: "description",
@@ -99,7 +108,7 @@ export default function PhonePage() {
   ];
 
   const actions: ChannelAction<PhoneNumber>[] = [
-    { label: "View details", onClick: (row) => router.push(`/deploy/phone/${row.id}`) },
+    { label: "View details", onClick: (row) => router.push(`/deploy/phone/${row.id}/call-logs`) },
     { label: "Edit", onClick: () => toast.info("Edit coming soon") },
     {
       label: "Delete",

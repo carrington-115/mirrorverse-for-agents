@@ -331,7 +331,7 @@ export function useChatStream(apiUrl: string = "/api/v1/chat/stream") {
         const textBlock = userMsg.blocks.find((b): b is TextBlock => b.type === "text");
         if (textBlock) {
           setTimeout(
-            () => send({ message: textBlock.content, mode: "orchestrate", context: [] }),
+            () => send({ message: textBlock.content, model: "claude-opus-4-7", context: [] }),
             0,
           );
         }
