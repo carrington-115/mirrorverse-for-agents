@@ -51,7 +51,9 @@ declare global {
 }
 
 const OTP_INTERCEPT_RESPONSE = { statusCode: 200, body: { messageId: null } };
-const OTP_URL_PATTERN = "**/auth/v1/otp**";
+// Regex match against the full URL — globs in cy.intercept are minimatch-flavored
+// and have edge cases with `**` across the protocol/host boundary.
+const OTP_URL_REGEX = /\/auth\/v1\/otp(\?|$)/;
 
 Cypress.Commands.add("uniqueTestEmail", (prefix = "e2e") => {
   const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -59,7 +61,7 @@ Cypress.Commands.add("uniqueTestEmail", (prefix = "e2e") => {
 });
 
 Cypress.Commands.add("mockOtpRequest", () => {
-  cy.intercept("POST", OTP_URL_PATTERN, OTP_INTERCEPT_RESPONSE).as("otpRequest");
+  cy.intercept({ method: "POST", url: OTP_URL_REGEX }, OTP_INTERCEPT_RESPONSE).as("otpRequest");
 });
 
 Cypress.Commands.add("submitSignInEmail", (email: string) => {

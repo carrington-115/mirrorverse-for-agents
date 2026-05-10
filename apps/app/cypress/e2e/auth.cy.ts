@@ -76,9 +76,14 @@ describe("Authentication", () => {
   });
 
   describe("OAuth", () => {
-    it("Google button navigates to the Supabase /auth/v1/authorize endpoint", () => {
+    it("Google button hits the Supabase /auth/v1/authorize endpoint with provider=google", () => {
       cy.visit("/sign-in");
-      cy.intercept("GET", "**/auth/v1/authorize**").as("authorize");
+      // Stub the response so the browser doesn't follow Supabase's 302 to
+      // accounts.google.com (which would take Cypress cross-origin and fail).
+      cy.intercept(
+        { method: "GET", url: /\/auth\/v1\/authorize/ },
+        { statusCode: 200, body: "" },
+      ).as("authorize");
       cy.contains("button", "Continue with Google").click();
       cy.wait("@authorize").its("request.url").should("include", "provider=google");
     });
