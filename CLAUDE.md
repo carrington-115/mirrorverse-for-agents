@@ -2,6 +2,11 @@
 
 Project-level guidance for Claude Code working in this repo.
 
+## Git commit and PR guidelines
+
+- Never append "Co-Authored-By: Claude" or "Generated with Claude Code" or any similar attribution to commit messages or pull request descriptions.
+- Keep commit messages concise: a short imperative subject line, and an optional body if needed. No trailers.
+
 ## Repository overview
 
 Mirrorverse is a pnpm + Turborepo monorepo.
