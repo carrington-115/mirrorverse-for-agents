@@ -251,3 +251,167 @@ In CI, `SKIP_ENV_VALIDATION=true` is set so builds don't require real secrets.
 5. Add `vitest.config.ts` if the package needs tests.
 6. Reference it from consumers as `"@mirrorverse/<name>": "workspace:*"`.
 7. Run `pnpm install` to wire it up.
+
+## apps/app architecture
+
+`apps/app/src` is organized **by feature, not by route concern**. Any new code (pages, components, hooks, API calls, schemas, server actions) MUST be placed in this layout. Do not put business logic in `src/app/`.
+
+### Source layout
+
+```
+apps/app/src/
+├── app/                           # Next.js App Router. ROUTING ONLY.
+│   ├── (auth)/                    # split-screen auth chrome (sign-in, sign-up)
+│   ├── (app)/                     # authenticated app: sidebar chrome
+│   ├── (editor)/                  # full-screen editor chrome (workflow editor)
+│   ├── auth/callback/route.ts     # Supabase OAuth callback (URL is /auth/callback)
+│   ├── onboarding/                # post-signup OTP flow
+│   ├── layout.tsx, page.tsx, not-found.tsx, globals.css, icon.png
+│   ├── sitemap.ts, robots.ts, manifest.ts, opengraph-image.tsx   # SEO
+│   └── ...                        # NO _components/, NO actions.ts, NO business logic
+├── features/<domain>/             # auth, chat, onboarding, workflows, deploy, integrations, dashboard
+│   ├── api/{types,endpoints,queries,mutations}.ts   # HTTP layer (TanStack Query)
+│   ├── components/<*.tsx>         # feature-owned components
+│   ├── pages/<*-page.tsx>         # full page bodies + per-page metadata
+│   ├── actions/<*.ts>             # 'use server' actions, one per file
+│   ├── hooks/<use-*.ts>           # client hooks
+│   ├── schemas/<*.ts>             # zod schemas
+│   └── lib/<*.ts>                 # feature-private utilities
+└── lib/                           # shared infra ONLY
+    ├── http/{client,instances,errors}.ts    # ky-based HTTP client
+    ├── query/{client,provider,keys}.ts      # TanStack Query setup
+    ├── seo/{site,metadata}.ts               # siteConfig + buildMetadata helper
+    ├── supabase/{client,server,middleware}.ts
+    └── utils.ts                             # cn() etc.
+```
+
+### App-router rules
+
+- **`src/app/` is for routing only.** A `page.tsx` / `layout.tsx` is a 1-line re-export from `@/features/<domain>/pages/<x>` or `@/features/<domain>/components/<x>`. Put nothing else there.
+
+  ```tsx
+  // src/app/(app)/workflows/page.tsx
+  export { WorkflowsPage as default, metadata } from "@/features/workflows/pages/workflows-page";
+  ```
+
+  For dynamic params, destructure and pass through:
+
+  ```tsx
+  // src/app/(app)/mirropilot/[sessionId]/page.tsx
+  import { ChatPage } from "@/features/chat/pages/chat-page";
+  export { metadata } from "@/features/chat/pages/chat-page";
+
+  export default async function Page({ params }: { params: Promise<{ sessionId: string }> }) {
+    const { sessionId } = await params;
+    return <ChatPage sessionId={sessionId} />;
+  }
+  ```
+
+- **No `_components/` directories under `app/`.** Components live in `features/<domain>/components/`.
+- **No `actions.ts` next to a route.** Server actions live in `features/<domain>/actions/<name>.ts`, one action per file, each starts with `"use server"`.
+- **Route groups** (`(auth)`, `(app)`, `(editor)`) exist purely to give different chrome to different URL trees. Keep group names descriptive; rename them via `mv` when their purpose changes.
+- **Every page exports `metadata`.** Build it with `buildMetadata()` (see SEO below). Authenticated pages MUST set `noIndex: true`.
+- **Edit `src/proxy.ts` `PUBLIC_ROUTE_PREFIXES` / `PROTECTED_ROUTE_PREFIXES` and `apps/app/src/app/robots.ts` whenever you add a new top-level route.** Otherwise the route is either unauthenticated by accident or indexable by accident.
+
+### HTTP client
+
+`@/lib/http/client` exports two ky instances and an error helper. Always use these — never `fetch()` directly in app code.
+
+```ts
+import { apiClient, authedClient, toApiError } from "@/lib/http/client";
+
+await apiClient.get("api/v1/public/health").json<HealthResponse>();
+await authedClient.post("api/v1/orgs/123/create", { json: payload }).json<CreateOrgResponse>();
+```
+
+- **`apiClient`** — anonymous baseline. `baseUrl` is `env.NEXT_PUBLIC_API_URL`; retries GET once; 15s timeout.
+- **`authedClient`** — extends `apiClient` with a `beforeRequest` hook that attaches the current Supabase session's `access_token` as `Authorization: Bearer ...`.
+- **Errors** — `toApiError(err)` normalizes ky `HTTPError` and friends into a single `ApiError` with `status`, `code`, and a sensible `message` pulled from `{ error }` / `{ message }` response bodies. Use it in mutation `onError`.
+
+### TanStack Query
+
+`@/lib/query/provider` is mounted in the root layout, so every client component can use queries. Per-feature pattern:
+
+```ts
+// features/<domain>/api/endpoints.ts — typed wrappers around authedClient
+export async function fetchUserProfile(
+  userId: string,
+  orgId: string,
+): Promise<UserProfileResponse> {
+  return authedClient.get(`api/v1/auth/${userId}/profile`, { searchParams: { orgId } }).json();
+}
+
+// features/<domain>/api/queries.ts — TanStack hooks for reads
+("use client");
+import { queryKeys } from "@/lib/query/keys";
+
+export function useUserProfileQuery(userId: string, orgId: string) {
+  return useQuery({
+    queryKey: queryKeys.auth.profile(userId, orgId),
+    queryFn: () => fetchUserProfile(userId, orgId),
+    enabled: Boolean(userId) && Boolean(orgId),
+  });
+}
+
+// features/<domain>/api/mutations.ts — TanStack hooks for writes
+("use client");
+export function useRegisterUserMutation() {
+  return useMutation({
+    mutationFn: registerUser,
+    onError: (err) => toApiError(err, "Failed to register user"),
+  });
+}
+```
+
+- **Keep `endpoints.ts` framework-free.** It's the typed REST surface; no React, no hooks. This makes endpoints reusable from server components / route handlers / tests.
+- **Add new query keys to `@/lib/query/keys.ts`** rather than inlining strings. Use the factory: `queryKeys.workflows.detail(id)`. Keys are hierarchical so partial invalidation works (`queryClient.invalidateQueries({ queryKey: queryKeys.workflows.all })`).
+- **Defaults:** `staleTime: 60_000`, `refetchOnWindowFocus: false`, `retry: 1`. Override per-call when needed; don't change the defaults.
+
+### SEO
+
+Every page exports `metadata` built via `@/lib/seo/metadata`:
+
+```ts
+import { buildMetadata } from "@/lib/seo/metadata";
+
+export const metadata = buildMetadata({
+  title: "Workflows",
+  description: "Browse, search, and run your agent workflows.",
+  noIndex: true, // for any authenticated page
+});
+```
+
+`buildMetadata` produces `title`, `description`, `alternates.canonical`, `robots`, `openGraph`, and `twitter` from a single input. The canonical URL is derived from `siteConfig.url` (`NEXT_PUBLIC_SITE_URL`).
+
+- **`siteConfig`** lives at `@/lib/seo/site`. Update it (and `packages/env/src/app.ts`) for new global SEO values; never inline brand strings or URLs in page files.
+- **`app/sitemap.ts`** lists publicly indexable URLs. Add new public URLs there.
+- **`app/robots.ts`** disallows authenticated path prefixes. Update its `disallow` list whenever you add a new authenticated top-level route.
+- **`app/opengraph-image.tsx`** renders the default OG card via `next/og`. Override per-route only if a specific page needs a custom image.
+
+### Adding a new feature
+
+1. `mkdir -p src/features/<domain>/{api,components,pages}`. Add `actions/`, `hooks/`, `schemas/`, `lib/` only as needed.
+2. Define types in `features/<domain>/api/types.ts`. Re-export from `@/lib/types` only when reusing existing shared types.
+3. Write typed REST functions in `features/<domain>/api/endpoints.ts` using `authedClient` (or `apiClient` for unauthenticated calls).
+4. Wrap reads as `useXxxQuery` hooks in `features/<domain>/api/queries.ts`; writes as `useXxxMutation` hooks in `features/<domain>/api/mutations.ts`. Add query keys to `@/lib/query/keys.ts`.
+5. Build components in `features/<domain>/components/`. Use named exports (`export function FooBar(){}`), not default exports.
+6. Compose the page body in `features/<domain>/pages/<name>-page.tsx`. Export both the component and `metadata` from this file.
+7. Add a thin route file under `src/app/...` that re-exports the page.
+8. If the route is authenticated, update `src/proxy.ts` `PROTECTED_ROUTE_PREFIXES` and `app/robots.ts` `disallow`.
+9. If the route is publicly indexable, add it to `app/sitemap.ts`.
+10. Run `pnpm --filter @mirrorverse/app typecheck lint test build` before committing.
+
+### Adding a new server action
+
+- One action per file under `features/<domain>/actions/<name>.ts`.
+- File starts with `"use server"`.
+- Action name is a verb (`signOut`, `generateSessionId`, `registerUser`).
+- Don't call `fetch()` from a server action — call functions from `features/<domain>/api/endpoints.ts` (which already use the http client). Server actions should be thin orchestration over endpoints + Supabase client + `redirect()`.
+
+### Adding a shadcn UI component
+
+shadcn lives in `packages/ui`. From the repo root: `pnpm --filter @mirrorverse/ui ui:add <component>`. Consume in `apps/app` via `import { Button } from "@/components/ui/button"` (the alias maps to `@mirrorverse/ui` per `tsconfig.json` `paths`).
+
+### What goes in `src/lib/`
+
+Only **shared infrastructure** — code that has no feature affinity and that more than one feature uses. Right now: `http/`, `query/`, `seo/`, `supabase/`, `utils.ts`. If you find yourself adding something feature-specific to `src/lib/`, it belongs in `features/<domain>/lib/` instead.

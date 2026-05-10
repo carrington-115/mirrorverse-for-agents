@@ -4,16 +4,16 @@ import { updateSession } from "@/lib/supabase/middleware";
 const PUBLIC_ROUTE_PREFIXES = [
   "/sign-in",
   "/sign-up",
-  "/account-setup/verify-account",
+  "/onboarding/verify-account",
   "/auth/callback",
 ];
 
 const PROTECTED_ROUTE_PREFIXES = [
-  "/mirrropilot",
+  "/mirropilot",
   "/workflows",
   "/integrations",
   "/deploy",
-  "/account-setup",
+  "/onboarding",
 ];
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
@@ -25,7 +25,7 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/") {
-    const target = user ? "/mirrropilot" : "/sign-in";
+    const target = user ? "/mirropilot" : "/sign-in";
     return NextResponse.redirect(new URL(target, request.url));
   }
 

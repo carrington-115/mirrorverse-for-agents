@@ -2,8 +2,8 @@
 
 describe("Authentication", () => {
   describe("middleware route gating", () => {
-    it("redirects to /sign-in when an unauthenticated user visits /mirrropilot", () => {
-      cy.visit("/mirrropilot", { failOnStatusCode: false });
+    it("redirects to /sign-in when an unauthenticated user visits /mirropilot", () => {
+      cy.visit("/mirropilot", { failOnStatusCode: false });
       cy.location("pathname", { timeout: 10_000 }).should("eq", "/sign-in");
       cy.location("search").should("include", "redirect_url");
     });
@@ -38,15 +38,15 @@ describe("Authentication", () => {
       // No API call needed — typing 000000 doesn't reach Supabase if there's no
       // real user. We just check the page doesn't navigate.
       cy.uniqueTestEmail().then((email) => {
-        const params = new URLSearchParams({ email, next: "/mirrropilot" });
-        cy.visit(`/account-setup/verify-account?${params.toString()}`);
+        const params = new URLSearchParams({ email, next: "/mirropilot" });
+        cy.visit(`/onboarding/verify-account?${params.toString()}`);
         cy.get('[data-input-otp="true"]').type("000000");
         cy.contains("button", "Continue").click();
-        cy.location("pathname").should("eq", "/account-setup/verify-account");
+        cy.location("pathname").should("eq", "/onboarding/verify-account");
       });
     });
 
-    it("accepts the correct code and lands on /mirrropilot with cookies set", () => {
+    it("accepts the correct code and lands on /mirropilot with cookies set", () => {
       cy.uniqueTestEmail().then((email) => {
         cy.signInViaAdminOtp(email);
         cy.getAllCookies().then((cookies) => {
@@ -58,13 +58,13 @@ describe("Authentication", () => {
     });
 
     it("falls back to the 'no email' state when visited without the email param", () => {
-      cy.visit("/account-setup/verify-account");
+      cy.visit("/onboarding/verify-account");
       cy.contains(/no email address provided/i).should("be.visible");
     });
   });
 
   describe("sign-up form", () => {
-    it("submits and routes the post-OTP redirect to /mirrropilot", () => {
+    it("submits and routes the post-OTP redirect to /mirropilot", () => {
       // Form behavior is identical to sign-in (consolidated component);
       // we only verify that the sign-up form sends the user to verify-account
       // with the correct next param. OTP request mocked.
@@ -90,16 +90,12 @@ describe("Authentication", () => {
   });
 
   describe("sign-out", () => {
-    it("signs the user out from the dashboard sidebar and redirects to /sign-in", () => {
+    it("signs the user out from the sidebar profile menu and redirects to /sign-in", () => {
       cy.uniqueTestEmail().then((email) => {
         cy.signInViaAdminOtp(email);
 
-        // Open the sidebar profile menu and click Logout.
-        cy.contains("button", /ellipsis|menu/i)
-          .filter(":visible")
-          .first()
-          .click({ force: true });
-        cy.contains(/^logout$/i).click({ force: true });
+        cy.get('[data-testid="user-menu-trigger"]').filter(":visible").first().click();
+        cy.get('[data-testid="sign-out"]').filter(":visible").first().click();
 
         cy.location("pathname", { timeout: 15_000 }).should("eq", "/sign-in");
         cy.getAllCookies().then((cookies) => {

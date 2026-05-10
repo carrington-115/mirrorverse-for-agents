@@ -1,6 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Roboto } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { QueryProvider } from "@/lib/query/provider";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { siteConfig } from "@/lib/seo/site";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -12,8 +15,19 @@ export const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Mirroverse",
-  description: "The platform to broaden collaboration between humans and agents",
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
+  },
+  applicationName: siteConfig.name,
+  ...buildMetadata({ path: "/" }),
+};
+
+export const viewport: Viewport = {
+  themeColor: siteConfig.themeColor,
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -24,7 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className={`${geist.variable} antialiased`}>
-        {children}
+        <QueryProvider>{children}</QueryProvider>
         <Toaster />
       </body>
     </html>
