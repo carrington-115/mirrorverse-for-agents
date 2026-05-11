@@ -1,0 +1,73 @@
+{
+  "name": "@mirrorverse/types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./tenancy": {
+      "types": "./src/tenancy.ts",
+      "default": "./src/tenancy.ts"
+    },
+    "./workflows": {
+      "types": "./src/workflows.ts",
+      "default": "./src/workflows.ts"
+    },
+    "./agent-definition": {
+      "types": "./src/agent-definition.ts",
+      "default": "./src/agent-definition.ts"
+    },
+    "./runs": {
+      "types": "./src/runs.ts",
+      "default": "./src/runs.ts"
+    },
+    "./tools": {
+      "types": "./src/tools.ts",
+      "default": "./src/tools.ts"
+    },
+    "./mcp-directory": {
+      "types": "./src/mcp-directory.ts",
+      "default": "./src/mcp-directory.ts"
+    },
+    "./chats": {
+      "types": "./src/chats.ts",
+      "default": "./src/chats.ts"
+    },
+    "./skills": {
+      "types": "./src/skills.ts",
+      "default": "./src/skills.ts"
+    },
+    "./knowledge": {
+      "types": "./src/knowledge.ts",
+      "default": "./src/knowledge.ts"
+    },
+    "./voice": {
+      "types": "./src/voice.ts",
+      "default": "./src/voice.ts"
+    },
+    "./billing": {
+      "types": "./src/billing.ts",
+      "default": "./src/billing.ts"
+    },
+    "./common": {
+      "types": "./src/common.ts",
+      "default": "./src/common.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo node_modules"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "@mirrorverse/eslint-config": "workspace:*",
+    "@mirrorverse/typescript-config": "workspace:*",
+    "@types/node": "^20.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.9.3"
+  }
+}
