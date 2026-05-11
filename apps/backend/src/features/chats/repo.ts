@@ -1,4 +1,13 @@
-import { and, asc, desc, eq, gt, schema, type Database } from "@mirrorverse/db";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  schema,
+  sql,
+  type Database,
+} from "@mirrorverse/db";
 import type {
   ContentBlock,
   CostBreakdown,
@@ -118,6 +127,17 @@ export async function bumpLastMessageAt(
     .where(eq(chats.id, chatId));
 }
 
+export async function setChatTitleIfEmpty(
+  db: Database,
+  chatId: string,
+  title: string,
+) {
+  await db
+    .update(chats)
+    .set({ title })
+    .where(and(eq(chats.id, chatId), sql`${chats.title} is null`));
+}
+
 export async function findOwnedUserMessage(
   db: Database,
   messageId: string,
@@ -155,6 +175,18 @@ export async function findNextAssistantMessage(
     .orderBy(asc(messages.createdAt))
     .limit(1);
   return row ?? null;
+}
+
+export async function deleteChatForUser(
+  db: Database,
+  chatId: string,
+  userId: string,
+) {
+  const result = await db
+    .delete(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)))
+    .returning({ id: chats.id });
+  return result.length > 0;
 }
 
 export async function updateMessageBlocks(

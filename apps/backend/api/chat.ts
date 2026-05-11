@@ -1,4 +1,5 @@
-import { createAssistantStreamResponse } from "assistant-stream";
+import { runMirropilot } from "@mirrorverse/agent";
+import type { UIMessage } from "ai";
 
 import { env } from "@mirrorverse/env/backend";
 import { verifyToken } from "@mirrorverse/db";
@@ -11,34 +12,8 @@ import {
   bumpLastMessageAt,
   ensureChat,
   insertMessage,
+  setChatTitleIfEmpty,
 } from "../src/features/chats/repo";
-
-interface UIMessagePart {
-  type: string;
-  text?: string;
-}
-
-interface UIMessage {
-  id: string;
-  role: "user" | "assistant" | "system";
-  parts: UIMessagePart[];
-}
-
-function lastUserText(messages: UIMessage[]): string {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg.role !== "user") continue;
-    return msg.parts
-      .filter(
-        (p): p is UIMessagePart & { text: string } =>
-          p.type === "text" && typeof p.text === "string",
-      )
-      .map((p) => p.text)
-      .join("\n\n")
-      .trim();
-  }
-  return "";
-}
 
 function jsonError(status: number, message: string): Response {
   return new Response(JSON.stringify({ error: message }), {
@@ -59,22 +34,44 @@ async function authenticate(
   return { userId: verified.sub as UserId, email: verified.email };
 }
 
+function uiMessageToBlocks(msg: UIMessage): ContentBlock[] {
+  const blocks: ContentBlock[] = [];
+  for (const part of msg.parts) {
+    if (
+      part.type === "text" &&
+      typeof (part as { text?: unknown }).text === "string"
+    ) {
+      blocks.push({
+        type: "text",
+        text: (part as { text: string }).text,
+      } as ContentBlock);
+    }
+  }
+  return blocks;
+}
+
 export async function POST(req: Request): Promise<Response> {
   const session = await authenticate(req);
   if (!session) return jsonError(401, "Authentication required");
 
   const body = (await req.json().catch(() => null)) as {
     id?: string;
+    chatId?: string;
     messages?: UIMessage[];
   } | null;
-  if (!body || !body.id || !Array.isArray(body.messages)) {
+  if (!body || !Array.isArray(body.messages)) {
     return jsonError(400, "Invalid request body");
+  }
+
+  const chatId = body.chatId ?? body.id;
+  if (!chatId || chatId.startsWith("__LOCALID_")) {
+    return jsonError(400, "Missing or invalid chatId");
   }
 
   const db = getDb();
   const workspaceId = await ensureUserWorkspace(db, session.userId);
   const chat = await ensureChat(db, {
-    chatId: body.id,
+    chatId,
     workspaceId,
     userId: session.userId,
   });
@@ -84,14 +81,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!lastUser || lastUser.role !== "user") {
     return jsonError(400, "Expected last message to be from user");
   }
-
-  const userBlocks: ContentBlock[] = lastUser.parts
-    .filter(
-      (p): p is UIMessagePart & { text: string } =>
-        p.type === "text" && typeof p.text === "string",
-    )
-    .map((p) => ({ type: "text", text: p.text }) as ContentBlock);
-
+  const userBlocks = uiMessageToBlocks(lastUser);
   if (userBlocks.length === 0) return jsonError(400, "Empty user message");
 
   await insertMessage(db, {
@@ -100,28 +90,45 @@ export async function POST(req: Request): Promise<Response> {
     contentBlocks: userBlocks,
   });
 
-  const replyText = `Echo: ${lastUserText(body.messages)}\n\n(The orchestrator agent isn't wired up yet — replies are placeholder.)`;
-
-  return createAssistantStreamResponse(async (stream) => {
-    const words = replyText.split(/(\s+)/);
-    for (const word of words) {
-      if (!word) continue;
-      stream.appendText(word);
-      await new Promise((r) => setTimeout(r, 12));
+  if (!chat.title) {
+    const firstText = userBlocks
+      .map((b) =>
+        typeof (b as { text?: string }).text === "string"
+          ? (b as { text: string }).text
+          : "",
+      )
+      .join(" ")
+      .trim();
+    if (firstText.length > 0) {
+      const title =
+        firstText.length > 60 ? `${firstText.slice(0, 57)}…` : firstText;
+      await setChatTitleIfEmpty(db, chat.id, title);
     }
-    stream.close();
+  }
 
-    void insertMessage(db, {
-      chatId: chat.id,
-      role: "assistant",
-      contentBlocks: [{ type: "text", text: replyText } as ContentBlock],
-      model: chat.model,
-    })
-      .then(() => bumpLastMessageAt(db, chat.id, new Date()))
-      .catch((err) => {
+  return runMirropilot({
+    db,
+    userId: session.userId,
+    workspaceId,
+    chatId: chat.id,
+    messages: body.messages,
+    onFinish: async ({ responseMessage }) => {
+      try {
+        const assistantBlocks = uiMessageToBlocks(responseMessage);
+        if (assistantBlocks.length > 0) {
+          await insertMessage(db, {
+            chatId: chat.id,
+            role: "assistant",
+            contentBlocks: assistantBlocks,
+            model: chat.model,
+          });
+        }
+        await bumpLastMessageAt(db, chat.id, new Date());
+      } catch (err) {
         if (env.NODE_ENV === "development") {
           console.error("[chat] failed to persist assistant message:", err);
         }
-      });
+      }
+    },
   });
 }

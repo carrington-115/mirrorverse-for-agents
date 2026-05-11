@@ -18,7 +18,7 @@ export const env = createEnv({
     REDIS_PASSWORD: z.string().optional(),
 
     OPENAI_API_KEY: z.string().min(1).optional(),
-    ANTHROPIC_API_KEY: z.string().min(1).optional(),
+    ANTHROPIC_API_KEY: z.string().min(1),
     ELEVENLABS_API_KEY: z.string().min(1).optional(),
 
     TWILIO_ACCOUNT_SID: z.string().min(1).optional(),

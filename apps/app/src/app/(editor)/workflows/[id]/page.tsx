@@ -6,7 +6,7 @@ import {
 
 export const metadata: Metadata = pageMetadata;
 
-export default async function Page({ params }: { params: Promise<{ id: string; wid: string }> }) {
-  const { wid } = await params;
-  return <WorkflowEditorPage workflowId={wid} />;
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <WorkflowEditorPage workflowId={id} />;
 }

@@ -7,6 +7,7 @@ import { ensureUserWorkspace } from "../tenancy/repo";
 import * as repo from "./repo";
 import type {
   AppendUserMessageInput,
+  DeleteChatInput,
   EditUserMessageInput,
   EnsureChatInput,
   GetChatInput,
@@ -59,6 +60,12 @@ export const chatsService = {
 
   async list(ctx: BaseCtx, input: ListChatsInput) {
     return repo.listRecentChatsForUser(ctx.db, ctx.userId, input.limit);
+  },
+
+  async deleteChat(ctx: BaseCtx, input: DeleteChatInput) {
+    const ok = await repo.deleteChatForUser(ctx.db, input.chatId, ctx.userId);
+    if (!ok) throw appError(ErrCode.NotFound, "Chat not found");
+    return { id: input.chatId };
   },
 
   async appendUserMessage(ctx: BaseCtx, input: AppendUserMessageInput) {
