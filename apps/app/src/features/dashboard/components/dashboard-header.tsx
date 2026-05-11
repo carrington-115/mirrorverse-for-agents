@@ -41,35 +41,39 @@ import {
 } from "@/components/ui/command";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 
 interface DashboardHeaderProps {
   title: string;
-  icon: React.ReactNode;
   actions?: React.ReactNode;
 }
 
-export function DashboardHeader({ title, icon, actions }: DashboardHeaderProps) {
+export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
+  const { user } = useSupabaseUser();
+  const metadata = user?.user_metadata ?? {};
+  const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : "";
+  const fallbackAvatar = typeof metadata.picture === "string" ? metadata.picture : "";
+  const displayImage = avatarUrl.length > 0 ? avatarUrl : fallbackAvatar;
+  const fullName = typeof metadata.full_name === "string" ? metadata.full_name : "";
+  const fallbackName = typeof metadata.name === "string" ? metadata.name : "";
+  const initials = (fullName || fallbackName || user?.email || "U").charAt(0).toUpperCase();
+
   return (
     <div className="flex h-[48px] w-full items-center justify-between border-b border-border px-[12px] py-[4px]">
       <div className="gap-2 flex items-center">
         <SidebarTrigger />
-        <div className="flex items-center gap-(--2xs)">
-          {icon}
-          <span>{title}</span>
-        </div>
+        <span className="text-sm">{title}</span>
       </div>
-      <div>
+      <div className="gap-3 flex items-center">
         <HeaderCommand />
-      </div>
-      <div className="gap-2 flex items-center">
-        {actions}
-        <Button variant="ghost" size={"icon"} className="rounded-full">
+        {actions && <div className="gap-2 flex items-center">{actions}</div>}
+        <Button variant="ghost" size="icon" className="rounded-full">
           <SettingsIcon />
         </Button>
-        <Button variant="ghost" size={"icon"} className="rounded-full">
+        <Button variant="ghost" size="icon" className="rounded-full">
           <Avatar>
-            <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>CN</AvatarFallback>
+            <AvatarImage src={displayImage} />
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </div>
@@ -80,10 +84,32 @@ export function DashboardHeader({ title, icon, actions }: DashboardHeaderProps) 
 function HeaderCommand() {
   const [open, setOpen] = React.useState(false);
 
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
+
   return (
-    <div className="gap-4 flex flex-col">
-      <Button onClick={() => setOpen(true)} variant="outline" className="w-[500px] cursor-pointer">
-        <Search /> Search your workspace
+    <>
+      <Button
+        onClick={() => setOpen(true)}
+        variant="outline"
+        size="sm"
+        className="h-8 gap-2 text-xs w-[180px] cursor-pointer justify-between text-muted-foreground"
+      >
+        <span className="gap-1.5 flex items-center">
+          <Search className="size-3.5" />
+          Search workspace
+        </span>
+        <kbd className="rounded-sm px-1 sm:inline-flex pointer-events-none hidden border border-border bg-muted font-mono text-[10px] select-none">
+          ⌘K
+        </kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command>
@@ -189,7 +215,7 @@ function HeaderCommand() {
               </CommandItem>
               <CommandItem>
                 <HelpCircleIcon />
-                <span>Help & Support</span>
+                <span>Help &amp; Support</span>
               </CommandItem>
             </CommandGroup>
             <CommandSeparator />
@@ -214,6 +240,6 @@ function HeaderCommand() {
           </CommandList>
         </Command>
       </CommandDialog>
-    </div>
+    </>
   );
 }

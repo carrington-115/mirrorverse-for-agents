@@ -1,13 +1,11 @@
 "use client";
 
 import { useTransition, type ReactNode } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { History, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
-import mirropilotIcon from "@/assets/mirropilot-icon.svg";
 import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 import { useEnsureChatMutation } from "@/features/chat/api/mutations";
 
@@ -32,8 +30,13 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
         header={
           <DashboardHeader
             title="Mirropilot"
-            icon={<Image src={mirropilotIcon} alt="Mirropilot" width={16} height={16} />}
             actions={
+<<<<<<< feat/data-tables-dnd-filtering
+              <Button onClick={handleNewSession} className="cursor-pointer">
+                {isPending ? <Loader2 className="animate-spin" /> : <Plus />}
+                New session
+              </Button>
+=======
               <div className="flex gap-(--sm)">
                 <Button onClick={handleNewSession} disabled={busy} className="cursor-pointer">
                   {busy ? <Loader2 className="animate-spin" /> : <Plus />}
@@ -43,6 +46,7 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
                   <History />
                 </Button>
               </div>
+>>>>>>> main
             }
           />
         }

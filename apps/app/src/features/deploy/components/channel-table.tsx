@@ -1,6 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { DndContext, type DragEndEvent, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Table,
   TableBody,
@@ -41,6 +49,7 @@ interface ChannelTableProps<T extends { id: string }> {
   pageSize?: number;
   showDragHandle?: boolean;
   showCheckbox?: boolean;
+  onReorder?: (rows: T[]) => void;
 }
 
 export function StatusBadge({ status }: { status: ChannelStatus }) {
@@ -95,6 +104,99 @@ export function VerificationBadge({ status }: { status: "verified" | "pending" }
   );
 }
 
+function SortableChannelRow<T extends { id: string }>({
+  row,
+  columns,
+  actions,
+  showDragHandle,
+  showCheckbox,
+  selected,
+  onToggle,
+}: {
+  row: T;
+  columns: ChannelColumn<T>[];
+  actions: ChannelAction<T>[];
+  showDragHandle: boolean;
+  showCheckbox: boolean;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.id,
+    disabled: !showDragHandle,
+  });
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        borderColor: "var(--border-2)",
+      }}
+      className="border-b transition-colors last:border-b-0 hover:bg-muted/40"
+    >
+      {showDragHandle && (
+        <TableCell className="w-8 px-2">
+          <span
+            {...attributes}
+            {...listeners}
+            className="flex cursor-grab items-center active:cursor-grabbing"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="size-4 text-muted-foreground/50 hover:text-muted-foreground" />
+          </span>
+        </TableCell>
+      )}
+      {showCheckbox && (
+        <TableCell className="w-10 px-3">
+          <Checkbox checked={selected} onCheckedChange={onToggle} aria-label="Select row" />
+        </TableCell>
+      )}
+      {columns.map((col) => (
+        <TableCell
+          key={col.key}
+          style={{
+            fontSize: "var(--paragraph-small-font-size)",
+            lineHeight: "var(--paragraph-small-line-height)",
+            paddingTop: "var(--sm)",
+            paddingBottom: "var(--sm)",
+          }}
+        >
+          {col.render(row)}
+        </TableCell>
+      ))}
+      <TableCell className="pr-3 text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 gap-0.5 text-muted-foreground hover:text-foreground"
+              style={{ fontSize: "var(--paragraph-small-font-size)" }}
+            >
+              More
+              <span className="tracking-widest ml-0.5">···</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {actions.map((action) => (
+              <DropdownMenuItem
+                key={action.label}
+                onClick={() => action.onClick(row)}
+                className={action.destructive ? "text-destructive" : ""}
+              >
+                {action.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export function ChannelTable<T extends { id: string }>({
   rows,
   columns,
@@ -102,6 +204,7 @@ export function ChannelTable<T extends { id: string }>({
   pageSize = 10,
   showDragHandle = false,
   showCheckbox = false,
+  onReorder,
 }: ChannelTableProps<T>) {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -154,120 +257,101 @@ export function ChannelTable<T extends { id: string }>({
 
   const allSelected = paginated.length > 0 && paginated.every((r) => selectedIds.has(r.id));
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = paginated.findIndex((r) => r.id === active.id);
+    const newIndex = paginated.findIndex((r) => r.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    if (onReorder) {
+      const reorderedPage = arrayMove(paginated, oldIndex, newIndex);
+      const reorderedIdSet = new Set(reorderedPage.map((r) => r.id));
+      const filteredIndices = rows
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => reorderedIdSet.has(item.id))
+        .map(({ idx }) => idx);
+      const next = [...rows];
+      reorderedPage.forEach((item, i) => {
+        next[filteredIndices[i]] = item;
+      });
+      onReorder(next);
+    }
+  }
+
+  const tableBody = (
+    <TableBody>
+      <SortableContext items={paginated.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+        {paginated.map((row) => (
+          <SortableChannelRow
+            key={row.id}
+            row={row}
+            columns={columns}
+            actions={actions}
+            showDragHandle={showDragHandle}
+            showCheckbox={showCheckbox}
+            selected={selectedIds.has(row.id)}
+            onToggle={() => toggleRow(row.id)}
+          />
+        ))}
+      </SortableContext>
+    </TableBody>
+  );
+
   return (
     <div
       className="w-full overflow-hidden rounded-lg border"
       style={{ borderColor: "var(--border-2)" }}
     >
-      <Table>
-        <TableHeader>
-          <TableRow className="border-b" style={{ borderColor: "var(--border-2)" }}>
-            {showDragHandle && <TableHead className="w-8 px-2" />}
-            {showCheckbox && (
-              <TableHead className="w-10 px-3">
-                <Checkbox
-                  checked={allSelected}
-                  onCheckedChange={toggleAll}
-                  aria-label="Select all"
-                />
-              </TableHead>
-            )}
-            {columns.map((col) => (
-              <TableHead
-                key={col.key}
-                style={{
-                  fontSize: "var(--paragraph-small-font-size)",
-                  lineHeight: "var(--paragraph-small-line-height)",
-                  paddingTop: "var(--xs)",
-                  paddingBottom: "var(--xs)",
-                }}
-              >
-                {col.sortable ? (
-                  <button
-                    className="gap-1 flex items-center transition-colors hover:text-foreground"
-                    onClick={() => toggleSort(col.key)}
-                  >
-                    {col.header}
-                    <ArrowUpDown
-                      className="size-3"
-                      style={{
-                        color:
-                          sortKey === col.key ? "var(--foreground)" : "var(--muted-foreground)",
-                      }}
-                    />
-                  </button>
-                ) : (
-                  col.header
-                )}
-              </TableHead>
-            ))}
-            <TableHead className="w-24" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {paginated.map((row) => (
-            <TableRow
-              key={row.id}
-              className="border-b transition-colors last:border-b-0 hover:bg-muted/40"
-              style={{ borderColor: "var(--border-2)" }}
-            >
-              {showDragHandle && (
-                <TableCell className="w-8 px-2">
-                  <GripVertical className="size-4 cursor-grab text-muted-foreground/50 hover:text-muted-foreground" />
-                </TableCell>
-              )}
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b" style={{ borderColor: "var(--border-2)" }}>
+              {showDragHandle && <TableHead className="w-8 px-2" />}
               {showCheckbox && (
-                <TableCell className="w-10 px-3">
+                <TableHead className="w-10 px-3">
                   <Checkbox
-                    checked={selectedIds.has(row.id)}
-                    onCheckedChange={() => toggleRow(row.id)}
-                    aria-label="Select row"
+                    checked={allSelected}
+                    onCheckedChange={toggleAll}
+                    aria-label="Select all"
                   />
-                </TableCell>
+                </TableHead>
               )}
               {columns.map((col) => (
-                <TableCell
+                <TableHead
                   key={col.key}
                   style={{
                     fontSize: "var(--paragraph-small-font-size)",
                     lineHeight: "var(--paragraph-small-line-height)",
-                    paddingTop: "var(--sm)",
-                    paddingBottom: "var(--sm)",
+                    paddingTop: "var(--xs)",
+                    paddingBottom: "var(--xs)",
                   }}
                 >
-                  {col.render(row)}
-                </TableCell>
-              ))}
-              <TableCell className="pr-3 text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 gap-0.5 text-muted-foreground hover:text-foreground"
-                      style={{ fontSize: "var(--paragraph-small-font-size)" }}
+                  {col.sortable ? (
+                    <button
+                      className="gap-1 flex items-center transition-colors hover:text-foreground"
+                      onClick={() => toggleSort(col.key)}
                     >
-                      More
-                      <span className="tracking-widest ml-0.5">···</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {actions.map((action) => (
-                      <DropdownMenuItem
-                        key={action.label}
-                        onClick={() => action.onClick(row)}
-                        className={action.destructive ? "text-destructive" : ""}
-                      >
-                        {action.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+                      {col.header}
+                      <ArrowUpDown
+                        className="size-3"
+                        style={{
+                          color:
+                            sortKey === col.key ? "var(--foreground)" : "var(--muted-foreground)",
+                        }}
+                      />
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </TableHead>
+              ))}
+              <TableHead className="w-24" />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          {tableBody}
+        </Table>
+      </DndContext>
 
       {totalPages > 1 && (
         <div

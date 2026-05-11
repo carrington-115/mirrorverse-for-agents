@@ -1,17 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Plug } from "lucide-react";
-import { toast } from "sonner";
+import { Shapes } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
-import { AddMcpDialog } from "@/features/integrations/components/add-mcp-dialog";
-import { useCreateMcpServerMutation } from "@/features/tools/api/mutations";
+import { ManageIntegrationsDialog } from "@/features/integrations/components/integration";
 
 export function IntegrationsListLayout({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const createMcp = useCreateMcpServerMutation();
+  const [browseOpen, setBrowseOpen] = useState(false);
 
   return (
     <div className="relative mx-[8px] my-[6px] h-[calc(100vh-12px)] max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-y-scroll rounded-lg border border-border">
@@ -19,10 +16,14 @@ export function IntegrationsListLayout({ children }: { children: React.ReactNode
         header={
           <DashboardHeader
             title="Integrations"
-            icon={<Plug size={16} />}
             actions={
-              <Button className="cursor-pointer" onClick={() => setOpen(true)}>
-                Add MCP
+              <Button
+                variant="secondary"
+                className="cursor-pointer"
+                onClick={() => setBrowseOpen(true)}
+              >
+                <Shapes className="size-4" />
+                Browse integrations
               </Button>
             }
           />
@@ -33,20 +34,7 @@ export function IntegrationsListLayout({ children }: { children: React.ReactNode
         </div>
       </DashboardLayout>
 
-      <AddMcpDialog
-        open={open}
-        onOpenChangeAction={setOpen}
-        onSubmitAction={async (values) => {
-          try {
-            const server = await createMcp.mutateAsync(values);
-            toast.success(`Added MCP "${server.name}"`);
-          } catch (err) {
-            const message = err instanceof Error ? err.message : "Failed to add MCP";
-            toast.error(message);
-            throw err;
-          }
-        }}
-      />
+      <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
     </div>
   );
 }
