@@ -6,15 +6,10 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/sign-up",
   "/onboarding/verify-account",
   "/auth/callback",
+  "/invite",
 ];
 
-const PROTECTED_ROUTE_PREFIXES = [
-  "/mirropilot",
-  "/workflows",
-  "/integrations",
-  "/deploy",
-  "/onboarding",
-];
+const PROTECTED_ROUTE_PREFIXES = ["/workspace", "/onboarding"];
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -24,9 +19,8 @@ export default async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/") {
-    const target = user ? "/mirropilot" : "/sign-in";
-    return NextResponse.redirect(new URL(target, request.url));
+  if (pathname === "/" && !user) {
+    return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
   const isPublic = matchesPrefix(pathname, PUBLIC_ROUTE_PREFIXES);

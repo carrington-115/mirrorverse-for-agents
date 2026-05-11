@@ -1,17 +1,11 @@
 {
   "extends": "@mirrorverse/typescript-config/node.json",
   "compilerOptions": {
+    "rootDir": "${configDir}",
     "types": ["node"],
     "paths": {
-      "@/*": ["./src/*"],
-      "@api/*": ["./src/api/*"],
-      "@services/*": ["./src/services/*"],
-      "@middleware/*": ["./src/middleware/*"],
-      "@models/*": ["./src/models/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@config/*": ["./src/config/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/*.test.ts"]
+  "include": ["src/**/*", "api/**/*"]
 }

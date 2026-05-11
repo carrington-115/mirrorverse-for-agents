@@ -1,40 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Integration, IntegrationCategory } from "@/lib/types";
-import { INTEGRATIONS } from "@/lib/data";
+import { useDirectoryListQuery } from "@/features/mcp-directory/api/queries";
+import { DirectoryGrid } from "@/features/mcp-directory/components/directory-grid";
+import type { DirectoryEntry } from "@/features/mcp-directory/api/types";
+import { useDebouncedValue } from "@/features/mcp-directory/lib/use-debounced-value";
 import {
   AddIntegrationSheet,
-  IntegrationCard,
   IntegrationsEmpty,
   ManageIntegrationsDialog,
 } from "@/features/integrations/components/integration";
 
 export function IntegrationsPage() {
-  const [selectedCategory, _setSelectedCategory] = useState<IntegrationCategory>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
-  const [searchQuery, _setSearchQuery] = useState("");
+  const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const filteredIntegrations = INTEGRATIONS.filter((i) => {
-    const matchesCategory = selectedCategory === "All" || i.category.includes(selectedCategory);
-    const matchesSearch =
-      !searchQuery ||
-      i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const debouncedSearch = useDebouncedValue(searchQuery, 250);
+  const { data, isLoading } = useDirectoryListQuery({
+    search: debouncedSearch || undefined,
+    limit: 24,
   });
+  const entries = useMemo(() => data?.items ?? [], [data]);
 
-  function handleAddIntegration(integration: Integration) {
-    setSelectedIntegration(integration);
-    setSheetOpen(true);
-  }
-
-  function handleViewDetails(integration: Integration) {
-    setSelectedIntegration(integration);
+  function handleSelect(entry: DirectoryEntry) {
+    setSelectedEntry(entry);
     setSheetOpen(true);
   }
 
@@ -42,43 +35,32 @@ export function IntegrationsPage() {
     <div className="gap-6 flex w-full flex-col">
       <div className="flex w-full justify-center">
         <InputGroup className="w-[60%]">
-          <InputGroupInput placeholder="Search..." />
+          <InputGroupInput
+            placeholder="Search integrations…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
-          <InputGroupAddon align="inline-end">
-            {filteredIntegrations.length} results
-          </InputGroupAddon>
+          <InputGroupAddon align="inline-end">{entries.length} results</InputGroupAddon>
         </InputGroup>
       </div>
       <div className="gap-6 flex w-full flex-col items-center">
-        <IntegrationsEmpty
-          onManageIntegrations={() => {
-            setDialogOpen(true);
-          }}
-        />
+        <IntegrationsEmpty onManageIntegrationsAction={() => setDialogOpen(true)} />
 
         <div className="gap-4 flex w-full flex-col">
           <h2 className="text-md font-medium text-muted-foreground">Suggested</h2>
-
-          <div className="sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 grid w-full grid-cols-3">
-            {filteredIntegrations.map((integration) => (
-              <IntegrationCard
-                key={integration.id}
-                integration={integration}
-                onAddIntegration={handleAddIntegration}
-                onViewDetails={handleViewDetails}
-              />
-            ))}
-          </div>
+          <DirectoryGrid
+            entries={entries}
+            loading={isLoading}
+            onAdd={handleSelect}
+            onViewDetails={handleSelect}
+          />
         </div>
       </div>
 
-      <AddIntegrationSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        integration={selectedIntegration}
-      />
+      <AddIntegrationSheet open={sheetOpen} onOpenChange={setSheetOpen} entry={selectedEntry} />
 
       <ManageIntegrationsDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>

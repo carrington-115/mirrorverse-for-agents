@@ -1,0 +1,45 @@
+import { TRPCError } from "@trpc/server";
+
+export const ErrCode = {
+  Unauthorized: "UNAUTHORIZED",
+  Forbidden: "FORBIDDEN",
+  NotFound: "NOT_FOUND",
+  BadInput: "BAD_INPUT",
+  Conflict: "CONFLICT",
+  QuotaExceeded: "QUOTA_EXCEEDED",
+  RateLimited: "RATE_LIMITED",
+  Internal: "INTERNAL",
+} as const;
+export type ErrCode = (typeof ErrCode)[keyof typeof ErrCode];
+
+const TRPC_CODE: Record<ErrCode, TRPCError["code"]> = {
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  NOT_FOUND: "NOT_FOUND",
+  BAD_INPUT: "BAD_REQUEST",
+  CONFLICT: "CONFLICT",
+  QUOTA_EXCEEDED: "TOO_MANY_REQUESTS",
+  RATE_LIMITED: "TOO_MANY_REQUESTS",
+  INTERNAL: "INTERNAL_SERVER_ERROR",
+};
+
+export class AppError extends Error {
+  readonly appCode: ErrCode;
+  constructor(code: ErrCode, message: string) {
+    super(message);
+    this.name = "AppError";
+    this.appCode = code;
+  }
+}
+
+export function appError(code: ErrCode, message: string): TRPCError {
+  return new TRPCError({
+    code: TRPC_CODE[code],
+    message,
+    cause: new AppError(code, message),
+  });
+}
+
+export function appCodeFromCause(cause: unknown): ErrCode | null {
+  return cause instanceof AppError ? cause.appCode : null;
+}

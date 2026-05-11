@@ -30,8 +30,11 @@
     "db:sync-directory": "node scripts/sync-directory.mjs"
   },
   "dependencies": {
+    "@mirrorverse/env": "workspace:*",
     "@mirrorverse/types": "workspace:*",
+    "@supabase/supabase-js": "^2.45.4",
     "drizzle-orm": "^0.45.1",
+    "jose": "^5.9.6",
     "postgres": "^3.4.8"
   },
   "devDependencies": {

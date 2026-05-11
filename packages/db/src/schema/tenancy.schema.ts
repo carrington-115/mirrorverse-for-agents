@@ -1,6 +1,12 @@
 import { sql } from "drizzle-orm";
 import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import type { ApiKeyScope, WorkspaceRole, WorkspaceStatus } from "@mirrorverse/types";
+import type {
+  ApiKeyScope,
+  CompanySize,
+  OnboardingStep,
+  WorkspaceRole,
+  WorkspaceStatus,
+} from "@mirrorverse/types";
 
 /**
  * Top-level tenant. Every other domain table carries `workspace_id` and
@@ -20,6 +26,17 @@ export const workspaces = pgTable(
     stripeCustomerId: text("stripe_customer_id"),
     billingEmail: text("billing_email"),
     ownerId: text("owner_id").notNull(),
+    website: text("website"),
+    companySize: text("company_size").$type<CompanySize>(),
+    industry: text("industry"),
+    defaultApps: text("default_apps")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    defaultDeployChannels: text("default_deploy_channels")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -47,6 +64,11 @@ export const userProfiles = pgTable(
     defaultWorkspaceId: text("default_workspace_id").references(() => workspaces.id, {
       onDelete: "set null",
     }),
+    onboardingStep: text("onboarding_step")
+      .$type<OnboardingStep>()
+      .notNull()
+      .default("select-role"),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

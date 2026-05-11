@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Shapes } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,16 @@ import {
 } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
-import { Integration, IntegrationCategory } from "@/lib/types";
-import { CATEGORIES, INTEGRATIONS } from "@/lib/data";
+import { useDirectoryListQuery } from "@/features/mcp-directory/api/queries";
+import { useDebouncedValue } from "@/features/mcp-directory/lib/use-debounced-value";
+import { DirectoryGrid } from "@/features/mcp-directory/components/directory-grid";
+import { DirectoryIcon } from "@/features/mcp-directory/components/directory-icon";
+import type { DirectoryEntry } from "@/features/mcp-directory/api/types";
 
 interface CategorySidebarProps {
-  categories: IntegrationCategory[];
-  selected: IntegrationCategory;
-  onSelect: (cat: IntegrationCategory) => void;
+  categories: readonly string[];
+  selected: string;
+  onSelect: (cat: string) => void;
 }
 
 export function CategorySidebar({ categories, selected, onSelect }: CategorySidebarProps) {
@@ -81,91 +84,14 @@ export function IntegrationSearchBar({
   );
 }
 
-export function IntegrationCard({
-  integration,
-  onAddIntegration,
-  onViewDetails,
-}: {
-  integration: Integration;
-  onAddIntegration: (i: Integration) => void;
-  onViewDetails: (i: Integration) => void;
-}) {
-  const Icon = integration.icon;
-
-  return (
-    <div className="gap-3 p-4 hover:shadow-sm flex cursor-pointer flex-col justify-between rounded-xl border border-border bg-background transition-shadow">
-      <div className="gap-1.5 flex flex-col">
-        <Icon className={cn("size-6", integration.iconColor)} />
-        <h3 className="text-md font-semibold text-foreground">{integration.name}</h3>
-        <p className="text-sm leading-relaxed line-clamp-3 text-muted-foreground">
-          {integration.description}
-        </p>
-      </div>
-
-      <div className="gap-2 flex w-full justify-between">
-        <Button
-          size="sm"
-          className="text-xs w-1/2 cursor-pointer"
-          onClick={() => onAddIntegration(integration)}
-        >
-          Add integration
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="text-xs w-1/2 cursor-pointer"
-          onClick={() => onViewDetails(integration)}
-        >
-          View details
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-interface IntegrationGridProps {
-  integrations: Integration[];
-  onAddIntegration: (i: Integration) => void;
-  onViewDetails: (i: Integration) => void;
-}
-
-export function IntegrationGrid({
-  integrations,
-  onAddIntegration,
-  onViewDetails,
-}: IntegrationGridProps) {
-  if (!integrations.length) {
-    return (
-      <div className="py-16 text-sm flex flex-1 items-center justify-center text-muted-foreground">
-        No integrations match your search.
-      </div>
-    );
-  }
-
-  return (
-    <div className="gap-3 grid grid-cols-4">
-      {integrations.map((integration) => (
-        <IntegrationCard
-          key={integration.id}
-          integration={integration}
-          onAddIntegration={onAddIntegration}
-          onViewDetails={onViewDetails}
-        />
-      ))}
-    </div>
-  );
-}
-
-export function AddIntegrationSheet({
-  open,
-  onOpenChange,
-  integration,
-}: {
+interface AddIntegrationSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  integration: Integration | null;
-}) {
-  const [credentialType, setCredentialType] = useState("bot-oauth-id");
+  entry: DirectoryEntry | null;
+}
+
+export function AddIntegrationSheet({ open, onOpenChange, entry }: AddIntegrationSheetProps) {
+  const [credentialType, setCredentialType] = useState("oauth");
   const [credentialValue, setCredentialValue] = useState("");
 
   return (
@@ -192,14 +118,14 @@ export function AddIntegrationSheet({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bot-oauth-id">Bot OAuth ID</SelectItem>
+                  <SelectItem value="oauth">OAuth</SelectItem>
                   <SelectItem value="api-key">API Key</SelectItem>
                   <SelectItem value="access-token">Access Token</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="gap-2 flex flex-col">
-              <Label>Bot OAuth ID</Label>
+              <Label>Value</Label>
               <Input
                 placeholder="Enter credential value"
                 value={credentialValue}
@@ -208,25 +134,38 @@ export function AddIntegrationSheet({
             </div>
           </TabsContent>
 
-          <TabsContent value="tools" className="mt-4">
+          <TabsContent value="tools" className="mt-4 gap-2 flex flex-col">
             <p className="text-sm text-muted-foreground">
-              {integration
-                ? `Configure tools for ${integration.name}.`
-                : "Select an integration to configure its tools."}
+              {entry
+                ? `Tools provided by ${entry.displayName}.`
+                : "Select an integration to see its tools."}
             </p>
+            {entry && entry.toolNames.length > 0 ? (
+              <ul className="gap-1 text-sm flex flex-col text-foreground">
+                {entry.toolNames.map((tool: string) => (
+                  <li key={tool} className="font-mono">
+                    {tool}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </TabsContent>
 
           <TabsContent value="about" className="mt-4">
-            {integration ? (
+            {entry ? (
               <div className="gap-3 flex flex-col">
                 <div className="gap-3 flex items-center">
-                  <integration.icon className={cn("size-8", integration.iconColor)} />
+                  <DirectoryIcon entry={entry} size={32} className="size-8" />
                   <div>
-                    <p className="font-medium">{integration.name}</p>
-                    <p className="text-xs text-muted-foreground">Integration</p>
+                    <p className="font-medium">{entry.displayName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {entry.authorName ? `by ${entry.authorName}` : "Integration"}
+                    </p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{integration.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {entry.description ?? entry.oneLiner ?? ""}
+                </p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No integration selected.</p>
@@ -247,32 +186,47 @@ interface ManageIntegrationsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const DEFAULT_CATEGORY = "All";
+
 export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrationsDialogProps) {
-  const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory>("All");
+  const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_CATEGORY);
   const [searchQuery, setSearchQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
 
-  const filteredIntegrations = INTEGRATIONS.filter((i) => {
-    const matchesCategory = selectedCategory === "All" || i.category.includes(selectedCategory);
-    const matchesSearch =
-      !searchQuery ||
-      i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const debouncedSearch = useDebouncedValue(searchQuery, 250);
+  const { data, isLoading } = useDirectoryListQuery({
+    search: debouncedSearch || undefined,
+    category: selectedCategory === DEFAULT_CATEGORY ? undefined : selectedCategory,
+    limit: 60,
   });
+  const entries = useMemo(() => data?.items ?? [], [data]);
 
-  function handleAddIntegration(integration: Integration) {
-    setSelectedIntegration(integration);
+  const [seenCategories, setSeenCategories] = useState<readonly string[]>([]);
+  useEffect(() => {
+    setSeenCategories((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const entry of entries) {
+        for (const cat of entry.categories) {
+          if (!next.has(cat)) {
+            next.add(cat);
+            changed = true;
+          }
+        }
+      }
+      return changed ? Array.from(next).sort() : prev;
+    });
+  }, [entries]);
+  const categories = useMemo(() => [DEFAULT_CATEGORY, ...seenCategories], [seenCategories]);
+
+  function handleSelect(entry: DirectoryEntry) {
+    setSelectedEntry(entry);
     setSheetOpen(true);
   }
 
-  function handleViewDetails(integration: Integration) {
-    setSelectedIntegration(integration);
-    setSheetOpen(true);
-  }
-
-  const categoryLabel = selectedCategory === "All" ? "All integrations" : selectedCategory;
+  const categoryLabel =
+    selectedCategory === DEFAULT_CATEGORY ? "All integrations" : selectedCategory;
 
   return (
     <>
@@ -281,7 +235,7 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
           <div className="flex h-[640px]">
             <aside className="w-44 p-4 shrink-0 overflow-y-auto border-r border-border">
               <CategorySidebar
-                categories={CATEGORIES}
+                categories={categories}
                 selected={selectedCategory}
                 onSelect={setSelectedCategory}
               />
@@ -300,10 +254,11 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
               </div>
 
               <div className="px-5 py-4 flex-1 overflow-y-auto">
-                <IntegrationGrid
-                  integrations={filteredIntegrations}
-                  onAddIntegration={handleAddIntegration}
-                  onViewDetails={handleViewDetails}
+                <DirectoryGrid
+                  entries={entries}
+                  loading={isLoading}
+                  onAdd={handleSelect}
+                  onViewDetails={handleSelect}
                 />
               </div>
             </div>
@@ -311,16 +266,16 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
         </DialogContent>
       </Dialog>
 
-      <AddIntegrationSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        integration={selectedIntegration}
-      />
+      <AddIntegrationSheet open={sheetOpen} onOpenChange={setSheetOpen} entry={selectedEntry} />
     </>
   );
 }
 
-export function IntegrationsEmpty({ onManageIntegrations }: { onManageIntegrations: () => void }) {
+export function IntegrationsEmpty({
+  onManageIntegrationsAction,
+}: {
+  onManageIntegrationsAction: () => void;
+}) {
   return (
     <Empty className="py-10 w-[80%] border">
       <EmptyHeader>
@@ -336,11 +291,11 @@ export function IntegrationsEmpty({ onManageIntegrations }: { onManageIntegratio
       </EmptyHeader>
       <EmptyContent>
         <div className="gap-2 flex">
-          <Button onClick={onManageIntegrations} className="cursor-pointer">
+          <Button onClick={onManageIntegrationsAction} className="cursor-pointer">
             <Shapes className="size-4" />
             Add integration
           </Button>
-          <Button variant="outline" className="cursor-pointer" onClick={onManageIntegrations}>
+          <Button variant="outline" className="cursor-pointer" onClick={onManageIntegrationsAction}>
             Manage integrations
           </Button>
         </div>

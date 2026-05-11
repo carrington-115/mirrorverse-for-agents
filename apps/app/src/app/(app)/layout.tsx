@@ -1,6 +1,7 @@
-// Dashboard reads the Supabase session via useSupabaseUser, which calls
-// createBrowserClient at module init. That can't run during static prerender
-// without real env vars, so opt every dashboard route out of static rendering.
+import { AppLayout } from "@/features/dashboard/components/app-layout";
+
 export const dynamic = "force-dynamic";
 
-export { AppLayout as default } from "@/features/dashboard/components/app-layout";
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <AppLayout>{children}</AppLayout>;
+}

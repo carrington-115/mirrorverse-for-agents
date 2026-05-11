@@ -10,6 +10,8 @@ import type {
 
 export type WorkspaceStatus = "active" | "suspended" | "deleted";
 
+export type CompanySize = "1-10" | "11-50" | "51-200" | "201-1000" | "1000+";
+
 /** Top-level tenant. Every other entity is scoped under a workspace. */
 export interface Workspace extends Timestamps, SoftDelete {
   readonly id: WorkspaceId;
@@ -20,9 +22,14 @@ export interface Workspace extends Timestamps, SoftDelete {
   readonly stripeCustomerId: string | null;
   readonly billingEmail: string | null;
   readonly ownerId: UserId;
+  readonly website: string | null;
+  readonly companySize: CompanySize | null;
+  readonly industry: string | null;
+  readonly defaultApps: readonly string[];
+  readonly defaultDeployChannels: readonly string[];
 }
 
-export type WorkspaceRole = "owner" | "admin" | "member";
+export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 
 export interface WorkspaceMember extends Timestamps {
   readonly id: string;
@@ -34,13 +41,38 @@ export interface WorkspaceMember extends Timestamps {
   readonly acceptedAt: Date | null;
 }
 
-/** App-level user profile that mirrors / extends the Supabase auth user. */
+export type OnboardingStep =
+  | "select-role"
+  | "verification"
+  | "apps"
+  | "deploy"
+  | "invite-team"
+  | "admin"
+  | "invitation-accept"
+  | "user";
+
+export const OWNER_ONBOARDING_STEPS = [
+  "select-role",
+  "verification",
+  "apps",
+  "deploy",
+  "invite-team",
+  "admin",
+] as const satisfies readonly OnboardingStep[];
+
+export const INVITEE_ONBOARDING_STEPS = [
+  "invitation-accept",
+  "user",
+] as const satisfies readonly OnboardingStep[];
+
 export interface UserProfile extends Timestamps {
   readonly id: UserId;
   readonly email: string;
   readonly fullName: string | null;
   readonly avatarUrl: string | null;
   readonly defaultWorkspaceId: WorkspaceId | null;
+  readonly onboardingStep: OnboardingStep;
+  readonly onboardingCompletedAt: Date | null;
 }
 
 export type ApiKeyScope =
@@ -52,7 +84,6 @@ export type ApiKeyScope =
   | "billing:read"
   | "*";
 
-/** API token a user creates to call our HTTP API from outside the app. */
 export interface ApiKey extends Timestamps, Tenanted {
   readonly id: ApiKeyId;
   readonly name: string;
@@ -76,4 +107,95 @@ export interface Invitation extends Timestamps, Tenanted {
   readonly invitedBy: UserId;
   readonly expiresAt: Date;
   readonly acceptedAt: Date | null;
+}
+
+export type Permission =
+  | "workspace.delete"
+  | "workspace.update"
+  | "workspace.transfer"
+  | "billing.manage"
+  | "billing.view"
+  | "member.invite"
+  | "member.remove"
+  | "member.change-role"
+  | "integration.add"
+  | "integration.remove"
+  | "integration.update"
+  | "workflow.create"
+  | "workflow.update"
+  | "workflow.deploy"
+  | "workflow.delete"
+  | "chat.create"
+  | "chat.delete"
+  | "skill.create"
+  | "skill.delete";
+
+export const ROLE_PERMISSIONS: Readonly<Record<WorkspaceRole, readonly Permission[]>> = {
+  owner: [
+    "workspace.delete",
+    "workspace.update",
+    "workspace.transfer",
+    "billing.manage",
+    "billing.view",
+    "member.invite",
+    "member.remove",
+    "member.change-role",
+    "integration.add",
+    "integration.remove",
+    "integration.update",
+    "workflow.create",
+    "workflow.update",
+    "workflow.deploy",
+    "workflow.delete",
+    "chat.create",
+    "chat.delete",
+    "skill.create",
+    "skill.delete",
+  ],
+  admin: [
+    "workspace.update",
+    "billing.view",
+    "member.invite",
+    "member.remove",
+    "integration.add",
+    "integration.remove",
+    "integration.update",
+    "workflow.create",
+    "workflow.update",
+    "workflow.deploy",
+    "workflow.delete",
+    "chat.create",
+    "chat.delete",
+    "skill.create",
+    "skill.delete",
+  ],
+  member: [
+    "integration.add",
+    "integration.update",
+    "workflow.create",
+    "workflow.update",
+    "workflow.deploy",
+    "chat.create",
+    "skill.create",
+  ],
+  viewer: [],
+};
+
+const ROLE_RANK: Readonly<Record<WorkspaceRole, number>> = {
+  owner: 3,
+  admin: 2,
+  member: 1,
+  viewer: 0,
+};
+
+export function hasPermission(role: WorkspaceRole, permission: Permission): boolean {
+  return ROLE_PERMISSIONS[role].includes(permission);
+}
+
+export function roleAtLeast(role: WorkspaceRole, minimum: WorkspaceRole): boolean {
+  return ROLE_RANK[role] >= ROLE_RANK[minimum];
+}
+
+export function canInviteRole(inviterRole: WorkspaceRole, targetRole: WorkspaceRole): boolean {
+  return ROLE_RANK[inviterRole] > ROLE_RANK[targetRole];
 }
