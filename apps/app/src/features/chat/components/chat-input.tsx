@@ -575,7 +575,7 @@ export function ChatInput({
       <AddIntegrationSheet
         open={addIntegrationSheetOpen}
         onOpenChange={setAddIntegrationSheetOpen}
-        integration={null}
+        entry={null}
       />
     </TooltipProvider>
   );
