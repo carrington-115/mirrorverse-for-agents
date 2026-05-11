@@ -25,6 +25,21 @@ export function WorkflowsShell() {
     setWorkflows((prev) => prev.filter((w) => w.id !== id));
   }
 
+  function handleReorder(reordered: Workflow[]) {
+    setWorkflows((prev) => {
+      const reorderedIdSet = new Set(reordered.map((w) => w.id));
+      const filteredIndices = prev
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => reorderedIdSet.has(item.id))
+        .map(({ idx }) => idx);
+      const next = [...prev];
+      reordered.forEach((item, i) => {
+        next[filteredIndices[i]] = item;
+      });
+      return next;
+    });
+  }
+
   return (
     <div className="flex w-full flex-col gap-(--md,16px)">
       <WorkflowsHeader
@@ -38,6 +53,7 @@ export function WorkflowsShell() {
       <WorkflowsTable
         workflows={filtered}
         onDelete={handleDelete}
+        onReorder={handleReorder}
         sortAsc={sortAsc}
         onSortToggle={() => setSortAsc((v) => !v)}
         hasActiveFilter={hasActiveFilter}

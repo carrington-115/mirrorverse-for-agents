@@ -96,14 +96,14 @@ export function SidebarProfileComponent({ name, email, image }: SidebarProfilePr
 
   return (
     <div className="flex w-full items-center justify-between rounded-sm p-(--2xs) hover:bg-(--accent)">
-      <div className="flex items-center gap-(--xs)">
-        <Avatar>
+      <div className="min-w-0 flex flex-1 items-center gap-(--xs)">
+        <Avatar className="shrink-0">
           <AvatarImage src={image} />
           <AvatarFallback>{name.charAt(0)}</AvatarFallback>
         </Avatar>
-        <div>
-          <p className="text-sm font-medium">{name}</p>
-          <p className="text-xs text-muted-foreground">{email}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">{name}</p>
+          <p className="text-xs truncate text-muted-foreground">{email}</p>
         </div>
       </div>
       <DropdownMenu>

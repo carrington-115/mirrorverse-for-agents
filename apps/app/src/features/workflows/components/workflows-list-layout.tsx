@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Workflow } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
@@ -13,7 +13,6 @@ export function WorkflowsListLayout({ children }: { children: React.ReactNode })
         header={
           <DashboardHeader
             title="Workflows"
-            icon={<Workflow size={16} />}
             actions={
               <Button
                 className="cursor-pointer"

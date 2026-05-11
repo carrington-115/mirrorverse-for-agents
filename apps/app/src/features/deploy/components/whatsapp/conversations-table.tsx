@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import {
   type ColumnDef,
+  type Row,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -11,6 +12,14 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { DndContext, type DragEndEvent, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Table,
   TableBody,
@@ -28,7 +37,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, ChevronDown, ArrowUpDown, GripVertical } from "lucide-react";
+import { Search, ChevronDown, ArrowUpDown, GripVertical, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 
 export type WhatsAppConversation = {
   id: string;
@@ -59,7 +69,7 @@ const columns: ColumnDef<WhatsAppConversation>[] = [
   {
     id: "drag",
     header: () => null,
-    cell: () => <GripVertical className="size-4 cursor-grab text-muted-foreground" />,
+    cell: () => null,
     enableSorting: false,
   },
   {
@@ -163,13 +173,84 @@ const columns: ColumnDef<WhatsAppConversation>[] = [
       );
     },
   },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-1 text-sm">
+            More <MoreHorizontal className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={() => toast.info(`View conversation with ${row.original.contact}`)}
+          >
+            View conversation
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => toast.info("Export coming soon")}>
+            Export
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => toast.info("Delete coming soon")}
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
+    enableSorting: false,
+  },
 ];
+
+function SortableConversationRow({ row }: { row: Row<WhatsAppConversation> }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.original.id,
+  });
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+      data-state={row.getIsSelected() ? "selected" : undefined}
+    >
+      {row.getVisibleCells().map((cell) => {
+        if (cell.column.id === "drag") {
+          return (
+            <TableCell key={cell.id} className="w-8 px-2">
+              <span
+                {...attributes}
+                {...listeners}
+                className="flex cursor-grab items-center active:cursor-grabbing"
+                aria-label="Drag to reorder"
+              >
+                <GripVertical className="size-4 text-muted-foreground" />
+              </span>
+            </TableCell>
+          );
+        }
+        return (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        );
+      })}
+    </TableRow>
+  );
+}
 
 interface ConversationsTableProps {
   data: WhatsAppConversation[];
 }
 
 export function ConversationsTable({ data }: ConversationsTableProps) {
+  const [localData, setLocalData] = useState(data);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
   const [contactSearch, setContactSearch] = useState("");
@@ -178,7 +259,7 @@ export function ConversationsTable({ data }: ConversationsTableProps) {
 
   const filtered = useMemo(() => {
     const now = new Date();
-    return data.filter((row) => {
+    return localData.filter((row) => {
       const matchesContact = row.contact.toLowerCase().includes(contactSearch.toLowerCase());
 
       const matchesAgent = agentFilter === "All agents" || row.agentAssigned === agentFilter;
@@ -198,7 +279,7 @@ export function ConversationsTable({ data }: ConversationsTableProps) {
 
       return matchesContact && matchesAgent && matchesDate;
     });
-  }, [data, contactSearch, agentFilter, dateFilter]);
+  }, [localData, contactSearch, agentFilter, dateFilter]);
 
   const table = useReactTable({
     data: filtered,
@@ -211,11 +292,43 @@ export function ConversationsTable({ data }: ConversationsTableProps) {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 10 } },
+    getRowId: (row) => row.id,
   });
 
   const { pageIndex } = table.getState().pagination;
   const totalPages = table.getPageCount();
   const isEmpty = table.getRowModel().rows.length === 0;
+  const visibleRowIds = table.getRowModel().rows.map((r) => r.original.id);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const oldIndex = visibleRowIds.indexOf(activeId);
+    const newIndex = visibleRowIds.indexOf(overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reorderedVisible = arrayMove(
+      table.getRowModel().rows.map((r) => r.original),
+      oldIndex,
+      newIndex,
+    );
+
+    setLocalData((prev) => {
+      const reorderedIdSet = new Set(reorderedVisible.map((i) => i.id));
+      const filteredIndices = prev
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => reorderedIdSet.has(item.id))
+        .map(({ idx }) => idx);
+      const next = [...prev];
+      reorderedVisible.forEach((item, i) => {
+        next[filteredIndices[i]] = item;
+      });
+      return next;
+    });
+  }
 
   return (
     <div className="gap-4 flex w-full flex-col">
@@ -284,32 +397,30 @@ export function ConversationsTable({ data }: ConversationsTableProps) {
             </div>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((hg) => (
-                <TableRow key={hg.id}>
-                  {hg.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((hg) => (
+                  <TableRow key={hg.id}>
+                    {hg.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                <SortableContext items={visibleRowIds} strategy={verticalListSortingStrategy}>
+                  {table.getRowModel().rows.map((row) => (
+                    <SortableConversationRow key={row.id} row={row} />
                   ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() ? "selected" : undefined}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </SortableContext>
+              </TableBody>
+            </Table>
+          </DndContext>
         )}
       </div>
 

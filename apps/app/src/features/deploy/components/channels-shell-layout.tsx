@@ -1,6 +1,6 @@
 "use client";
 
-import { Megaphone } from "lucide-react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
@@ -8,7 +8,7 @@ import { DashboardLayout } from "@/features/dashboard/components/dashboard-layou
 
 interface ChannelsShellLayoutProps {
   contentWidth?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function ChannelsShellLayout({ contentWidth = "90%", children }: ChannelsShellLayoutProps) {
@@ -18,7 +18,6 @@ export function ChannelsShellLayout({ contentWidth = "90%", children }: Channels
         header={
           <DashboardHeader
             title="Channels"
-            icon={<Megaphone size={16} />}
             actions={
               <Button
                 className="cursor-pointer"
@@ -41,10 +40,10 @@ export function ChannelsShellLayout({ contentWidth = "90%", children }: Channels
   );
 }
 
-export function PhoneShellLayout({ children }: { children: React.ReactNode }) {
+export function PhoneShellLayout({ children }: { children: ReactNode }) {
   return <ChannelsShellLayout contentWidth="90%">{children}</ChannelsShellLayout>;
 }
 
-export function WhatsAppShellLayout({ children }: { children: React.ReactNode }) {
+export function WhatsAppShellLayout({ children }: { children: ReactNode }) {
   return <ChannelsShellLayout contentWidth="80%">{children}</ChannelsShellLayout>;
 }

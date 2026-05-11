@@ -10,6 +10,25 @@ import { chatStreamUrl } from "@/features/chat/api/endpoints";
 import { ChatInput, type ChatPayload } from "./chat-input";
 import { AgentMessage } from "./agent-message";
 import { UserMessage } from "./user-message";
+import { RecommendationCard } from "./recommendation-card";
+
+const RECOMMENDATIONS = [
+  {
+    title: "Lead Qualification Agent",
+    description:
+      "Qualifies inbound leads from any channel, asks discovery questions, books meetings via Calendly, and updates Salesforce automatically.",
+  },
+  {
+    title: "Expense Approval bots",
+    description:
+      "Processes employee expense requests, verifies receipts, checks policy limits, approves small amounts or escalates to finance.",
+  },
+  {
+    title: "HR assistant",
+    description:
+      "Guides new hires through paperwork, benefits questions, and team intros while creating tasks in Asana and notifying HR.",
+  },
+] as const;
 
 interface MessageListProps {
   messages: ReturnType<typeof useChatStream>["messages"];
@@ -99,6 +118,18 @@ export function ChatShell({ sessionId }: ChatShellProps) {
                 onStop={stop}
                 className={cn("border border-[rgba(0,0,0,0.05)]")}
               />
+              <div className="gap-5 flex w-full">
+                {RECOMMENDATIONS.map((rec) => (
+                  <RecommendationCard
+                    key={rec.title}
+                    title={rec.title}
+                    description={rec.description}
+                    onClick={() =>
+                      handleSend({ message: rec.title, model: "claude-opus-4-7", context: [] })
+                    }
+                  />
+                ))}
+              </div>
             </div>
           </div>
         ) : (
