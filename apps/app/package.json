@@ -17,6 +17,9 @@
     "clean": "rm -rf .turbo .next node_modules coverage cypress/videos cypress/screenshots"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.179",
+    "@assistant-ui/react": "^0.14.0",
+    "@assistant-ui/react-ai-sdk": "^1.3.23",
     "@hookform/resolvers": "^5.2.2",
     "@mirrorverse/backend": "workspace:*",
     "@mirrorverse/env": "workspace:*",
@@ -30,9 +33,9 @@
     "@trpc/client": "^11.15.0",
     "@trpc/server": "^11.15.0",
     "@trpc/tanstack-react-query": "^11.15.0",
-    "superjson": "^2.2.2",
     "@wavesurfer/react": "^1.0.12",
     "@xyflow/react": "^12.10.2",
+    "ai": "^6.0.177",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "ky": "^2.0.2",
@@ -50,6 +53,7 @@
     "recharts": "2.15.4",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
+    "superjson": "^2.2.2",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"

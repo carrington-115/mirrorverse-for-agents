@@ -11,7 +11,10 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    return [{ source: "/api/trpc/:path*", destination: `${apiUrl}/api/trpc/:path*` }];
+    return [
+      { source: "/api/trpc/:path*", destination: `${apiUrl}/api/trpc/:path*` },
+      { source: "/api/chat", destination: `${apiUrl}/api/chat` },
+    ];
   },
 };
 
