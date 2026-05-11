@@ -29,36 +29,39 @@ const RECOMMENDATIONS = [
       "Guides new hires through paperwork, benefits questions, and team intros while creating tasks in Asana and notifying HR.",
   },
 ] as const;
+import { useMemo } from "react";
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
+import { useQueryClient } from "@tanstack/react-query";
 
-interface MessageListProps {
-  messages: ReturnType<typeof useChatStream>["messages"];
-  onEdit: (messageId: string, newContent: string) => void;
-  onRetry: (messageId: string) => void;
-}
+import { useTRPC } from "@/lib/trpc/client";
+import { useChatQuery } from "@/features/chat/api/queries";
+import type { ChatMessageRow } from "@/features/chat/api/server-types";
+import { AssistantThread } from "./assistant-thread";
+import { ChatSkeleton } from "./chat-skeleton";
 
-function MessageList({ messages, onEdit, onRetry }: MessageListProps) {
-  return (
-    <div className="gap-6 flex flex-col">
-      {messages.map((msg) => {
-        if (msg.role === "user") {
-          const textContent = msg.blocks
-            .filter((b): b is TextBlock => b.type === "text")
-            .map((b) => b.content)
-            .join("");
+type UITextPart = { type: "text"; text: string };
+type UIMessage = {
+  id: string;
+  role: "user" | "assistant";
+  parts: UITextPart[];
+};
 
-          return (
-            <UserMessage
-              key={msg.id}
-              content={textContent}
-              onEdit={(newContent) => onEdit(msg.id, newContent)}
-            />
-          );
-        }
-
-        return <AgentMessage key={msg.id} message={msg} onRetry={onRetry} />;
-      })}
-    </div>
-  );
+function toUIMessage(row: ChatMessageRow): UIMessage {
+  const raw = Array.isArray(row.contentBlocks) ? row.contentBlocks : [];
+  const parts: UITextPart[] = [];
+  for (const block of raw) {
+    if (!block || typeof block !== "object") continue;
+    const b = block as { type?: string; text?: string };
+    if (b.type === "text" && typeof b.text === "string") {
+      parts.push({ type: "text", text: b.text });
+    }
+  }
+  return {
+    id: row.id,
+    role: row.role === "user" ? "user" : "assistant",
+    parts,
+  };
 }
 
 interface ChatShellProps {
@@ -66,37 +69,33 @@ interface ChatShellProps {
 }
 
 export function ChatShell({ sessionId }: ChatShellProps) {
-  const { messages, isStreaming, send, stop, retry } = useChatStream(chatStreamUrl(sessionId));
+  const { data, isLoading } = useChatQuery(sessionId);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const hasMessages = messages.length > 0;
+  if (isLoading || !data) {
+    return <ChatSkeleton />;
+  }
 
-  useEffect(() => {
-    if (!isStreaming) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isStreaming]);
+  return <ChatRuntime sessionId={sessionId} initialMessages={data.messages.map(toUIMessage)} />;
+}
 
-  useEffect(() => {
-    const last = messages[messages.length - 1];
-    if (last?.role === "user") {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, [messages.length]);
+function ChatRuntime({
+  sessionId,
+  initialMessages,
+}: {
+  sessionId: string;
+  initialMessages: UIMessage[];
+}) {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
 
-  const handleEdit = useCallback(
-    (_messageId: string, newContent: string) => {
-      send({ message: newContent, model: "claude-opus-4-7", context: [] });
+  const runtime = useChatRuntime({
+    id: sessionId,
+    messages: useMemo(() => initialMessages, [initialMessages]),
+    onFinish: () => {
+      qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.chats.get.queryKey({ chatId: sessionId }) });
     },
-    [send],
-  );
-
-  const handleSend = useCallback(
-    (payload: ChatPayload) => {
-      send(payload);
-    },
-    [send],
-  );
+  });
 
   return (
     <div className="relative flex size-full flex-col">
@@ -152,5 +151,8 @@ export function ChatShell({ sessionId }: ChatShellProps) {
         </div>
       )}
     </div>
+    <AssistantRuntimeProvider runtime={runtime}>
+      <AssistantThread />
+    </AssistantRuntimeProvider>
   );
 }

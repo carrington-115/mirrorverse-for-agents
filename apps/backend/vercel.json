@@ -4,6 +4,10 @@
     "api/trpc/[trpc].ts": {
       "runtime": "nodejs22.x",
       "maxDuration": 60
+    },
+    "api/chat.ts": {
+      "runtime": "nodejs22.x",
+      "maxDuration": 300
     }
   }
 }
