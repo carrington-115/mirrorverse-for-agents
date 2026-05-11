@@ -8,6 +8,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { env } from "@mirrorverse/env/backend";
 
+import { POST as chatHandler } from "../api/chat";
 import { TRPC_ENDPOINT } from "./config";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./trpc/router";
@@ -37,19 +38,36 @@ async function toFetchRequest(req: IncomingMessage): Promise<Request> {
   return new Request(url, { method, headers, body });
 }
 
-async function writeResponse(
+async function pipeResponse(
   res: ServerResponse,
   response: Response,
 ): Promise<void> {
   res.statusCode = response.status;
   response.headers.forEach((value, key) => res.setHeader(key, value));
-  const body = new Uint8Array(await response.arrayBuffer());
-  res.end(body);
+  if (!response.body) {
+    res.end();
+    return;
+  }
+  const reader = response.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    res.write(value);
+  }
+  res.end();
 }
 
 const server = createServer(async (req, res) => {
   try {
     const request = await toFetchRequest(req);
+    const url = new URL(request.url);
+
+    if (url.pathname === "/api/chat") {
+      const response = await chatHandler(request);
+      await pipeResponse(res, response);
+      return;
+    }
+
     const response = await fetchRequestHandler({
       endpoint: TRPC_ENDPOINT,
       req: request,
@@ -59,13 +77,13 @@ const server = createServer(async (req, res) => {
         console.error(`[trpc] ${path ?? "<no-path>"}: ${error.message}`);
       },
     });
-    await writeResponse(res, response);
+    await pipeResponse(res, response);
   } catch (err) {
     console.error("[backend] unhandled error:", err);
-    res.statusCode = 500;
+    if (!res.headersSent) res.statusCode = 500;
     res.end("Internal Server Error");
   }
 });
 
 server.listen(env.PORT);
-console.log(`[backend] tRPC dev server listening on :${env.PORT}`);
+console.log(`[backend] dev server listening on :${env.PORT}`);

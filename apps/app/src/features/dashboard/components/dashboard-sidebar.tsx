@@ -1,7 +1,14 @@
 "use client";
 
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCirclePlus, Shapes, Workflow as WorkflowIcon, Megaphone } from "lucide-react";
+import {
+  Loader2,
+  MessageCirclePlus,
+  Shapes,
+  Workflow as WorkflowIcon,
+  Megaphone,
+} from "lucide-react";
 import type { UserMetadata } from "@supabase/supabase-js";
 import {
   Sidebar,
@@ -20,6 +27,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { generateSessionId } from "@/features/chat/actions/generate-session-id";
+import { useChatsListQuery } from "@/features/chat/api/queries";
+import { useEnsureChatMutation } from "@/features/chat/api/mutations";
+import type { ChatListEntry } from "@/features/chat/api/server-types";
 import { SidebarHeaderComponent } from "./sidebar-header";
 import { SidebarProfileComponent } from "./sidebar-profile-component";
 import { SidebarActivityButton } from "./sidebar-activity-button";
@@ -76,11 +86,18 @@ function NewChatButton() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const router = useRouter();
+  const ensure = useEnsureChatMutation();
+  const [isPending, startTransition] = useTransition();
 
-  const handleNewChatClick = async () => {
-    const sessionId = await generateSessionId();
-    router.push(`/mirropilot/${sessionId}`);
+  const handleNewChatClick = () => {
+    startTransition(async () => {
+      const sessionId = await generateSessionId();
+      await ensure.mutateAsync({ chatId: sessionId });
+      router.push(`/mirropilot/${sessionId}`);
+    });
   };
+
+  const busy = isPending || ensure.isPending;
 
   if (isCollapsed) {
     return (
@@ -89,9 +106,14 @@ function NewChatButton() {
           <TooltipTrigger asChild>
             <SidebarMenuButton
               onClick={handleNewChatClick}
+              disabled={busy}
               className="flex cursor-pointer items-center justify-center"
             >
-              <MessageCirclePlus className="size-4 shrink-0" />
+              {busy ? (
+                <Loader2 className="size-4 animate-spin shrink-0" />
+              ) : (
+                <MessageCirclePlus className="size-4 shrink-0" />
+              )}
             </SidebarMenuButton>
           </TooltipTrigger>
           <TooltipContent side="right">New chat</TooltipContent>
@@ -102,8 +124,16 @@ function NewChatButton() {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton onClick={handleNewChatClick} className="w-full cursor-pointer">
-        <MessageCirclePlus className="size-4 shrink-0" />
+      <SidebarMenuButton
+        onClick={handleNewChatClick}
+        disabled={busy}
+        className="w-full cursor-pointer"
+      >
+        {busy ? (
+          <Loader2 className="size-4 animate-spin shrink-0" />
+        ) : (
+          <MessageCirclePlus className="size-4 shrink-0" />
+        )}
         <span>New chat</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -124,16 +154,31 @@ function ChannelsItem() {
   );
 }
 
-type Conversation = {
-  id: string;
-  title: string;
-};
+function titleFor(entry: ChatListEntry): string {
+  if (entry.title && entry.title.trim().length > 0) return entry.title;
+  return "Untitled chat";
+}
 
-function ConversationsSection({ conversations = [] }: { conversations?: Conversation[] }) {
+function ConversationsSection() {
+  const { data, isLoading } = useChatsListQuery();
+  const conversations = data ?? [];
+
+  if (isLoading) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>Conversations</SidebarGroupLabel>
+        <div className="py-2 flex justify-center">
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        </div>
+      </SidebarGroup>
+    );
+  }
+
   if (conversations.length === 0) {
     return (
       <SidebarGroup>
         <SidebarGroupLabel>Conversations</SidebarGroupLabel>
+        <p className="px-2 text-xs text-muted-foreground">No chats yet.</p>
       </SidebarGroup>
     );
   }
@@ -145,7 +190,7 @@ function ConversationsSection({ conversations = [] }: { conversations?: Conversa
         <SidebarMenu>
           {conversations.map((c) => (
             <SidebarMenuItem key={c.id}>
-              <SidebarActivityButton href={`/mirropilot/${c.id}`} name={c.title} exact />
+              <SidebarActivityButton href={`/mirropilot/${c.id}`} name={titleFor(c)} exact />
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
