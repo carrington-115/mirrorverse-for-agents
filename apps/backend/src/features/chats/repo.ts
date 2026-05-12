@@ -201,3 +201,25 @@ export async function updateMessageBlocks(
     .returning();
   return row ?? null;
 }
+
+export async function countMessagesByChat(
+  db: Database,
+  chatId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(messages)
+    .where(eq(messages.chatId, chatId));
+  return row?.count ?? 0;
+}
+
+export async function markChatFailed(
+  db: Database,
+  chatId: string,
+  endedAt: Date = new Date(),
+) {
+  await db
+    .update(chats)
+    .set({ status: "failed", endedAt })
+    .where(eq(chats.id, chatId));
+}

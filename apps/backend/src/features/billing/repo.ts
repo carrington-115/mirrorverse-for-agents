@@ -1,7 +1,20 @@
-import { schema, type Database } from "@mirrorverse/db";
+import { eq, schema, sql, type Database } from "@mirrorverse/db";
 import type { AgentUsageEntry, StepUsageBreakdown } from "@mirrorverse/agent";
 
 const { usageEvents } = schema;
+
+export async function getChatTotalCostCents(
+  db: Database,
+  chatId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${usageEvents.costCents}), 0)::int`,
+    })
+    .from(usageEvents)
+    .where(eq(usageEvents.chatId, chatId));
+  return row?.total ?? 0;
+}
 
 export interface RecordChatUsageInput {
   readonly db: Database;

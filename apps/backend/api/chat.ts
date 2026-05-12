@@ -1,4 +1,9 @@
-import { generateChatTitle, runMirropilot } from "@mirrorverse/agent";
+import {
+  checkChatLimits,
+  describeChatLimitBreach,
+  generateChatTitle,
+  runMirropilot,
+} from "@mirrorverse/agent";
 import { randomUUID } from "node:crypto";
 import type { UIMessage } from "ai";
 
@@ -9,11 +14,16 @@ import type { ContentBlock, UserId } from "@mirrorverse/types";
 import { BEARER } from "../src/config";
 import { getDb } from "@mirrorverse/db";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
-import { recordChatUsage } from "../src/features/billing/repo";
+import {
+  getChatTotalCostCents,
+  recordChatUsage,
+} from "../src/features/billing/repo";
 import {
   bumpLastMessageAt,
+  countMessagesByChat,
   ensureChat,
   insertMessage,
+  markChatFailed,
   setChatTitleIfEmpty,
 } from "../src/features/chats/repo";
 
@@ -103,6 +113,20 @@ export async function POST(req: Request): Promise<Response> {
     userId: session.userId,
   });
   if (!chat) return jsonError(500, "Failed to ensure chat");
+
+  const [messageCount, totalCostCents] = await Promise.all([
+    countMessagesByChat(db, chat.id),
+    getChatTotalCostCents(db, chat.id),
+  ]);
+  const breach = checkChatLimits({ messageCount, totalCostCents });
+  if (breach) {
+    await markChatFailed(db, chat.id);
+    console.warn(
+      `[chat] 429 cap breach chatId=${chat.id} kind=${breach.kind} ` +
+        `messageCount=${messageCount} totalCostCents=${totalCostCents}`,
+    );
+    return jsonError(429, describeChatLimitBreach(breach));
+  }
 
   const lastUser = body.messages[body.messages.length - 1];
   if (!lastUser || lastUser.role !== "user") {
