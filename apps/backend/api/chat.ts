@@ -16,20 +16,20 @@ import { BEARER } from "../src/config";
 import { getDb } from "@mirrorverse/db";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
 import { recordChatUsage } from "../src/features/billing/repo";
-import { appendChatEvent } from "../src/features/chats/chat-events.repo";
-import { lifecycleToPayload } from "../src/features/chats/chat-events.mapper";
-import { checkChatAdmission } from "../src/features/chats/chat-guard";
 import {
   firstUserText,
+  lifecycleToChatEventPayload,
   uiMessageToContentBlocks,
-} from "../src/features/chats/content-blocks.mapper";
+} from "../src/features/chats/mappers";
 import {
+  appendChatEvent,
   bumpLastMessageAt,
   ensureChat,
   insertMessage,
   markChatFailed,
   setChatTitleIfEmpty,
 } from "../src/features/chats/repo";
+import { chatsService } from "../src/features/chats/service";
 
 async function safeAppendChatEvent(
   ...args: Parameters<typeof appendChatEvent>
@@ -120,11 +120,10 @@ export async function POST(req: Request): Promise<Response> {
   });
   if (!chat) return jsonError(500, "Failed to ensure chat");
 
-  const breach = await checkChatAdmission({
-    db,
-    chatId: chat.id,
-    limits: DEFAULT_CHAT_LIMITS,
-  });
+  const breach = await chatsService.checkAdmission(
+    { db, userId: session.userId },
+    { chatId: chat.id, limits: DEFAULT_CHAT_LIMITS },
+  );
   if (breach) {
     const reason = describeChatLimitBreach(breach);
     try {
@@ -176,7 +175,7 @@ export async function POST(req: Request): Promise<Response> {
         db,
         chatId: chat.id,
         kind: event.kind,
-        payload: lifecycleToPayload(event),
+        payload: lifecycleToChatEventPayload(event),
       });
     },
     onUsage: async ({ model, breakdown }) => {

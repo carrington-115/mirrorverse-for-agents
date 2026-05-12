@@ -9,12 +9,14 @@ import {
   type Database,
 } from "@mirrorverse/db";
 import type {
+  ChatEventKind,
+  ChatEventPayload,
   ContentBlock,
   CostBreakdown,
   MessageRole,
 } from "@mirrorverse/types";
 
-const { chats, messages } = schema;
+const { chats, chatEvents, messages } = schema;
 
 const ZERO_COST: CostBreakdown = {
   tokensIn: 0,
@@ -222,4 +224,22 @@ export async function markChatFailed(
     .update(chats)
     .set({ status: "failed", endedAt })
     .where(eq(chats.id, chatId));
+}
+
+export interface AppendChatEventInput {
+  readonly db: Database;
+  readonly chatId: string;
+  readonly kind: ChatEventKind;
+  readonly payload: ChatEventPayload;
+}
+
+export async function appendChatEvent(
+  input: AppendChatEventInput,
+): Promise<void> {
+  await input.db.insert(chatEvents).values({
+    chatId: input.chatId,
+    kind: input.kind,
+    payload: input.payload,
+    sequence: sql`coalesce((select max(sequence) from chat_events where chat_id = ${input.chatId}), -1) + 1`,
+  });
 }
