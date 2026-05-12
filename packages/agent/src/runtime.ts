@@ -23,7 +23,7 @@ export interface RunMirropilotResult {
   readonly response: Response;
 }
 
-const DEFAULT_MODEL = "claude-opus-4-7";
+const DEFAULT_MODEL = "claude-haiku-4-5";
 const DEFAULT_MAX_STEPS = 5;
 
 export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> {
@@ -55,6 +55,7 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
       anthropic: {
         cacheControl: { type: "ephemeral" },
         sendReasoning: true,
+        thinking: { type: "enabled", budgetTokens: 8000 },
       },
     },
     onStepFinish: ({ text, toolCalls, finishReason, usage }) => {

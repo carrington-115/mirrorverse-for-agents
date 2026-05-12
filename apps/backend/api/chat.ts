@@ -45,6 +45,22 @@ function uiMessageToBlocks(msg: UIMessage): ContentBlock[] {
         type: "text",
         text: (part as { text: string }).text,
       } as ContentBlock);
+    } else if (
+      part.type === "reasoning" &&
+      typeof (part as { text?: unknown }).text === "string"
+    ) {
+      const meta = (
+        part as { providerMetadata?: { anthropic?: { signature?: unknown } } }
+      ).providerMetadata;
+      const signature =
+        typeof meta?.anthropic?.signature === "string"
+          ? meta.anthropic.signature
+          : "";
+      blocks.push({
+        type: "thinking",
+        thinking: (part as { text: string }).text,
+        signature,
+      } as ContentBlock);
     }
   }
   return blocks;
