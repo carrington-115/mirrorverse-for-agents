@@ -6,8 +6,12 @@ export type ModelOption = {
 };
 
 export const CHAT_MODELS = [
-  { id: "claude-opus-4-7", name: "Claude opus 4.7", chef: "Anthropic", chefSlug: "anthropic" },
-  { id: "claude-sonnet-4-6", name: "Claude sonnet 4.6", chef: "Anthropic", chefSlug: "anthropic" },
+  { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", chef: "Anthropic", chefSlug: "anthropic" },
+  { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", chef: "Anthropic", chefSlug: "anthropic" },
+  { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", chef: "Anthropic", chefSlug: "anthropic" },
+  { id: "claude-opus-4-5", name: "Claude Opus 4.5", chef: "Anthropic", chefSlug: "anthropic" },
+  { id: "claude-opus-4-6", name: "Claude Opus 4.6", chef: "Anthropic", chefSlug: "anthropic" },
+  { id: "claude-opus-4-7", name: "Claude Opus 4.7", chef: "Anthropic", chefSlug: "anthropic" },
 ] as const satisfies readonly ModelOption[];
 
 export const DEFAULT_CHAT_MODEL: ModelOption["id"] = CHAT_MODELS[0].id;

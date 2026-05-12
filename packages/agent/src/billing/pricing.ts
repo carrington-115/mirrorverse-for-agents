@@ -18,10 +18,21 @@ const ANTHROPIC_PRICING: Record<string, ModelPricePerMillionTokens> = {
 
 const DEFAULT_PRICE: ModelPricePerMillionTokens = ANTHROPIC_PRICING["claude-haiku-4-5"];
 
-export function getModelPrice(model: string): ModelPricePerMillionTokens {
-  const trimmed = model.replace(/-\d{8}$/, "");
-  return ANTHROPIC_PRICING[trimmed] ?? ANTHROPIC_PRICING[model] ?? DEFAULT_PRICE;
+function canonicalModelId(model: string): string {
+  return model.replace(/-\d{8}$/, "");
 }
+
+export function getModelPrice(model: string): ModelPricePerMillionTokens {
+  const id = canonicalModelId(model);
+  return ANTHROPIC_PRICING[id] ?? ANTHROPIC_PRICING[model] ?? DEFAULT_PRICE;
+}
+
+export function isSupportedModel(model: string): boolean {
+  const id = canonicalModelId(model);
+  return id in ANTHROPIC_PRICING || model in ANTHROPIC_PRICING;
+}
+
+export const SUPPORTED_CHAT_MODEL_IDS: readonly string[] = Object.keys(ANTHROPIC_PRICING);
 
 export function tokensToCents(
   tokens: number,

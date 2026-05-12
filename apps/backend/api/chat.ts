@@ -1,7 +1,9 @@
 import {
+  DEFAULT_CHAT_LIMITS,
   checkChatLimits,
   describeChatLimitBreach,
   generateChatTitle,
+  isSupportedModel,
   runMirropilot,
 } from "@mirrorverse/agent";
 import { randomUUID } from "node:crypto";
@@ -9,7 +11,7 @@ import type { UIMessage } from "ai";
 
 import { env } from "@mirrorverse/env/backend";
 import { verifyToken } from "@mirrorverse/db";
-import type { ContentBlock, UserId } from "@mirrorverse/types";
+import type { UserId } from "@mirrorverse/types";
 
 import { BEARER } from "../src/config";
 import { getDb } from "@mirrorverse/db";
@@ -18,6 +20,12 @@ import {
   getChatTotalCostCents,
   recordChatUsage,
 } from "../src/features/billing/repo";
+import { appendChatEvent } from "../src/features/chats/chat-events.repo";
+import { lifecycleToPayload } from "../src/features/chats/chat-events.mapper";
+import {
+  firstUserText,
+  uiMessageToContentBlocks,
+} from "../src/features/chats/content-blocks.mapper";
 import {
   bumpLastMessageAt,
   countMessagesByChat,
@@ -26,6 +34,13 @@ import {
   markChatFailed,
   setChatTitleIfEmpty,
 } from "../src/features/chats/repo";
+
+interface ChatRequestBody {
+  readonly id?: string;
+  readonly chatId?: string;
+  readonly messages?: UIMessage[];
+  readonly model?: string;
+}
 
 function jsonError(status: number, message: string): Response {
   return new Response(JSON.stringify({ error: message }), {
@@ -46,36 +61,17 @@ async function authenticate(
   return { userId: verified.sub as UserId, email: verified.email };
 }
 
-function uiMessageToBlocks(msg: UIMessage): ContentBlock[] {
-  const blocks: ContentBlock[] = [];
-  for (const part of msg.parts) {
-    if (
-      part.type === "text" &&
-      typeof (part as { text?: unknown }).text === "string"
-    ) {
-      blocks.push({
-        type: "text",
-        text: (part as { text: string }).text,
-      } as ContentBlock);
-    } else if (
-      part.type === "reasoning" &&
-      typeof (part as { text?: unknown }).text === "string"
-    ) {
-      const meta = (
-        part as { providerMetadata?: { anthropic?: { signature?: unknown } } }
-      ).providerMetadata;
-      const signature =
-        typeof meta?.anthropic?.signature === "string"
-          ? meta.anthropic.signature
-          : "";
-      blocks.push({
-        type: "thinking",
-        thinking: (part as { text: string }).text,
-        signature,
-      } as ContentBlock);
-    }
-  }
-  return blocks;
+function resolveChatId(body: ChatRequestBody): string | null {
+  const chatId = body.chatId ?? body.id;
+  if (!chatId || chatId.startsWith("__LOCALID_")) return null;
+  return chatId;
+}
+
+function resolveModel(body: ChatRequestBody): string | null | undefined {
+  if (body.model == null) return undefined;
+  if (typeof body.model !== "string") return null;
+  if (!isSupportedModel(body.model)) return null;
+  return body.model;
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -85,24 +81,26 @@ export async function POST(req: Request): Promise<Response> {
     return jsonError(401, "Authentication required");
   }
 
-  const body = (await req.json().catch(() => null)) as {
-    id?: string;
-    chatId?: string;
-    messages?: UIMessage[];
-  } | null;
+  const body = (await req.json().catch(() => null)) as ChatRequestBody | null;
   if (!body || !Array.isArray(body.messages)) {
     console.warn("[chat] 400 invalid body shape");
     return jsonError(400, "Invalid request body");
   }
 
-  const chatId = body.chatId ?? body.id;
-  if (!chatId || chatId.startsWith("__LOCALID_")) {
-    console.warn(`[chat] 400 invalid chatId=${chatId}`);
+  const chatId = resolveChatId(body);
+  if (!chatId) {
+    console.warn(`[chat] 400 invalid chatId=${body.chatId ?? body.id}`);
     return jsonError(400, "Missing or invalid chatId");
   }
 
+  const requestedModel = resolveModel(body);
+  if (requestedModel === null) {
+    return jsonError(400, `Unsupported model: ${body.model}`);
+  }
+
   console.log(
-    `[chat] POST userId=${session.userId} chatId=${chatId} messages=${body.messages.length}`,
+    `[chat] POST userId=${session.userId} chatId=${chatId} ` +
+      `messages=${body.messages.length} model=${requestedModel ?? "<default>"}`,
   );
 
   const db = getDb();
@@ -118,21 +116,31 @@ export async function POST(req: Request): Promise<Response> {
     countMessagesByChat(db, chat.id),
     getChatTotalCostCents(db, chat.id),
   ]);
-  const breach = checkChatLimits({ messageCount, totalCostCents });
+  const breach = checkChatLimits(
+    { messageCount, totalCostCents },
+    DEFAULT_CHAT_LIMITS,
+  );
   if (breach) {
+    const reason = describeChatLimitBreach(breach);
     await markChatFailed(db, chat.id);
+    await appendChatEvent({
+      db,
+      chatId: chat.id,
+      kind: "chat_failed",
+      payload: { kind: "chat_failed", reason },
+    });
     console.warn(
       `[chat] 429 cap breach chatId=${chat.id} kind=${breach.kind} ` +
         `messageCount=${messageCount} totalCostCents=${totalCostCents}`,
     );
-    return jsonError(429, describeChatLimitBreach(breach));
+    return jsonError(429, reason);
   }
 
   const lastUser = body.messages[body.messages.length - 1];
   if (!lastUser || lastUser.role !== "user") {
     return jsonError(400, "Expected last message to be from user");
   }
-  const userBlocks = uiMessageToBlocks(lastUser);
+  const userBlocks = uiMessageToContentBlocks(lastUser);
   if (userBlocks.length === 0) return jsonError(400, "Empty user message");
 
   await insertMessage(db, {
@@ -141,17 +149,11 @@ export async function POST(req: Request): Promise<Response> {
     contentBlocks: userBlocks,
   });
 
-  const firstUserText = userBlocks
-    .map((b) =>
-      typeof (b as { text?: string }).text === "string"
-        ? (b as { text: string }).text
-        : "",
-    )
-    .join(" ")
-    .trim();
-  const needsTitle = !chat.title && firstUserText.length > 0;
+  const startingText = firstUserText(userBlocks);
+  const needsTitle = !chat.title && startingText.length > 0;
 
   const runId = randomUUID();
+  const modelForRun = requestedModel ?? chat.model;
   let stepIndex = 0;
 
   return runMirropilot({
@@ -160,6 +162,21 @@ export async function POST(req: Request): Promise<Response> {
     workspaceId,
     chatId: chat.id,
     messages: body.messages,
+    model: modelForRun,
+    onLifecycleEvent: async (event) => {
+      try {
+        await appendChatEvent({
+          db,
+          chatId: chat.id,
+          kind: event.kind,
+          payload: lifecycleToPayload(event),
+        });
+      } catch (err) {
+        if (env.NODE_ENV === "development") {
+          console.error("[chat] failed to append chat_event:", err);
+        }
+      }
+    },
     onUsage: async ({ model, breakdown }) => {
       const index = stepIndex++;
       try {
@@ -179,18 +196,18 @@ export async function POST(req: Request): Promise<Response> {
     },
     onFinish: async ({ responseMessage }) => {
       try {
-        const assistantBlocks = uiMessageToBlocks(responseMessage);
+        const assistantBlocks = uiMessageToContentBlocks(responseMessage);
         if (assistantBlocks.length > 0) {
           await insertMessage(db, {
             chatId: chat.id,
             role: "assistant",
             contentBlocks: assistantBlocks,
-            model: chat.model,
+            model: modelForRun,
           });
         }
         await bumpLastMessageAt(db, chat.id, new Date());
         if (needsTitle) {
-          const title = await generateChatTitle(firstUserText);
+          const title = await generateChatTitle(startingText);
           if (title) {
             await setChatTitleIfEmpty(db, chat.id, title);
           }
