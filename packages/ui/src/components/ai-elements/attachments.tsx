@@ -91,7 +91,7 @@ const renderAttachmentImage = (url: string, filename: string | undefined, isGrid
   ) : (
     <img
       alt={filename || "Image"}
-      className="rounded-sm size-full object-cover"
+      className="size-full rounded-sm object-cover"
       height={20}
       src={url}
       width={20}
