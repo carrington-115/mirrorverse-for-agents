@@ -1,4 +1,5 @@
 import { generateChatTitle, runMirropilot } from "@mirrorverse/agent";
+import { randomUUID } from "node:crypto";
 import type { UIMessage } from "ai";
 
 import { env } from "@mirrorverse/env/backend";
@@ -8,6 +9,7 @@ import type { ContentBlock, UserId } from "@mirrorverse/types";
 import { BEARER } from "../src/config";
 import { getDb } from "@mirrorverse/db";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
+import { recordChatUsage } from "../src/features/billing/repo";
 import {
   bumpLastMessageAt,
   ensureChat,
@@ -125,12 +127,32 @@ export async function POST(req: Request): Promise<Response> {
     .trim();
   const needsTitle = !chat.title && firstUserText.length > 0;
 
+  const runId = randomUUID();
+  let stepIndex = 0;
+
   return runMirropilot({
     db,
     userId: session.userId,
     workspaceId,
     chatId: chat.id,
     messages: body.messages,
+    onUsage: async ({ model, breakdown }) => {
+      const index = stepIndex++;
+      try {
+        await recordChatUsage({
+          db,
+          workspaceId,
+          chatId: chat.id,
+          idempotencyKey: `chat:${chat.id}:${runId}:${index}`,
+          model,
+          breakdown,
+        });
+      } catch (err) {
+        if (env.NODE_ENV === "development") {
+          console.error("[chat] failed to record usage:", err);
+        }
+      }
+    },
     onFinish: async ({ responseMessage }) => {
       try {
         const assistantBlocks = uiMessageToBlocks(responseMessage);

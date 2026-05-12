@@ -4,6 +4,7 @@ import type { Database } from "@mirrorverse/db";
 
 import { MIRROPILOT_SYSTEM_PROMPT } from "./system-prompt";
 import { makeWorkflowCommitTool } from "./tools/workflow-commit";
+import { breakdownStepUsage, type StepUsageBreakdown } from "./usage";
 
 export interface RunMirropilotDeps {
   readonly db: Database;
@@ -13,6 +14,10 @@ export interface RunMirropilotDeps {
   readonly messages: UIMessage[];
   readonly model?: string;
   readonly maxSteps?: number;
+  readonly onUsage?: (event: {
+    readonly model: string;
+    readonly breakdown: StepUsageBreakdown;
+  }) => Promise<void> | void;
   readonly onFinish?: (event: {
     readonly responseMessage: UIMessage;
     readonly messages: UIMessage[];
@@ -58,12 +63,17 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
         thinking: { type: "enabled", budgetTokens: 8000 },
       },
     },
-    onStepFinish: ({ text, toolCalls, finishReason, usage }) => {
+    onStepFinish: async ({ text, toolCalls, finishReason, usage }) => {
+      const breakdown = breakdownStepUsage(usage, modelId);
       console.log(
         `[mirropilot] step.finish reason=${finishReason} ` +
           `textChars=${text?.length ?? 0} toolCalls=${toolCalls?.length ?? 0} ` +
-          `inputTokens=${usage?.inputTokens ?? 0} outputTokens=${usage?.outputTokens ?? 0}`,
+          `inputTokens=${usage?.inputTokens ?? 0} outputTokens=${usage?.outputTokens ?? 0} ` +
+          `cents=${breakdown.totalCostCents}`,
       );
+      if (deps.onUsage && breakdown.entries.length > 0) {
+        await deps.onUsage({ model: modelId, breakdown });
+      }
     },
     onError: ({ error }) => {
       console.error("[mirropilot] streamText error:", error);
