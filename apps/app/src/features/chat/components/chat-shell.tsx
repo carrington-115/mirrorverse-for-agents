@@ -349,9 +349,9 @@ ModelRow.displayName = "ModelRow";
 
 function BrandHeader() {
   return (
-    <div className="gap-6 mb-12 flex items-center justify-center">
+    <div className="gap-y-6 mb-12 flex items-center justify-center">
       <Image src={mirropilotIcon} alt="Mirropilot" width={36} height={36} priority />
-      <Shimmer as="h1" className="font-bold text-4xl">
+      <Shimmer as="h1" className="font-bold text-4xl ml-2">
         Mirropilot
       </Shimmer>
     </div>

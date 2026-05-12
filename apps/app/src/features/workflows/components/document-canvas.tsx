@@ -6,16 +6,8 @@ import type { Edge as RFEdge, Node as RFNode } from "@xyflow/react";
 import { Canvas } from "@mirrorverse/ui/ai-elements/canvas";
 import { Connection } from "@mirrorverse/ui/ai-elements/connection";
 import { Edge } from "@mirrorverse/ui/ai-elements/edge";
-import {
-  Node,
-  NodeContent,
-  NodeDescription,
-  NodeFooter,
-  NodeHeader,
-  NodeTitle,
-} from "@mirrorverse/ui/ai-elements/node";
+import { Node, NodeDescription, NodeHeader, NodeTitle } from "@mirrorverse/ui/ai-elements/node";
 import { Controls } from "@mirrorverse/ui/ai-elements/controls";
-import { cn } from "@/lib/utils";
 
 interface DocumentNodeShape {
   readonly id: string;
@@ -42,40 +34,13 @@ interface WorkflowNodeData extends Record<string, unknown> {
   readonly handles: { readonly target: boolean; readonly source: boolean };
 }
 
-const KIND_GROUP_TONE: Record<string, string> = {
-  trigger: "border-l-emerald-400",
-  core: "border-l-sky-400",
-  ai: "border-l-violet-400",
-  flow: "border-l-amber-400",
-  transform: "border-l-pink-400",
-  human: "border-l-orange-400",
-  skill: "border-l-indigo-400",
-  editor: "border-l-yellow-400",
-};
-
-function groupTone(kind: string): string {
-  const group = kind.split(".")[0] ?? "core";
-  return KIND_GROUP_TONE[group] ?? "border-l-border";
-}
-
 function WorkflowNode({ data }: { data: WorkflowNodeData }) {
-  const [group, leaf] = data.kind.includes(".")
-    ? (data.kind.split(".") as [string, string])
-    : ["core", data.kind];
   return (
-    <Node handles={data.handles} className={cn("border-l-4", groupTone(data.kind))}>
+    <Node handles={data.handles} className="w-56">
       <NodeHeader>
-        <NodeTitle className="truncate">{data.label}</NodeTitle>
-        <NodeDescription className="tracking-wide text-[10px] uppercase opacity-70">
-          {group} · {leaf}
-        </NodeDescription>
+        <NodeTitle>{data.label}</NodeTitle>
+        <NodeDescription>{data.kind}</NodeDescription>
       </NodeHeader>
-      <NodeContent>
-        <p className="text-xs text-muted-foreground">{data.kind}</p>
-      </NodeContent>
-      <NodeFooter>
-        <p className="text-[10px] text-muted-foreground/80">id: {data.label}</p>
-      </NodeFooter>
     </Node>
   );
 }
@@ -123,23 +88,18 @@ export function DocumentCanvas({ nodes, connections }: DocumentCanvasProps) {
   );
 
   return (
-    <div className="h-full w-full">
-      <Canvas
-        connectionLineComponent={Connection}
-        edges={rfEdges}
-        edgeTypes={edgeTypes}
-        elementsSelectable={false}
-        fitView
-        fitViewOptions={{ padding: 0.4 }}
-        maxZoom={4}
-        minZoom={0.1}
-        nodes={rfNodes}
-        nodesConnectable={false}
-        nodesDraggable={false}
-        nodeTypes={nodeTypes}
-      >
-        <Controls />
-      </Canvas>
-    </div>
+    <Canvas
+      connectionLineComponent={Connection}
+      edges={rfEdges}
+      edgeTypes={edgeTypes}
+      elementsSelectable={false}
+      fitView
+      nodes={rfNodes}
+      nodesConnectable={false}
+      nodesDraggable={false}
+      nodeTypes={nodeTypes}
+    >
+      <Controls />
+    </Canvas>
   );
 }
