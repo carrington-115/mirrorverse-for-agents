@@ -30,6 +30,7 @@ export interface RunMirropilotDeps {
   readonly chatId: string;
   readonly messages: UIMessage[];
   readonly model?: string;
+  readonly builderModel?: string;
   readonly maxSteps?: number;
   readonly onUsage?: (event: {
     readonly model: string;
@@ -56,6 +57,7 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
       userId: deps.userId,
       workspaceId: deps.workspaceId,
       chatId: deps.chatId,
+      builderModel: deps.builderModel,
     }),
   };
 

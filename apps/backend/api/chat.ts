@@ -161,6 +161,8 @@ export async function POST(req: Request): Promise<Response> {
 
   const runId = randomUUID();
   const modelForRun = requestedModel ?? chat.model;
+  const builderModel =
+    env.NODE_ENV === "production" ? "claude-sonnet-4-5" : "claude-haiku-4-5";
   let stepIndex = 0;
 
   return runMirropilot({
@@ -170,6 +172,7 @@ export async function POST(req: Request): Promise<Response> {
     chatId: chat.id,
     messages: body.messages,
     model: modelForRun,
+    builderModel,
     onLifecycleEvent: async (event) => {
       await safeAppendChatEvent({
         db,

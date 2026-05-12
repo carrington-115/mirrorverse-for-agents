@@ -1,4 +1,4 @@
-import { generateObject, tool } from "ai";
+import { Output, generateText, tool } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { eq, schema, type Database } from "@mirrorverse/db";
 import type { WorkflowDocument } from "@mirrorverse/types";
@@ -51,9 +51,9 @@ export function makeWorkflowCommitTool(deps: WorkflowCommitDeps) {
         ),
     }),
     execute: async ({ summary, intent }): Promise<WorkflowCommitResult> => {
-      const { object: document } = await generateObject({
+      const { output: document } = await generateText({
         model: anthropic(deps.builderModel ?? DOCUMENT_BUILDER_MODEL),
-        schema: workflowDocumentSchema,
+        output: Output.object({ schema: workflowDocumentSchema }),
         system: WORKFLOW_DOCUMENT_BUILDER_PROMPT,
         prompt: intent,
         providerOptions: {

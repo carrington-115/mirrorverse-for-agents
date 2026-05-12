@@ -13,6 +13,18 @@ type ReasoningPart = {
   text: string;
   providerMetadata?: { anthropic?: { signature?: unknown } };
 };
+type ToolPart = {
+  type: `tool-${string}`;
+  toolCallId: string;
+  state:
+    | "input-streaming"
+    | "input-available"
+    | "output-available"
+    | "output-error";
+  input?: unknown;
+  output?: unknown;
+  errorText?: string;
+};
 
 function isTextPart(part: unknown): part is TextPart {
   const p = part as { type?: unknown; text?: unknown };
@@ -24,9 +36,22 @@ function isReasoningPart(part: unknown): part is ReasoningPart {
   return p?.type === "reasoning" && typeof p.text === "string";
 }
 
+function isToolPart(part: unknown): part is ToolPart {
+  const p = part as { type?: unknown; toolCallId?: unknown };
+  return (
+    typeof p?.type === "string" &&
+    p.type.startsWith("tool-") &&
+    typeof p.toolCallId === "string"
+  );
+}
+
 function readSignature(part: ReasoningPart): string {
   const sig = part.providerMetadata?.anthropic?.signature;
   return typeof sig === "string" ? sig : "";
+}
+
+function toolNameOf(part: ToolPart): string {
+  return part.type.slice("tool-".length);
 }
 
 export function uiMessageToContentBlocks(msg: UIMessage): ContentBlock[] {
@@ -42,6 +67,30 @@ export function uiMessageToContentBlocks(msg: UIMessage): ContentBlock[] {
         thinking: part.text,
         signature: readSignature(part),
       } as ContentBlock);
+      continue;
+    }
+    if (isToolPart(part)) {
+      blocks.push({
+        type: "tool_use",
+        id: part.toolCallId,
+        name: toolNameOf(part),
+        input: (part.input ?? {}) as Record<string, unknown>,
+      } as ContentBlock);
+      if (part.state === "output-available") {
+        blocks.push({
+          type: "tool_result",
+          tool_use_id: part.toolCallId,
+          content: JSON.stringify(part.output ?? null),
+          is_error: false,
+        } as ContentBlock);
+      } else if (part.state === "output-error") {
+        blocks.push({
+          type: "tool_result",
+          tool_use_id: part.toolCallId,
+          content: part.errorText ?? "Tool error",
+          is_error: true,
+        } as ContentBlock);
+      }
     }
   }
   return blocks;
