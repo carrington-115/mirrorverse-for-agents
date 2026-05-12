@@ -1,13 +1,11 @@
 "use client";
 
 import { useTransition, type ReactNode } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { History, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
-import mirropilotIcon from "@/assets/mirropilot-icon.svg";
 import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 
 export function ChatSessionLayout({ children }: { children: ReactNode }) {
@@ -29,7 +27,6 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
         header={
           <DashboardHeader
             title="Mirropilot"
-            icon={<Image src={mirropilotIcon} alt="Mirropilot" width={16} height={16} />}
             actions={
               <div className="flex gap-(--sm)">
                 <Button onClick={handleNewSession} disabled={busy} className="cursor-pointer">

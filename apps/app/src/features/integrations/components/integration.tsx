@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Shapes } from "lucide-react";
+import { Search, Shapes, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -272,9 +272,11 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
 }
 
 export function IntegrationsEmpty({
-  onManageIntegrationsAction,
+  onNewWebhookAction,
+  onBrowseIntegrationsAction,
 }: {
-  onManageIntegrationsAction: () => void;
+  onNewWebhookAction: () => void;
+  onBrowseIntegrationsAction: () => void;
 }) {
   return (
     <Empty className="py-10 w-[80%] border">
@@ -284,19 +286,19 @@ export function IntegrationsEmpty({
         </EmptyMedia>
         <EmptyTitle>No integrations yet</EmptyTitle>
         <EmptyDescription>
-          No integrations added yet — connect your favorite tools like Salesforce, HubSpot, Slack,
-          or Google Workspace to unlock seamless data sync and powerful agent actions across your
-          workflows.
+          Connect tools, MCP servers, and apps to give your agents real capabilities — Slack to
+          message teammates, GitHub to ship code, your own MCPs to do anything in between.
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <div className="gap-2 flex">
-          <Button onClick={onManageIntegrationsAction} className="cursor-pointer">
-            <Shapes className="size-4" />
-            Add integration
+          <Button onClick={onNewWebhookAction} className="cursor-pointer">
+            <Webhook className="size-4" />
+            New webhook
           </Button>
-          <Button variant="outline" className="cursor-pointer" onClick={onManageIntegrationsAction}>
-            Manage integrations
+          <Button variant="outline" className="cursor-pointer" onClick={onBrowseIntegrationsAction}>
+            <Shapes className="size-4" />
+            Browse integrations
           </Button>
         </div>
       </EmptyContent>

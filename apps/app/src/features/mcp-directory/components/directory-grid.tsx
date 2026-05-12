@@ -1,7 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { DirectoryCard } from "./directory-card";
+import { DirectoryCard, DirectoryCardSkeleton } from "./directory-card";
 import type { DirectoryEntry } from "../api/types";
 
 interface DirectoryGridProps {
@@ -21,8 +20,10 @@ export function DirectoryGrid({
 }: DirectoryGridProps) {
   if (loading && entries.length === 0) {
     return (
-      <div className="py-16 flex flex-1 items-center justify-center text-muted-foreground">
-        <Loader2 className="size-5 animate-spin" />
+      <div className="sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 grid w-full grid-cols-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <DirectoryCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
