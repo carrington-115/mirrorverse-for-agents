@@ -1,6 +1,5 @@
 import {
   DEFAULT_CHAT_LIMITS,
-  checkChatLimits,
   describeChatLimitBreach,
   generateChatTitle,
   isSupportedModel,
@@ -16,24 +15,33 @@ import type { UserId } from "@mirrorverse/types";
 import { BEARER } from "../src/config";
 import { getDb } from "@mirrorverse/db";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
-import {
-  getChatTotalCostCents,
-  recordChatUsage,
-} from "../src/features/billing/repo";
+import { recordChatUsage } from "../src/features/billing/repo";
 import { appendChatEvent } from "../src/features/chats/chat-events.repo";
 import { lifecycleToPayload } from "../src/features/chats/chat-events.mapper";
+import { checkChatAdmission } from "../src/features/chats/chat-guard";
 import {
   firstUserText,
   uiMessageToContentBlocks,
 } from "../src/features/chats/content-blocks.mapper";
 import {
   bumpLastMessageAt,
-  countMessagesByChat,
   ensureChat,
   insertMessage,
   markChatFailed,
   setChatTitleIfEmpty,
 } from "../src/features/chats/repo";
+
+async function safeAppendChatEvent(
+  ...args: Parameters<typeof appendChatEvent>
+): Promise<void> {
+  try {
+    await appendChatEvent(...args);
+  } catch (err) {
+    if (env.NODE_ENV === "development") {
+      console.error("[chat] failed to append chat_event:", err);
+    }
+  }
+}
 
 interface ChatRequestBody {
   readonly id?: string;
@@ -112,27 +120,27 @@ export async function POST(req: Request): Promise<Response> {
   });
   if (!chat) return jsonError(500, "Failed to ensure chat");
 
-  const [messageCount, totalCostCents] = await Promise.all([
-    countMessagesByChat(db, chat.id),
-    getChatTotalCostCents(db, chat.id),
-  ]);
-  const breach = checkChatLimits(
-    { messageCount, totalCostCents },
-    DEFAULT_CHAT_LIMITS,
-  );
+  const breach = await checkChatAdmission({
+    db,
+    chatId: chat.id,
+    limits: DEFAULT_CHAT_LIMITS,
+  });
   if (breach) {
     const reason = describeChatLimitBreach(breach);
-    await markChatFailed(db, chat.id);
-    await appendChatEvent({
+    try {
+      await markChatFailed(db, chat.id);
+    } catch (err) {
+      if (env.NODE_ENV === "development") {
+        console.error("[chat] failed to mark chat failed:", err);
+      }
+    }
+    await safeAppendChatEvent({
       db,
       chatId: chat.id,
       kind: "chat_failed",
       payload: { kind: "chat_failed", reason },
     });
-    console.warn(
-      `[chat] 429 cap breach chatId=${chat.id} kind=${breach.kind} ` +
-        `messageCount=${messageCount} totalCostCents=${totalCostCents}`,
-    );
+    console.warn(`[chat] 429 cap breach chatId=${chat.id} kind=${breach.kind}`);
     return jsonError(429, reason);
   }
 
@@ -164,18 +172,12 @@ export async function POST(req: Request): Promise<Response> {
     messages: body.messages,
     model: modelForRun,
     onLifecycleEvent: async (event) => {
-      try {
-        await appendChatEvent({
-          db,
-          chatId: chat.id,
-          kind: event.kind,
-          payload: lifecycleToPayload(event),
-        });
-      } catch (err) {
-        if (env.NODE_ENV === "development") {
-          console.error("[chat] failed to append chat_event:", err);
-        }
-      }
+      await safeAppendChatEvent({
+        db,
+        chatId: chat.id,
+        kind: event.kind,
+        payload: lifecycleToPayload(event),
+      });
     },
     onUsage: async ({ model, breakdown }) => {
       const index = stepIndex++;
