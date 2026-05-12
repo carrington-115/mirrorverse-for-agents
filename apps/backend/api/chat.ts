@@ -1,4 +1,4 @@
-import { runMirropilot } from "@mirrorverse/agent";
+import { generateChatTitle, runMirropilot } from "@mirrorverse/agent";
 import type { UIMessage } from "ai";
 
 import { env } from "@mirrorverse/env/backend";
@@ -99,21 +99,15 @@ export async function POST(req: Request): Promise<Response> {
     contentBlocks: userBlocks,
   });
 
-  if (!chat.title) {
-    const firstText = userBlocks
-      .map((b) =>
-        typeof (b as { text?: string }).text === "string"
-          ? (b as { text: string }).text
-          : "",
-      )
-      .join(" ")
-      .trim();
-    if (firstText.length > 0) {
-      const title =
-        firstText.length > 60 ? `${firstText.slice(0, 57)}…` : firstText;
-      await setChatTitleIfEmpty(db, chat.id, title);
-    }
-  }
+  const firstUserText = userBlocks
+    .map((b) =>
+      typeof (b as { text?: string }).text === "string"
+        ? (b as { text: string }).text
+        : "",
+    )
+    .join(" ")
+    .trim();
+  const needsTitle = !chat.title && firstUserText.length > 0;
 
   return runMirropilot({
     db,
@@ -133,6 +127,12 @@ export async function POST(req: Request): Promise<Response> {
           });
         }
         await bumpLastMessageAt(db, chat.id, new Date());
+        if (needsTitle) {
+          const title = await generateChatTitle(firstUserText);
+          if (title) {
+            await setChatTitleIfEmpty(db, chat.id, title);
+          }
+        }
       } catch (err) {
         if (env.NODE_ENV === "development") {
           console.error("[chat] failed to persist assistant message:", err);
