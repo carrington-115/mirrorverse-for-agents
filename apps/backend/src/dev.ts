@@ -4,6 +4,7 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
+import { Readable } from "node:stream";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { env } from "@mirrorverse/env/backend";
@@ -43,22 +44,51 @@ async function pipeResponse(
   response: Response,
 ): Promise<void> {
   res.statusCode = response.status;
-  response.headers.forEach((value, key) => res.setHeader(key, value));
+  response.headers.forEach((value, key) => {
+    const lower = key.toLowerCase();
+    if (lower === "content-length" || lower === "transfer-encoding") return;
+    res.setHeader(key, value);
+  });
   if (!response.body) {
     res.end();
     return;
   }
-  const reader = response.body.getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    res.write(value);
+  res.flushHeaders();
+  if (res.socket && "setNoDelay" in res.socket) res.socket.setNoDelay(true);
+  await new Promise<void>((resolve, reject) => {
+    const nodeStream = Readable.fromWeb(
+      response.body as Parameters<typeof Readable.fromWeb>[0],
+    );
+    nodeStream.on("error", reject);
+    nodeStream.on("end", resolve);
+    nodeStream.pipe(res);
+  });
+}
+
+const corsOrigin = env.CORS_ORIGIN;
+
+function applyCors(req: IncomingMessage, res: ServerResponse): void {
+  const origin = req.headers.origin;
+  if (origin && (corsOrigin === "*" || origin === corsOrigin)) {
+    res.setHeader("access-control-allow-origin", origin);
+    res.setHeader("vary", "origin");
+    res.setHeader("access-control-allow-credentials", "true");
+    res.setHeader(
+      "access-control-allow-headers",
+      "authorization, content-type, x-trpc-source",
+    );
+    res.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
   }
-  res.end();
 }
 
 const server = createServer(async (req, res) => {
   try {
+    applyCors(req, res);
+    if (req.method === "OPTIONS") {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
     const request = await toFetchRequest(req);
     const url = new URL(request.url);
 

@@ -1,11 +1,22 @@
-import { and, asc, desc, eq, gt, schema, type Database } from "@mirrorverse/db";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  schema,
+  sql,
+  type Database,
+} from "@mirrorverse/db";
 import type {
+  ChatEventKind,
+  ChatEventPayload,
   ContentBlock,
   CostBreakdown,
   MessageRole,
 } from "@mirrorverse/types";
 
-const { chats, messages } = schema;
+const { chats, chatEvents, messages } = schema;
 
 const ZERO_COST: CostBreakdown = {
   tokensIn: 0,
@@ -118,6 +129,17 @@ export async function bumpLastMessageAt(
     .where(eq(chats.id, chatId));
 }
 
+export async function setChatTitleIfEmpty(
+  db: Database,
+  chatId: string,
+  title: string,
+) {
+  await db
+    .update(chats)
+    .set({ title })
+    .where(and(eq(chats.id, chatId), sql`${chats.title} is null`));
+}
+
 export async function findOwnedUserMessage(
   db: Database,
   messageId: string,
@@ -157,6 +179,18 @@ export async function findNextAssistantMessage(
   return row ?? null;
 }
 
+export async function deleteChatForUser(
+  db: Database,
+  chatId: string,
+  userId: string,
+) {
+  const result = await db
+    .delete(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)))
+    .returning({ id: chats.id });
+  return result.length > 0;
+}
+
 export async function updateMessageBlocks(
   db: Database,
   messageId: string,
@@ -168,4 +202,44 @@ export async function updateMessageBlocks(
     .where(eq(messages.id, messageId))
     .returning();
   return row ?? null;
+}
+
+export async function countMessagesByChat(
+  db: Database,
+  chatId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(messages)
+    .where(eq(messages.chatId, chatId));
+  return row?.count ?? 0;
+}
+
+export async function markChatFailed(
+  db: Database,
+  chatId: string,
+  endedAt: Date = new Date(),
+) {
+  await db
+    .update(chats)
+    .set({ status: "failed", endedAt })
+    .where(eq(chats.id, chatId));
+}
+
+export interface AppendChatEventInput {
+  readonly db: Database;
+  readonly chatId: string;
+  readonly kind: ChatEventKind;
+  readonly payload: ChatEventPayload;
+}
+
+export async function appendChatEvent(
+  input: AppendChatEventInput,
+): Promise<void> {
+  await input.db.insert(chatEvents).values({
+    chatId: input.chatId,
+    kind: input.kind,
+    payload: input.payload,
+    sequence: sql`coalesce((select max(sequence) from chat_events where chat_id = ${input.chatId}), -1) + 1`,
+  });
 }

@@ -2,58 +2,51 @@
 
 import { useState, useCallback } from "react";
 import type { ConfigSidebarType, WorkflowChatMessage } from "@/lib/types";
+import { useWorkflowQuery } from "@/features/workflows/api/queries";
 import { WorkflowHeader } from "./workflow-header";
-import { WorkflowCanvas } from "./workflow-canvas";
+import { DocumentCanvas } from "./document-canvas";
 import { MirropilotSidebar } from "./mirropilot-sidebar";
 import { ConfigSidebar } from "./config-sidebar";
 import { WorkflowToolbarPanel } from "./workflow-toolbar-panel";
-
-function generateId() {
-  return Math.random().toString(36).slice(2);
-}
 
 interface WorkflowEditorProps {
   workflowId: string;
 }
 
-export function WorkflowEditor({ workflowId: _workflowId }: WorkflowEditorProps) {
+interface DocumentShape {
+  metadata?: { title?: string };
+  nodes?: Array<{
+    id: string;
+    name: string;
+    kind: string;
+    position: { x: number; y: number };
+  }>;
+  connections?: Array<{
+    id: string;
+    kind: string;
+    fromNodeId: string;
+    toNodeId: string;
+  }>;
+}
+
+export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
   const [activeTab, setActiveTab] = useState<"builder" | "prompter">("builder");
   const [isMirropilotOpen, setIsMirropilotOpen] = useState(false);
-  const [configSidebarType, setConfigSidebarType] = useState<ConfigSidebarType | null>(null);
+  const [configSidebarType, _setConfigSidebarType] = useState<ConfigSidebarType | null>(null);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<WorkflowChatMessage[]>([]);
+  const [chatMessages, _setChatMessages] = useState<WorkflowChatMessage[]>([]);
 
-  const workflowName = "Untitled workflow";
+  const { data } = useWorkflowQuery(workflowId);
+  const doc = (data?.version?.document ?? null) as DocumentShape | null;
+  const workflowName = data?.workflow?.name ?? doc?.metadata?.title ?? "Untitled workflow";
+  const nodes = doc?.nodes ?? [];
+  const connections = doc?.connections ?? [];
 
   const handleToggleMirropilot = useCallback(() => {
     setIsMirropilotOpen((v) => !v);
   }, []);
 
-  const handleNodeSelect = useCallback((type: ConfigSidebarType | null) => {
-    setConfigSidebarType(type);
-  }, []);
-
-  const handleSendMessage = useCallback((content: string) => {
-    const userMsg: WorkflowChatMessage = {
-      id: generateId(),
-      role: "user",
-      content,
-      timestamp: new Date(),
-    };
-    setChatMessages((prev) => [...prev, userMsg]);
-
-    setTimeout(() => {
-      const agentMsg: WorkflowChatMessage = {
-        id: generateId(),
-        role: "agent",
-        content:
-          "Sure thing! I'm analyzing your workflow and will help you configure it. What would you like to adjust?",
-        timestamp: new Date(),
-        thoughtDuration: 4,
-      };
-      setChatMessages((prev) => [...prev, agentMsg]);
-    }, 1200);
-  }, []);
+  const handleSendMessage = useCallback(() => {}, []);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -70,17 +63,31 @@ export function WorkflowEditor({ workflowId: _workflowId }: WorkflowEditorProps)
           <MirropilotSidebar messages={chatMessages} onSendMessage={handleSendMessage} />
         )}
 
-        <WorkflowCanvas
-          onNodeSelect={handleNodeSelect}
-          onToggleMirropilot={handleToggleMirropilot}
-          isToolbarOpen={isToolbarOpen}
-          onToggleToolbar={() => setIsToolbarOpen((v) => !v)}
-        />
+        <div className="relative flex-1 overflow-hidden rounded-lg border border-border">
+          <DocumentCanvas nodes={nodes} connections={connections} />
+          {!data ? (
+            <div className="inset-0 text-sm absolute grid place-items-center text-muted-foreground">
+              Loading workflow…
+            </div>
+          ) : null}
+          {data && data.workflow === null ? (
+            <div className="inset-0 text-sm absolute grid place-items-center text-muted-foreground">
+              Workflow not found.
+            </div>
+          ) : null}
+        </div>
 
         {configSidebarType && <ConfigSidebar type={configSidebarType} />}
 
         {isToolbarOpen && <WorkflowToolbarPanel />}
       </div>
+
+      <button
+        type="button"
+        aria-hidden
+        className="hidden"
+        onClick={() => setIsToolbarOpen((v) => !v)}
+      />
     </div>
   );
 }

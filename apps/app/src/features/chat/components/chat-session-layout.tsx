@@ -2,27 +2,24 @@
 
 import { useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus } from "lucide-react";
+import { History, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
 import { generateSessionId } from "@/features/chat/actions/generate-session-id";
-import { useEnsureChatMutation } from "@/features/chat/api/mutations";
 
 export function ChatSessionLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const ensure = useEnsureChatMutation();
   const [isPending, startTransition] = useTransition();
 
   const handleNewSession = () => {
     startTransition(async () => {
       const newSessionId = await generateSessionId();
-      await ensure.mutateAsync({ chatId: newSessionId });
       router.push(`/mirropilot/${newSessionId}`);
     });
   };
 
-  const busy = isPending || ensure.isPending;
+  const busy = isPending;
 
   return (
     <div className="relative mx-[8px] my-[6px] h-[calc(100vh-12px)] max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-y-scroll rounded-lg border border-border">
@@ -31,22 +28,15 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
           <DashboardHeader
             title="Mirropilot"
             actions={
-<<<<<<< feat/data-tables-dnd-filtering
-              <Button onClick={handleNewSession} className="cursor-pointer">
-                {isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                New session
-              </Button>
-=======
               <div className="flex gap-(--sm)">
                 <Button onClick={handleNewSession} disabled={busy} className="cursor-pointer">
                   {busy ? <Loader2 className="animate-spin" /> : <Plus />}
-                  New session
+                  New Chat
                 </Button>
                 <Button variant={"ghost"} size={"icon"} className="cursor-pointer">
                   <History />
                 </Button>
               </div>
->>>>>>> main
             }
           />
         }

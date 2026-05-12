@@ -28,8 +28,8 @@ import { cn } from "@/lib/utils";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 import { useChatsListQuery } from "@/features/chat/api/queries";
-import { useEnsureChatMutation } from "@/features/chat/api/mutations";
 import type { ChatListEntry } from "@/features/chat/api/server-types";
+import { ConversationSidebarItem } from "@/features/chat/components/conversation-sidebar-item";
 import { SidebarHeaderComponent } from "./sidebar-header";
 import { SidebarProfileComponent } from "./sidebar-profile-component";
 import { SidebarActivityButton } from "./sidebar-activity-button";
@@ -86,18 +86,16 @@ function NewChatButton() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const router = useRouter();
-  const ensure = useEnsureChatMutation();
   const [isPending, startTransition] = useTransition();
 
   const handleNewChatClick = () => {
     startTransition(async () => {
       const sessionId = await generateSessionId();
-      await ensure.mutateAsync({ chatId: sessionId });
       router.push(`/mirropilot/${sessionId}`);
     });
   };
 
-  const busy = isPending || ensure.isPending;
+  const busy = isPending;
 
   if (isCollapsed) {
     return (
@@ -190,7 +188,7 @@ function ConversationsSection() {
         <SidebarMenu>
           {conversations.map((c) => (
             <SidebarMenuItem key={c.id}>
-              <SidebarActivityButton href={`/mirropilot/${c.id}`} name={titleFor(c)} exact />
+              <ConversationSidebarItem chatId={c.id} title={titleFor(c)} />
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

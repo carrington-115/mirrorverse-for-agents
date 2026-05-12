@@ -3,6 +3,7 @@ import { protectedProc } from "../../trpc/middleware";
 
 import {
   appendUserMessageInput,
+  deleteChatInput,
   editUserMessageInput,
   ensureChatInput,
   getChatInput,
@@ -42,5 +43,11 @@ export const chatsRouter = router({
     .input(editUserMessageInput)
     .mutation(({ ctx, input }) =>
       chatsService.editUserMessage({ db: ctx.db, userId: ctx.user.id }, input),
+    ),
+
+  delete: protectedProc
+    .input(deleteChatInput)
+    .mutation(({ ctx, input }) =>
+      chatsService.deleteChat({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 });
