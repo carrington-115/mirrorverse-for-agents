@@ -490,7 +490,7 @@ const Example = () => {
               <Button size="icon-sm" variant="ghost">
                 <ImageIcon className="text-muted-foreground" size={16} />
               </Button>
-              <PromptInputSubmit className="!h-8" status={status} />
+              <PromptInputSubmit className="h-8!" status={status} />
             </div>
           </PromptInputFooter>
         </PromptInput>
