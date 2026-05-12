@@ -52,7 +52,10 @@ function uiMessageToBlocks(msg: UIMessage): ContentBlock[] {
 
 export async function POST(req: Request): Promise<Response> {
   const session = await authenticate(req);
-  if (!session) return jsonError(401, "Authentication required");
+  if (!session) {
+    console.warn("[chat] 401 missing/invalid bearer");
+    return jsonError(401, "Authentication required");
+  }
 
   const body = (await req.json().catch(() => null)) as {
     id?: string;
@@ -60,13 +63,19 @@ export async function POST(req: Request): Promise<Response> {
     messages?: UIMessage[];
   } | null;
   if (!body || !Array.isArray(body.messages)) {
+    console.warn("[chat] 400 invalid body shape");
     return jsonError(400, "Invalid request body");
   }
 
   const chatId = body.chatId ?? body.id;
   if (!chatId || chatId.startsWith("__LOCALID_")) {
+    console.warn(`[chat] 400 invalid chatId=${chatId}`);
     return jsonError(400, "Missing or invalid chatId");
   }
+
+  console.log(
+    `[chat] POST userId=${session.userId} chatId=${chatId} messages=${body.messages.length}`,
+  );
 
   const db = getDb();
   const workspaceId = await ensureUserWorkspace(db, session.userId);

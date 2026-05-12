@@ -128,14 +128,16 @@ const subWorkflowTrigger = z.object({
   inputSchema: jsonObject.nullable(),
 });
 
+const defaultRetryPolicy = { maxAttempts: 1, backoff: "none", initialDelayMs: 0 } as const;
+
 const toolCall = z.object({
   ...nodeBase,
   kind: z.literal("core.tool_call"),
   mcpServerId: z.string(),
   toolName: z.string(),
   parameters: parameterMap,
-  retry: retryPolicy,
-  toolMode: z.boolean(),
+  retry: retryPolicy.default(defaultRetryPolicy),
+  toolMode: z.boolean().default(false),
 });
 const httpRequest = z.object({
   ...nodeBase,

@@ -35,6 +35,40 @@ Parameter binding (\`ParameterValue\`):
 - Use \`{ mode: "expression", expr: "{{ $json.field }}" }\` for templated values pulled from earlier nodes.
 - Use \`{ mode: "from_ai", name, description, type, required }\` when this is a \`core.tool_call\` exposed to an \`ai.agent\` and the agent should fill the parameter at runtime.
 
+CRITICAL: many fields are \`ParameterMap\` — an object whose VALUES are \`ParameterValue\` objects, NOT raw scalars. Fields that take a \`ParameterMap\`:
+- \`core.tool_call.parameters\`
+- \`core.http_request.headers\` and \`.query\`
+- \`core.sub_workflow.inputs\`
+- \`core.respond_to_webhook.headers\`
+- \`skill.call.inputs\`
+- \`trigger.app_event.filters\`
+
+Example — \`trigger.app_event\` with a repository filter:
+\`\`\`json
+{
+  "id": "trg_pr_opened",
+  "name": "PR Opened",
+  "position": { "x": 0, "y": 0 },
+  "type": "mirrorverse.trigger.app_event",
+  "typeVersion": 1,
+  "notes": null,
+  "disabled": false,
+  "continueOnFail": false,
+  "kind": "trigger.app_event",
+  "mcpServerId": "github_mcp",
+  "eventName": "pull_request.opened",
+  "filters": { "repository": { "mode": "static", "value": "acme/api" } },
+  "webhookId": "gh-pr-opened-acme-api"
+}
+\`\`\`
+A bare string like \`"filters": { "repository": "acme/api" }\` will fail validation.
+
+Defaults you can rely on (omit unless you want a non-default value):
+- \`core.tool_call.retry\` defaults to \`{ maxAttempts: 1, backoff: "none", initialDelayMs: 0 }\`. Only set it when the tool is actually flaky enough to need retries.
+- \`core.tool_call.toolMode\` defaults to \`false\`. Only set \`true\` when this tool is being exposed to an \`ai.agent\` via an \`ai_tool\` slot.
+
+Always include on every node: \`notes: null\` (or a string), \`disabled: false\`, \`continueOnFail: false\`, \`typeVersion: 1\`.
+
 Style:
 - Be terse. Don't restate the user's request back at them.
 - Default to one tool call per turn. After committing, end with a one-sentence summary.

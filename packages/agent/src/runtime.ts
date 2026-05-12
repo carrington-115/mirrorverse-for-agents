@@ -27,26 +27,42 @@ const DEFAULT_MODEL = "claude-opus-4-7";
 const DEFAULT_MAX_STEPS = 5;
 
 export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> {
-  const modelMessages = await convertToModelMessages(deps.messages);
+  const tools = {
+    workflow_commit: makeWorkflowCommitTool({
+      db: deps.db,
+      userId: deps.userId,
+      workspaceId: deps.workspaceId,
+      chatId: deps.chatId,
+    }),
+  };
+
+  const modelId = deps.model ?? DEFAULT_MODEL;
+  const modelMessages = await convertToModelMessages(deps.messages, { tools });
+
+  console.log(
+    `[mirropilot] streamText.start model=${modelId} chatId=${deps.chatId} ` +
+      `uiMessages=${deps.messages.length} modelMessages=${modelMessages.length} ` +
+      `tools=${Object.keys(tools).length}`,
+  );
+
   const result = streamText({
-    model: anthropic(deps.model ?? DEFAULT_MODEL),
+    model: anthropic(modelId),
     system: MIRROPILOT_SYSTEM_PROMPT,
     messages: modelMessages,
-    tools: {
-      workflow_commit: makeWorkflowCommitTool({
-        db: deps.db,
-        userId: deps.userId,
-        workspaceId: deps.workspaceId,
-        chatId: deps.chatId,
-      }),
-    },
+    tools,
     stopWhen: stepCountIs(deps.maxSteps ?? DEFAULT_MAX_STEPS),
     providerOptions: {
       anthropic: {
         cacheControl: { type: "ephemeral" },
         sendReasoning: true,
-        thinking: { type: "enabled", budgetTokens: 4000 },
       },
+    },
+    onStepFinish: ({ text, toolCalls, finishReason, usage }) => {
+      console.log(
+        `[mirropilot] step.finish reason=${finishReason} ` +
+          `textChars=${text?.length ?? 0} toolCalls=${toolCalls?.length ?? 0} ` +
+          `inputTokens=${usage?.inputTokens ?? 0} outputTokens=${usage?.outputTokens ?? 0}`,
+      );
     },
     onError: ({ error }) => {
       console.error("[mirropilot] streamText error:", error);
@@ -60,10 +76,15 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
       console.error("[mirropilot] stream response error:", error);
       return error instanceof Error ? error.message : "Internal error";
     },
-    onFinish: deps.onFinish
-      ? async ({ responseMessage, messages }) => {
-          await deps.onFinish?.({ responseMessage, messages });
-        }
-      : undefined,
+    onFinish: async ({ responseMessage, messages }) => {
+      console.log(
+        `[mirropilot] stream.finish responseParts=${responseMessage.parts.length} ` +
+          `totalMessages=${messages.length} ` +
+          `partTypes=${responseMessage.parts.map((p) => p.type).join(",")}`,
+      );
+      if (deps.onFinish) {
+        await deps.onFinish({ responseMessage, messages });
+      }
+    },
   });
 }
