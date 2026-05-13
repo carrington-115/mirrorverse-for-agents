@@ -107,7 +107,7 @@ function HeaderCommand() {
           <Search className="size-3.5" />
           Search workspace
         </span>
-        <kbd className="rounded-sm px-1 sm:inline-flex pointer-events-none hidden border border-border bg-muted font-mono text-[10px] select-none">
+        <kbd className="px-1 sm:inline-flex pointer-events-none hidden rounded-sm border border-border bg-muted font-mono text-[10px] select-none">
           ⌘K
         </kbd>
       </Button>

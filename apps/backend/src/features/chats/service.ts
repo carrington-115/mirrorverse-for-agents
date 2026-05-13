@@ -1,12 +1,19 @@
+import {
+  checkChatLimits,
+  type ChatLimitBreach,
+  type ChatLimits,
+} from "@mirrorverse/agent";
 import type { Database } from "@mirrorverse/db";
 import type { ContentBlock, UserId } from "@mirrorverse/types";
 
 import { appError, ErrCode } from "../../lib/errors";
+import { getChatTotalCostCents } from "../billing/repo";
 import { ensureUserWorkspace } from "../tenancy/repo";
 
 import * as repo from "./repo";
 import type {
   AppendUserMessageInput,
+  DeleteChatInput,
   EditUserMessageInput,
   EnsureChatInput,
   GetChatInput,
@@ -16,6 +23,11 @@ import type {
 interface BaseCtx {
   readonly db: Database;
   readonly userId: UserId;
+}
+
+export interface CheckAdmissionInput {
+  readonly chatId: string;
+  readonly limits: ChatLimits;
 }
 
 function echoReply(
@@ -61,6 +73,12 @@ export const chatsService = {
     return repo.listRecentChatsForUser(ctx.db, ctx.userId, input.limit);
   },
 
+  async deleteChat(ctx: BaseCtx, input: DeleteChatInput) {
+    const ok = await repo.deleteChatForUser(ctx.db, input.chatId, ctx.userId);
+    if (!ok) throw appError(ErrCode.NotFound, "Chat not found");
+    return { id: input.chatId };
+  },
+
   async appendUserMessage(ctx: BaseCtx, input: AppendUserMessageInput) {
     const chat = await repo.getChatForUser(ctx.db, input.chatId, ctx.userId);
     if (!chat) throw appError(ErrCode.NotFound, "Chat not found");
@@ -85,6 +103,25 @@ export const chatsService = {
     await repo.bumpLastMessageAt(ctx.db, chat.id, new Date());
 
     return { userMessage, assistantMessage };
+  },
+
+  async checkAdmission(
+    ctx: BaseCtx,
+    input: CheckAdmissionInput,
+  ): Promise<ChatLimitBreach | null> {
+    try {
+      const [messageCount, totalCostCents] = await Promise.all([
+        repo.countMessagesByChat(ctx.db, input.chatId),
+        getChatTotalCostCents(ctx.db, input.chatId),
+      ]);
+      return checkChatLimits({ messageCount, totalCostCents }, input.limits);
+    } catch (err) {
+      console.warn(
+        `[chats.checkAdmission] fail-open: unable to read chat stats for chatId=${input.chatId}:`,
+        err instanceof Error ? err.message : err,
+      );
+      return null;
+    }
   },
 
   async editUserMessage(ctx: BaseCtx, input: EditUserMessageInput) {
