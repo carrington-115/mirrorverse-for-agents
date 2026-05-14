@@ -194,7 +194,10 @@ export async function POST(req: Request): Promise<Response> {
         });
       } catch (err) {
         if (env.NODE_ENV === "development") {
-          console.error("[chat] failed to record usage:", err);
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn(
+            `[chat] usage write skipped (${message.split("\n")[0]})`,
+          );
         }
       }
     },
