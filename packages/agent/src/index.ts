@@ -1,5 +1,6 @@
 export { runMirropilot } from "./runtime";
 export type { AgentLifecycleEvent, RunMirropilotDeps, RunMirropilotResult } from "./runtime";
+export { sanitizeToolCallHistory } from "./sanitize-history";
 export { workflowDocumentSchema } from "./schemas/workflow";
 export type { WorkflowDocumentInput } from "./schemas/workflow";
 export { generateChatTitle } from "./title";

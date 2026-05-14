@@ -8,6 +8,71 @@ import { createHash, randomUUID } from "node:crypto";
 import { workflowDocumentSchema, type WorkflowDocumentInput } from "../schemas/workflow";
 import { WORKFLOW_DOCUMENT_BUILDER_PROMPT } from "../system-prompt";
 
+const MAX_BUILDER_ATTEMPTS = 2;
+
+// Outer object wraps the discriminated union so the generated JSON schema has
+// `type: "object"` at the root (Anthropic's tools API requires this). We use
+// `z.unknown()` for `document` so the SDK doesn't try to validate the union
+// shape twice — the model occasionally emits the inner document as a JSON
+// string, which we detect and parse below before running the real validation.
+const builderOutputSchema = z.object({ document: z.unknown() });
+
+function summarizeZodIssues(error: z.ZodError): string {
+  return error.issues
+    .slice(0, 20)
+    .map((issue) => `- ${issue.path.join(".") || "(root)"}: ${issue.message}`)
+    .join("\n");
+}
+
+function coerceDocumentValue(raw: unknown): unknown {
+  if (typeof raw !== "string") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+async function buildWorkflowDocument(
+  modelId: string,
+  intent: string,
+): Promise<WorkflowDocumentInput> {
+  let lastError: Error | null = null;
+  let priorAttempt: string | null = null;
+  let priorErrors: string | null = null;
+
+  for (let attempt = 1; attempt <= MAX_BUILDER_ATTEMPTS; attempt++) {
+    const repairContext =
+      priorAttempt && priorErrors
+        ? `\n\nYour previous attempt failed schema validation. The JSON you produced was:\n\`\`\`json\n${priorAttempt}\n\`\`\`\n\nThe validator reported these issues (zod paths refer to fields inside the WorkflowDocument):\n${priorErrors}\n\nProduce a corrected WorkflowDocument that resolves every issue. Keep the same intent.`
+        : "";
+
+    const { output } = await generateText({
+      model: anthropic(modelId),
+      output: Output.object({ schema: builderOutputSchema }),
+      system: WORKFLOW_DOCUMENT_BUILDER_PROMPT,
+      prompt: intent + repairContext,
+      providerOptions: {
+        anthropic: { structuredOutputMode: "jsonTool" },
+      },
+    });
+
+    const candidate = coerceDocumentValue(output.document);
+    const result = workflowDocumentSchema.safeParse(candidate);
+    if (result.success) return result.data;
+
+    lastError = new Error(
+      `Workflow builder output failed schema validation (attempt ${attempt}):\n${summarizeZodIssues(
+        result.error,
+      )}`,
+    );
+    priorAttempt = JSON.stringify(candidate, null, 2).slice(0, 8000);
+    priorErrors = summarizeZodIssues(result.error);
+  }
+
+  throw lastError ?? new Error("Workflow builder failed for unknown reasons");
+}
+
 const { workflows, workflowVersions, chats } = schema;
 
 const DOCUMENT_BUILDER_MODEL = "claude-haiku-4-5";
@@ -51,17 +116,10 @@ export function makeWorkflowCommitTool(deps: WorkflowCommitDeps) {
         ),
     }),
     execute: async ({ summary, intent }): Promise<WorkflowCommitResult> => {
-      const { output: document } = await generateText({
-        model: anthropic(deps.builderModel ?? DOCUMENT_BUILDER_MODEL),
-        output: Output.object({ schema: workflowDocumentSchema }),
-        system: WORKFLOW_DOCUMENT_BUILDER_PROMPT,
-        prompt: intent,
-        providerOptions: {
-          anthropic: {
-            structuredOutputMode: "outputFormat",
-          },
-        },
-      });
+      const document = await buildWorkflowDocument(
+        deps.builderModel ?? DOCUMENT_BUILDER_MODEL,
+        intent,
+      );
 
       const workflowId = randomUUID();
       const versionId = randomUUID();

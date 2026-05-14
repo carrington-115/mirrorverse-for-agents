@@ -6,6 +6,7 @@ import type { Database } from "@mirrorverse/db";
 import { MIRROPILOT_SYSTEM_PROMPT } from "./system-prompt";
 import { makeWorkflowCommitTool } from "./tools/workflow-commit";
 import { breakdownStepUsage, type StepUsageBreakdown } from "./billing";
+import { sanitizeToolCallHistory } from "./sanitize-history";
 
 export type AgentLifecycleEvent =
   | { readonly kind: "message_started"; readonly messageId: string }
@@ -62,7 +63,8 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
   };
 
   const modelId = deps.model ?? DEFAULT_MODEL;
-  const modelMessages = await convertToModelMessages(deps.messages, { tools });
+  const rawModelMessages = await convertToModelMessages(deps.messages, { tools });
+  const modelMessages = sanitizeToolCallHistory(rawModelMessages);
   const assistantMessageId = randomUUID();
 
   const emit = async (event: AgentLifecycleEvent): Promise<void> => {

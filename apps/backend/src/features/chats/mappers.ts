@@ -76,6 +76,10 @@ export function uiMessageToContentBlocks(msg: UIMessage): ContentBlock[] {
         name: toolNameOf(part),
         input: (part.input ?? {}) as Record<string, unknown>,
       } as ContentBlock);
+      // Anthropic requires every `tool_use` to be immediately followed by a
+      // `tool_result`. If the stream ended before the part reached a terminal
+      // state (mid-run abort, validation retry that never landed), synthesize
+      // an error result so the next turn's replay stays valid.
       if (part.state === "output-available") {
         blocks.push({
           type: "tool_result",
@@ -88,6 +92,13 @@ export function uiMessageToContentBlocks(msg: UIMessage): ContentBlock[] {
           type: "tool_result",
           tool_use_id: part.toolCallId,
           content: part.errorText ?? "Tool error",
+          is_error: true,
+        } as ContentBlock);
+      } else {
+        blocks.push({
+          type: "tool_result",
+          tool_use_id: part.toolCallId,
+          content: "Tool execution did not complete.",
           is_error: true,
         } as ContentBlock);
       }
