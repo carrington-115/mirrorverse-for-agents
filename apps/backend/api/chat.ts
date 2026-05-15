@@ -125,6 +125,12 @@ async function buildComposioTools(
               ).catch(() => null);
             }
 
+            if (!redirectUrl) {
+              console.warn(
+                `[chat] composio: no redirectUrl for appSlug=${resolvedSlug}, interrupt skipped`,
+              );
+            }
+
             if (redirectUrl) {
               const connectionReq = await createConnectionRequest(db, {
                 workspaceId,
