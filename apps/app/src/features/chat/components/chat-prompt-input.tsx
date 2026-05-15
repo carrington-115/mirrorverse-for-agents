@@ -1,8 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { memo, useCallback } from "react";
-import { CheckIcon, FileText, Grid2x2, Link2, MessageCircle, Phone, Upload, X } from "lucide-react";
+import { Fragment, memo, useCallback, useState } from "react";
+import {
+  CheckIcon,
+  FileText,
+  Grid2x2,
+  Link2,
+  MessageCircle,
+  Phone,
+  Search,
+  Upload,
+  X,
+} from "lucide-react";
 
 import { ModelSelectorLogo, ModelSelectorName } from "@mirrorverse/ui/ai-elements/model-selector";
 import {
@@ -22,17 +32,16 @@ import {
   type PromptInputMessage,
 } from "@mirrorverse/ui/ai-elements/prompt-input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
-import { CHAT_MODELS } from "@/features/chat/config";
+import { CHAT_MODELS, type ModelOption } from "@/features/chat/config";
 
 export type ChatStatus = "submitted" | "streaming" | "ready" | "error";
 
@@ -208,6 +217,12 @@ function fileTypeName(mediaType: string | undefined): string {
   return "File";
 }
 
+const PROVIDERS = [
+  { chef: "Anthropic", slug: "anthropic" },
+  { chef: "OpenAI", slug: "openai" },
+  { chef: "Google", slug: "google" },
+] as const;
+
 function ChatModelPicker({
   selectedId,
   onSelect,
@@ -215,32 +230,154 @@ function ChatModelPicker({
   selectedId: string;
   onSelect: (id: string) => void;
 }) {
-  const selected = CHAT_MODELS.find((m) => m.id === selectedId) ?? CHAT_MODELS[0];
+  const allModels: readonly ModelOption[] = CHAT_MODELS;
+  const selected = allModels.find((m) => m.id === selectedId) ?? allModels[0];
+  const [open, setOpen] = useState(false);
+  const [activeProvider, setActiveProvider] = useState(selected.chef);
+  const [search, setSearch] = useState("");
+
+  const handleOpenChange = (next: boolean) => {
+    if (next) setActiveProvider(selected.chef);
+    setSearch("");
+    setOpen(next);
+  };
+
+  const providerModels = allModels.filter(
+    (m) =>
+      m.chef === activeProvider &&
+      (search === "" ||
+        m.name.toLowerCase().includes(search.toLowerCase()) ||
+        m.description.toLowerCase().includes(search.toLowerCase())),
+  );
+
+  const seriesOrder: string[] = [];
+  for (const m of providerModels) {
+    if (m.series !== undefined && !seriesOrder.includes(m.series)) {
+      seriesOrder.push(m.series);
+    }
+  }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
         <PromptInputButton>
           <ModelSelectorLogo provider={selected.chefSlug} />
           <ModelSelectorName>{selected.name}</ModelSelectorName>
         </PromptInputButton>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-80">
-        {CHAT_MODELS.map((m) => (
-          <DropdownMenuItem
-            key={m.id}
-            onClick={() => onSelect(m.id)}
-            className="gap-3 py-3 items-start"
-          >
-            <ModelSelectorLogo provider={m.chefSlug} className="mt-0.5 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium leading-tight">{m.name}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{m.description}</p>
-            </div>
-            {selectedId === m.id && <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="h-80 gap-0 p-0 w-[480px] flex-row overflow-hidden"
+      >
+        {/* Left provider sidebar */}
+        <div className="w-36 gap-0.5 p-2 flex h-full shrink-0 flex-col border-r border-border">
+          <p className="px-2 pb-1.5 pt-1 font-semibold tracking-wider text-[10px] text-muted-foreground/60 uppercase">
+            Providers
+          </p>
+          {PROVIDERS.map(({ chef, slug }) => (
+            <button
+              key={chef}
+              type="button"
+              onClick={() => {
+                setActiveProvider(chef);
+                setSearch("");
+              }}
+              className={cn(
+                "gap-2.5 px-2.5 py-2 text-sm flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent/60",
+                activeProvider === chef
+                  ? "font-medium bg-accent text-foreground"
+                  : "text-muted-foreground",
+              )}
+            >
+              <ModelSelectorLogo provider={slug} className="size-4 shrink-0" />
+              {chef}
+            </button>
+          ))}
+        </div>
+
+        {/* Right panel — search + scrollable model list */}
+        <div className="min-h-0 min-w-0 flex flex-1 flex-col">
+          {/* Search */}
+          <div className="gap-2 px-3 py-2 flex shrink-0 items-center border-b border-border">
+            <Search className="size-3.5 shrink-0 text-muted-foreground" />
+            <input
+              type="text"
+              className="text-sm flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+              placeholder={`Search ${activeProvider} models…`}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Scrollable model list */}
+          <div className="min-h-0 p-1.5 flex-1 overflow-y-auto">
+            {providerModels.length === 0 ? (
+              <p className="py-8 text-sm text-center text-muted-foreground">No models found</p>
+            ) : seriesOrder.length > 0 ? (
+              seriesOrder.map((series) => (
+                <Fragment key={series}>
+                  <p className="px-2 pb-0.5 pt-2 font-semibold tracking-wider text-[10px] text-muted-foreground/60 uppercase">
+                    {series}
+                  </p>
+                  {providerModels
+                    .filter((m) => m.series === series)
+                    .map((m) => (
+                      <ModelItem
+                        key={m.id}
+                        model={m}
+                        selected={selectedId === m.id}
+                        onSelect={() => {
+                          onSelect(m.id);
+                          setOpen(false);
+                        }}
+                      />
+                    ))}
+                </Fragment>
+              ))
+            ) : (
+              providerModels.map((m) => (
+                <ModelItem
+                  key={m.id}
+                  model={m}
+                  selected={selectedId === m.id}
+                  onSelect={() => {
+                    onSelect(m.id);
+                    setOpen(false);
+                  }}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ModelItem({
+  model,
+  selected,
+  onSelect,
+}: {
+  model: ModelOption;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "gap-0 px-2.5 py-2 flex w-full items-start rounded-lg text-left transition-colors hover:bg-accent/60",
+        selected && "bg-accent/50",
+      )}
+      onClick={onSelect}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium leading-snug text-foreground">{model.name}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{model.description}</p>
+      </div>
+      {selected && <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />}
+    </button>
   );
 }

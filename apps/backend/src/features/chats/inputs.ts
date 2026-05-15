@@ -17,6 +17,12 @@ export const getChatInput = z.object({
   chatId: z.string().min(1).max(128),
 });
 
+export const getPendingInterruptInput = z.object({
+  chatId: z.string().min(1).max(128),
+});
+
+export type GetPendingInterruptInput = z.infer<typeof getPendingInterruptInput>;
+
 export const deleteChatInput = z.object({
   chatId: z.string().min(1).max(128),
 });

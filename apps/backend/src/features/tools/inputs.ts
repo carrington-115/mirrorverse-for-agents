@@ -6,3 +6,9 @@ export const createMcpServerInput = z.object({
 });
 
 export type CreateMcpServerInput = z.infer<typeof createMcpServerInput>;
+
+export const revokeConnectionInput = z.object({
+  connectionId: z.string().min(1),
+});
+
+export type RevokeConnectionInput = z.infer<typeof revokeConnectionInput>;

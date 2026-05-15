@@ -1,4 +1,4 @@
-import type { UIMessage } from "ai";
+import type { Tool, UIMessage } from "ai";
 import type { Database } from "@mirrorverse/db";
 
 import type { StepUsageBreakdown } from "../billing";
@@ -38,6 +38,7 @@ export interface RunMirropilotDeps {
   readonly model?: string;
   readonly builderModel?: string;
   readonly maxSteps?: number;
+  readonly additionalTools?: Record<string, Tool>;
   readonly onUsage?: (event: UsageEvent) => Promise<void> | void;
   readonly onLifecycleEvent?: (event: AgentLifecycleEvent) => Promise<void> | void;
   readonly onFinish?: (event: FinishEvent) => Promise<void> | void;

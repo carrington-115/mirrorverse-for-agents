@@ -1,0 +1,5 @@
+No config path provided, using default 'drizzle.config.ts'
+Reading config file 'C:\Users\fruma\OneDrive\Desktop\mirrorverse\mirrorverse-for-agents\packages\db\drizzle.config.ts'
+◇ injected env (21) from ..\..\apps\backend\.env.development // tip: ⌘ suppress logs { quiet: true }
+Using 'postgres' driver for database querying
+[⣷] applying migrations...[2K[1G[⣷] applying migrations...

@@ -4,6 +4,7 @@ export type ModelOption = {
   readonly chef: string;
   readonly chefSlug: string;
   readonly description: string;
+  readonly series?: string;
 };
 
 export const CHAT_MODELS = [
@@ -69,6 +70,54 @@ export const CHAT_MODELS = [
     chef: "OpenAI",
     chefSlug: "openai",
     description: "Flagship GPT-5 for the hardest reasoning and planning",
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    chef: "Google",
+    chefSlug: "google",
+    description: "Next-gen fast model with improved instruction following",
+    series: "Gemini 2.5",
+  },
+  {
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    chef: "Google",
+    chefSlug: "google",
+    description: "Flagship Gemini 2.5 with best-in-class performance",
+    series: "Gemini 2.5",
+  },
+  {
+    id: "gemini-3.0-flash",
+    name: "Gemini 3.0 Flash",
+    chef: "Google",
+    chefSlug: "google",
+    description: "Fast Gemini 3.0 tier for high-throughput agent tasks",
+    series: "Gemini 3.0",
+  },
+  {
+    id: "gemini-3.0-pro",
+    name: "Gemini 3.0 Pro",
+    chef: "Google",
+    chefSlug: "google",
+    description: "Capable Gemini 3.0 for complex multi-step reasoning",
+    series: "Gemini 3.0",
+  },
+  {
+    id: "gemini-3.5-flash",
+    name: "Gemini 3.5 Flash",
+    chef: "Google",
+    chefSlug: "google",
+    description: "Next-gen fast Gemini 3.5 with enhanced instruction following",
+    series: "Gemini 3.5",
+  },
+  {
+    id: "gemini-3.5-pro",
+    name: "Gemini 3.5 Pro",
+    chef: "Google",
+    chefSlug: "google",
+    description: "Flagship Gemini 3.5 — Google&apos;s most capable model",
+    series: "Gemini 3.5",
   },
 ] as const satisfies readonly ModelOption[];
 

@@ -21,6 +21,7 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
       chatId: deps.chatId,
       builderModel: deps.builderModel,
     }),
+    ...deps.additionalTools,
   };
 
   const modelId = deps.model ?? DEFAULT_MIRROPILOT_MODEL;

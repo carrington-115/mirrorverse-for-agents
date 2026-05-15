@@ -24,4 +24,14 @@ export const toolsService = {
       url: input.url,
     });
   },
+
+  async listConnections(ctx: BaseCtx) {
+    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+    return repo.listWorkspaceConnections(ctx.db, workspaceId);
+  },
+
+  async revokeConnection(ctx: BaseCtx, connectionId: string) {
+    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+    return repo.revokeConnection(ctx.db, connectionId, workspaceId);
+  },
 };

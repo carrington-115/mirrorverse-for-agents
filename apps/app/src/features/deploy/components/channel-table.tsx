@@ -133,9 +133,8 @@ function SortableChannelRow<T extends { id: string }>({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-        borderColor: "var(--border-2)",
       }}
-      className="border-b transition-colors last:border-b-0 hover:bg-muted/40"
+      className="border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
     >
       {showDragHandle && (
         <TableCell className="w-8 px-2">
@@ -150,8 +149,13 @@ function SortableChannelRow<T extends { id: string }>({
         </TableCell>
       )}
       {showCheckbox && (
-        <TableCell className="w-10 px-3">
-          <Checkbox checked={selected} onCheckedChange={onToggle} aria-label="Select row" />
+        <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            className="size-[14px]"
+            checked={selected}
+            onCheckedChange={onToggle}
+            aria-label="Select row"
+          />
         </TableCell>
       )}
       {columns.map((col) => (
@@ -235,7 +239,7 @@ export function ChannelTable<T extends { id: string }>({
   }
 
   function toggleAll() {
-    if (selectedIds.size === paginated.length) {
+    if (allSelected) {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set(paginated.map((r) => r.id)));
@@ -299,18 +303,16 @@ export function ChannelTable<T extends { id: string }>({
   );
 
   return (
-    <div
-      className="w-full overflow-hidden rounded-lg border"
-      style={{ borderColor: "var(--border-2)" }}
-    >
+    <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <Table>
           <TableHeader>
-            <TableRow className="border-b" style={{ borderColor: "var(--border-2)" }}>
+            <TableRow className="h-9 border-b border-border bg-(--accent-0,#fafafa) hover:bg-(--accent-0,#fafafa)">
               {showDragHandle && <TableHead className="w-8 px-2" />}
               {showCheckbox && (
                 <TableHead className="w-10 px-3">
                   <Checkbox
+                    className="size-[14px]"
                     checked={allSelected}
                     onCheckedChange={toggleAll}
                     aria-label="Select all"
@@ -354,15 +356,7 @@ export function ChannelTable<T extends { id: string }>({
       </DndContext>
 
       {totalPages > 1 && (
-        <div
-          className="px-4 py-2 flex items-center justify-between border-t"
-          style={{
-            borderColor: "var(--border-1)",
-            backgroundColor: "var(--muted)",
-            fontSize: "var(--paragraph-small-font-size)",
-            lineHeight: "var(--paragraph-small-line-height)",
-          }}
-        >
+        <div className="px-4 py-2 flex items-center justify-between border-t border-border">
           <Button
             variant="ghost"
             size="sm"

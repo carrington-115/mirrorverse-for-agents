@@ -104,14 +104,14 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
         {actions && <div className="gap-2 flex items-center">{actions}</div>}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="cursor-pointer rounded-full">
-              <Avatar>
-                <AvatarImage src={displayImage} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-            </Button>
+            <button
+              className="cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="User menu"
+            >
+              <ProfileAvatarWithRing src={displayImage} fallback={initials} pct={0.75} />
+            </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-72">
             <div className="gap-3 px-3 py-2.5 flex items-center">
               <Avatar size="lg">
                 <AvatarImage src={displayImage} />
@@ -121,6 +121,9 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
                 <p className="text-sm font-medium truncate">{displayName}</p>
                 <p className="text-xs truncate text-muted-foreground">{displayEmail}</p>
               </div>
+            </div>
+            <div className="px-2 pb-2">
+              <BillingCard />
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -179,6 +182,90 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+const RING_R = 15;
+const RING_CIRC = 2 * Math.PI * RING_R;
+
+function CreditsRing({ pct }: { pct: number }) {
+  return (
+    <svg
+      viewBox="0 0 36 36"
+      className="inset-0 pointer-events-none absolute h-full w-full -rotate-90"
+      aria-hidden
+    >
+      <circle
+        cx="18"
+        cy="18"
+        r={RING_R}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        className="text-muted-foreground/20"
+      />
+      <circle
+        cx="18"
+        cy="18"
+        r={RING_R}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeDasharray={RING_CIRC}
+        strokeDashoffset={RING_CIRC * (1 - pct)}
+        className="text-primary transition-[stroke-dashoffset] duration-700"
+      />
+    </svg>
+  );
+}
+
+function ProfileAvatarWithRing({
+  src,
+  fallback,
+  pct,
+}: {
+  src: string;
+  fallback: string;
+  pct: number;
+}) {
+  return (
+    <div className="size-9 relative flex shrink-0 items-center justify-center">
+      <Avatar className="size-[26px]">
+        <AvatarImage src={src} />
+        <AvatarFallback className="text-[10px]">{fallback}</AvatarFallback>
+      </Avatar>
+      <CreditsRing pct={pct} />
+    </div>
+  );
+}
+
+function BillingCard() {
+  return (
+    <div className="p-3 space-y-2.5 rounded-lg border border-border bg-muted/30">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-foreground">Pro Plan</span>
+        <span className="text-[11px] text-muted-foreground">Renews Jun 15</span>
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">Credits</span>
+          <span className="font-medium text-[11px]">750 / 1,000</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-3/4 rounded-full bg-primary" />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">API calls</span>
+          <span className="font-medium text-[11px]">2.4K / 10K</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary" style={{ width: "24%" }} />
+        </div>
       </div>
     </div>
   );
