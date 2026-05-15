@@ -38,7 +38,7 @@ function MirropilotLogo() {
         className="font-semibold text-[30px] tracking-[-0.95px] text-secondary-foreground"
         style={{ lineHeight: "30px" }}
       >
-        Mirropilot
+        Mirrro
       </span>
     </div>
   );

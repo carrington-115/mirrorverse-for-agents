@@ -6,3 +6,4 @@ export * from "./tools.schema";
 export * from "./chats.schema";
 export * from "./skills.schema";
 export * from "./billing.schema";
+export * from "./audit-log.schema";

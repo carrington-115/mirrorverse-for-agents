@@ -1,7 +1,20 @@
 "use client";
 
 import { useTransition } from "react";
-import { Ellipsis, Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+import {
+  BarChart3Icon,
+  Check,
+  CreditCardIcon,
+  Ellipsis,
+  HelpCircleIcon,
+  Loader2,
+  MegaphoneIcon,
+  SettingsIcon,
+  SunMoon,
+  UserIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,8 +22,10 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +37,110 @@ interface SidebarProfileProps {
   name: string;
   email: string;
   image: string;
+}
+
+function AppearanceSubmenu() {
+  const { theme, setTheme } = useTheme();
+  const options = ["light", "dark", "system"] as const;
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <SunMoon className="mr-2 size-4" />
+        Appearance
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        {options.map((t) => (
+          <DropdownMenuItem key={t} onSelect={() => setTheme(t)}>
+            <Check className={`mr-2 size-3 ${theme === t ? "opacity-100" : "opacity-0"}`} />
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
+function ProfileHeader({ name, email, image }: SidebarProfileProps) {
+  return (
+    <div className="gap-3 px-3 py-2.5 flex items-center">
+      <Avatar size="lg">
+        <AvatarImage src={image} />
+        <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate">{name}</p>
+        <p className="text-xs truncate text-muted-foreground">{email}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProfileMenuItems({
+  onSignOut,
+  isSigningOut,
+}: {
+  onSignOut: () => void;
+  isSigningOut: boolean;
+}) {
+  return (
+    <>
+      <DropdownMenuGroup>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/profile">
+            <UserIcon className="mr-2 size-4" />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/billing">
+            <CreditCardIcon className="mr-2 size-4" />
+            Billing
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/usage">
+            <BarChart3Icon className="mr-2 size-4" />
+            Usage
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <AppearanceSubmenu />
+        <DropdownMenuItem asChild>
+          <Link href="/settings/general">
+            <SettingsIcon className="mr-2 size-4" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="mailto:support@mirrorverse.ai">
+            <HelpCircleIcon className="mr-2 size-4" />
+            Support
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <MegaphoneIcon className="mr-2 size-4" />
+          {"What's new"}
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive"
+          data-testid="sign-out"
+          onSelect={(event) => {
+            event.preventDefault();
+            onSignOut();
+          }}
+          disabled={isSigningOut}
+        >
+          {isSigningOut && <Loader2 className="mr-2 size-4 animate-spin" />}
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+    </>
+  );
 }
 
 export function SidebarProfileComponent({ name, email, image }: SidebarProfileProps) {
@@ -60,35 +179,10 @@ export function SidebarProfileComponent({ name, email, image }: SidebarProfilePr
           </TooltipTrigger>
           <TooltipContent side="right">{name}</TooltipContent>
         </Tooltip>
-        <DropdownMenuContent side="right" align="end" className="w-48">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Billing</DropdownMenuItem>
-            <DropdownMenuItem>Subscription</DropdownMenuItem>
-          </DropdownMenuGroup>
+        <DropdownMenuContent side="right" align="end" className="w-64">
+          <ProfileHeader name={name} email={email} image={image} />
           <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>User guide</DropdownMenuItem>
-            <DropdownMenuItem>Contact</DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem
-              className="text-red-500"
-              data-testid="sign-out"
-              onSelect={(event) => {
-                event.preventDefault();
-                handleSignOut();
-              }}
-              disabled={isSigningOut}
-            >
-              {isSigningOut && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
+          <ProfileMenuItems onSignOut={handleSignOut} isSigningOut={isSigningOut} />
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -109,8 +203,8 @@ export function SidebarProfileComponent({ name, email, image }: SidebarProfilePr
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            size={"icon"}
-            variant={"ghost"}
+            size="icon"
+            variant="ghost"
             className="cursor-pointer"
             aria-label="Open user menu"
             data-testid="user-menu-trigger"
@@ -118,35 +212,10 @@ export function SidebarProfileComponent({ name, email, image }: SidebarProfilePr
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-(--radix-popper-anchor-width)">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Billing</DropdownMenuItem>
-            <DropdownMenuItem>Subscription</DropdownMenuItem>
-          </DropdownMenuGroup>
+        <DropdownMenuContent side="top" align="end" className="w-72">
+          <ProfileHeader name={name} email={email} image={image} />
           <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>User guide</DropdownMenuItem>
-            <DropdownMenuItem>Contact</DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem
-              className="text-red-500"
-              data-testid="sign-out"
-              onSelect={(event) => {
-                event.preventDefault();
-                handleSignOut();
-              }}
-              disabled={isSigningOut}
-            >
-              {isSigningOut && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
+          <ProfileMenuItems onSignOut={handleSignOut} isSigningOut={isSigningOut} />
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
