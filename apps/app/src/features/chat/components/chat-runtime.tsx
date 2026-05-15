@@ -46,13 +46,14 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
   const { data: pendingInterrupt } = useQuery({
     ...trpc.chats.pendingInterrupt.queryOptions({ chatId: sessionId }),
     enabled: streamFinished && !interruptDismissed,
-    refetchInterval: false,
+    refetchInterval: streamFinished && !interruptDismissed ? 2000 : false,
   });
 
   const handleSubmit = useCallback(
     (message: PromptInputMessage) => {
       const text = message.text.trim();
       if (!text) return;
+      setStreamFinished(false);
       sendMessage({ text }, { body: { model } });
     },
     [sendMessage, model],
@@ -60,6 +61,7 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
 
   const handleStarter = useCallback(
     (prompt: string) => {
+      setStreamFinished(false);
       sendMessage({ text: prompt }, { body: { model } });
     },
     [sendMessage, model],
