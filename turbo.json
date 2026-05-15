@@ -35,6 +35,9 @@
       "cache": false,
       "dependsOn": ["^build"]
     },
+    "db:pull": {
+      "cache": false
+    },
     "db:push": {
       "cache": false
     },
