@@ -35,7 +35,7 @@ function copyFor(mode: AuthMode): ModeCopy {
       heading: "Create an account",
       subheading: "Enter your email and we'll send you a 6-digit code",
       submitLabel: "Continue",
-      next: "/mirropilot",
+      next: "/onboarding/setup",
       footerText: "Already have an account?",
       footerLinkHref: "/sign-in",
       footerLinkLabel: "Sign in",

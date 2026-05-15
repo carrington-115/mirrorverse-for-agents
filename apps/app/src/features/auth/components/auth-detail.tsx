@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import logoLight from "@/assets/logo-light.svg";
+import logoDark from "@/assets/logo-dark.svg";
 import workflowUI from "@/assets/workflow.svg";
 
 export function AuthDetail() {
@@ -10,7 +11,8 @@ export function AuthDetail() {
         <div className="flex w-[95%] items-center justify-between">
           <Link href="https://mirrro-ai-website.vercel.app/">
             <div className="flex h-auto w-[102px]">
-              <Image src={logoLight} alt="Logo light" className="h-auto w-full" />
+              <Image src={logoLight} alt="Mirrro" className="block h-auto w-full dark:hidden" />
+              <Image src={logoDark} alt="Mirrro" className="hidden h-auto w-full dark:block" />
             </div>
           </Link>
         </div>
