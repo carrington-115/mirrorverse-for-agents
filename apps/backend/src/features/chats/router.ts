@@ -7,6 +7,7 @@ import {
   editUserMessageInput,
   ensureChatInput,
   getChatInput,
+  getPendingInterruptInput,
   listChatsInput,
 } from "./inputs";
 import { chatsService } from "./service";
@@ -49,5 +50,14 @@ export const chatsRouter = router({
     .input(deleteChatInput)
     .mutation(({ ctx, input }) =>
       chatsService.deleteChat({ db: ctx.db, userId: ctx.user.id }, input),
+    ),
+
+  pendingInterrupt: protectedProc
+    .input(getPendingInterruptInput)
+    .query(({ ctx, input }) =>
+      chatsService.getPendingInterrupt(
+        { db: ctx.db, userId: ctx.user.id },
+        input.chatId,
+      ),
     ),
 });

@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
 import type { PromptInputMessage } from "@mirrorverse/ui/ai-elements/prompt-input";
 
@@ -13,6 +13,7 @@ import { buildChatTransport } from "@/features/chat/lib/transport";
 import { ChatConversation } from "./chat-conversation";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatPromptInput } from "./chat-prompt-input";
+import { CredentialInterruptDialog } from "./credential-interrupt-dialog";
 
 interface ChatRuntimeProps {
   sessionId: string;
@@ -23,12 +24,16 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
   const trpc = useTRPC();
   const qc = useQueryClient();
   const [model, setModel] = useState<string>(DEFAULT_CHAT_MODEL);
+  const [interruptDismissed, setInterruptDismissed] = useState(false);
+  const [streamFinished, setStreamFinished] = useState(false);
 
   const transport = useMemo(() => buildChatTransport(sessionId), [sessionId]);
 
   const onFinish = useCallback(() => {
     qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() });
     qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+    setStreamFinished(true);
+    setInterruptDismissed(false);
   }, [qc, trpc.chats.list, trpc.workflows.list]);
 
   const { messages, sendMessage, status, stop } = useChat({
@@ -36,6 +41,12 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
     transport,
     messages: initialMessages,
     onFinish,
+  });
+
+  const { data: pendingInterrupt } = useQuery({
+    ...trpc.chats.pendingInterrupt.queryOptions({ chatId: sessionId }),
+    enabled: streamFinished && !interruptDismissed,
+    refetchInterval: false,
   });
 
   const handleSubmit = useCallback(
@@ -68,8 +79,26 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
     />
   );
 
+  const credentialInterrupt =
+    pendingInterrupt &&
+    typeof pendingInterrupt === "object" &&
+    (pendingInterrupt as Record<string, unknown>).kind === "needs_credential"
+      ? (pendingInterrupt as { kind: string; appSlug: string; redirectUrl: string })
+      : null;
+
   if (isEmpty) {
-    return <ChatEmptyState onPickStarter={handleStarter} inputSlot={inputBlock} />;
+    return (
+      <>
+        <ChatEmptyState onPickStarter={handleStarter} inputSlot={inputBlock} />
+        {credentialInterrupt && (
+          <CredentialInterruptDialog
+            appSlug={credentialInterrupt.appSlug}
+            redirectUrl={credentialInterrupt.redirectUrl}
+            onDismiss={() => setInterruptDismissed(true)}
+          />
+        )}
+      </>
+    );
   }
 
   return (
@@ -78,6 +107,13 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
       <div className="p-3">
         <div className="mx-auto w-full max-w-[780px]">{inputBlock}</div>
       </div>
+      {credentialInterrupt && (
+        <CredentialInterruptDialog
+          appSlug={credentialInterrupt.appSlug}
+          redirectUrl={credentialInterrupt.redirectUrl}
+          onDismiss={() => setInterruptDismissed(true)}
+        />
+      )}
     </div>
   );
 }

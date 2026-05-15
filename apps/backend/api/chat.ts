@@ -6,14 +6,19 @@ import {
   runMirropilot,
 } from "@mirrorverse/agent";
 import { randomUUID } from "node:crypto";
-import type { UIMessage } from "ai";
+import { tool, type Tool } from "ai";
 
 import { env } from "@mirrorverse/env/backend";
-import { verifyToken } from "@mirrorverse/db";
-import type { UserId } from "@mirrorverse/types";
+import { eq, isNull, and, verifyToken, getDb, schema } from "@mirrorverse/db";
+import type {
+  UserId,
+  ChatId,
+  McpServerId,
+  ConnectionRequestId,
+} from "@mirrorverse/types";
+import type { UIMessage } from "ai";
 
 import { BEARER } from "../src/config";
-import { getDb } from "@mirrorverse/db";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
 import { recordChatUsage } from "../src/features/billing/repo";
 import {
@@ -30,6 +35,17 @@ import {
   setChatTitleIfEmpty,
 } from "../src/features/chats/repo";
 import { chatsService } from "../src/features/chats/service";
+import {
+  isComposioConfigured,
+  listComposioTools,
+  getComposioAuthRedirectUrl,
+} from "../src/mcp/composio/client";
+import {
+  NeedsAuthError,
+  invokeComposioTool,
+} from "../src/mcp/composio/dispatcher";
+import { createConnectionRequest } from "../src/mcp/composio/auth";
+import type { Database } from "@mirrorverse/db";
 
 async function safeAppendChatEvent(
   ...args: Parameters<typeof appendChatEvent>
@@ -41,6 +57,115 @@ async function safeAppendChatEvent(
       console.error("[chat] failed to append chat_event:", err);
     }
   }
+}
+
+async function lookupComposioMcpServerId(db: Database): Promise<string | null> {
+  const [row] = await db
+    .select({ id: schema.mcpServers.id })
+    .from(schema.mcpServers)
+    .where(
+      and(
+        eq(schema.mcpServers.slug, "composio"),
+        isNull(schema.mcpServers.workspaceId),
+      ),
+    )
+    .limit(1);
+  return row?.id ?? null;
+}
+
+async function buildComposioTools(
+  db: Database,
+  workspaceId: string,
+  chatId: string,
+): Promise<Record<string, Tool>> {
+  if (!isComposioConfigured()) return {};
+
+  const [schemaTools, composioMcpServerId] = await Promise.all([
+    listComposioTools(workspaceId),
+    lookupComposioMcpServerId(db),
+  ]);
+
+  if (!composioMcpServerId) return {};
+
+  const result: Record<string, Tool> = {};
+
+  for (const [slug, baseTool] of Object.entries(schemaTools)) {
+    const appSlug = slug.split("_")[0]?.toLowerCase() ?? slug;
+    result[slug] = tool({
+      description: (baseTool as { description?: string }).description ?? slug,
+      inputSchema: (
+        baseTool as { inputSchema: Parameters<typeof tool>[0]["inputSchema"] }
+      ).inputSchema,
+      execute: async (args: Record<string, unknown>) => {
+        try {
+          const res = await invokeComposioTool(slug, args, workspaceId);
+          return JSON.stringify(res);
+        } catch (err) {
+          if (
+            err instanceof NeedsAuthError ||
+            isConnectedAccountNotFound(err)
+          ) {
+            const resolvedSlug =
+              err instanceof NeedsAuthError ? err.appSlug : appSlug;
+            let redirectUrl =
+              err instanceof NeedsAuthError ? err.redirectUrl : null;
+
+            if (!redirectUrl) {
+              redirectUrl = await getComposioAuthRedirectUrl(
+                workspaceId,
+                resolvedSlug,
+              ).catch(() => null);
+            }
+
+            if (redirectUrl) {
+              const connectionReq = await createConnectionRequest(db, {
+                workspaceId,
+                chatId,
+                mcpServerId: composioMcpServerId,
+                appSlug: resolvedSlug,
+                redirectUrl,
+              });
+
+              await safeAppendChatEvent({
+                db,
+                chatId,
+                kind: "interrupt",
+                payload: {
+                  kind: "interrupt",
+                  interrupt: {
+                    id: connectionReq.id,
+                    kind: "needs_credential",
+                    chatId: chatId as ChatId,
+                    mcpServerId: composioMcpServerId as McpServerId,
+                    appSlug: resolvedSlug,
+                    redirectUrl,
+                    connectionRequestId:
+                      connectionReq.id as ConnectionRequestId,
+                    resumeEventName: connectionReq.resumeEventName,
+                    expiresAt: connectionReq.expiresAt,
+                  },
+                },
+              });
+            }
+
+            return `Authentication required: please connect your ${resolvedSlug} account using the popup that appeared.`;
+          }
+          throw err;
+        }
+      },
+    });
+  }
+
+  return result;
+}
+
+function isConnectedAccountNotFound(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return (
+    err.constructor.name === "ComposioConnectedAccountNotFoundError" ||
+    err.message.toLowerCase().includes("connected account") ||
+    err.message.toLowerCase().includes("not found")
+  );
 }
 
 interface ChatRequestBody {
@@ -170,7 +295,19 @@ export async function POST(req: Request): Promise<Response> {
   const builderModel = requestedBuilderModel ?? "claude-sonnet-4-5";
   let stepIndex = 0;
 
+  const additionalTools = await buildComposioTools(
+    db,
+    workspaceId,
+    chat.id,
+  ).catch((err) => {
+    if (env.NODE_ENV === "development") {
+      console.error("[chat] failed to build composio tools:", err);
+    }
+    return {};
+  });
+
   return runMirropilot({
+    additionalTools,
     db,
     userId: session.userId,
     workspaceId,

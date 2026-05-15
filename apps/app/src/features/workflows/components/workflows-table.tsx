@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useTransition, useState } from "react";
 import { DndContext, type DragEndEvent, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -9,11 +9,31 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowUp, ArrowUpDown, Ellipsis, GripVertical, Play, Plus } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Ellipsis,
+  GripVertical,
+  Loader2,
+  Play,
+  Plus,
+  RefreshCw,
+  Share2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyHeader,
@@ -23,6 +43,7 @@ import {
 } from "@/components/ui/empty";
 import type { Workflow } from "@/lib/types";
 import { formatDate, formatTime } from "@/lib/date";
+import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 
 const PAGE_SIZE = 10;
 
@@ -120,25 +141,42 @@ function SortableWorkflowRow({
         </div>
       </div>
       <div
-        className="flex w-[187px] shrink-0 items-center gap-(--xs,8px) px-(--xs,8px) py-(--3xs,2px)"
+        className="flex w-[187px] shrink-0 items-center justify-end px-(--xs,8px) py-(--3xs,2px)"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          className="min-h-8 flex items-center justify-center rounded-lg px-(--sm,12px) py-[6px] transition-colors hover:bg-muted/50"
-          onClick={onDelete}
-          title="Delete workflow"
-        >
-          <Ellipsis className="size-4 text-muted-foreground" />
-        </button>
-        <button
-          type="button"
-          className="min-h-8 flex items-center justify-center rounded-lg px-(--sm,12px) py-[6px] transition-colors hover:bg-muted/50"
-          onClick={() => toast.info(`Run "${w.name}" coming soon`)}
-          title="Run workflow"
-        >
-          <Play className="size-4 text-muted-foreground" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="min-h-8 flex items-center justify-center rounded-lg px-(--sm,12px) py-[6px] transition-colors hover:bg-muted/50"
+              title="More options"
+            >
+              <Ellipsis className="size-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => toast.info(`Run "${w.name}" coming soon`)}>
+              <Play className="size-4" />
+              Run workflow
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info(`Share "${w.name}" coming soon`)}>
+              <Share2 className="size-4" />
+              Share
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info(`Restart "${w.name}" coming soon`)}>
+              <RefreshCw className="size-4" />
+              Restart workflow
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={onDelete}
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
@@ -165,6 +203,8 @@ export function WorkflowsTable({
 }: WorkflowsTableProps) {
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   const totalPages = Math.max(1, Math.ceil(workflows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -205,6 +245,13 @@ export function WorkflowsTable({
     const newIndex = workflows.findIndex((w) => w.id === over.id);
     onReorder?.(arrayMove(workflows, oldIndex, newIndex));
   }
+
+  const handleNewSession = () => {
+    startTransition(async () => {
+      const newSessionId = await generateSessionId();
+      router.push(`/mirropilot/${newSessionId}`);
+    });
+  };
 
   return (
     <div className="flex w-full flex-col gap-(--md,16px)">
@@ -248,6 +295,48 @@ export function WorkflowsTable({
           <div className="w-[187px] shrink-0" />
         </div>
 
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-(--xs,8px) border-b border-border bg-muted/20 px-(--xs,8px) py-[6px]">
+            <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+            <div className="mx-1 h-4 w-px bg-border" />
+            <button
+              type="button"
+              className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              onClick={() => toast.info("Restart selected coming soon")}
+            >
+              <RefreshCw className="size-3.5" />
+              Restart
+            </button>
+            <button
+              type="button"
+              className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              onClick={() => toast.info("Share selected coming soon")}
+            >
+              <Share2 className="size-3.5" />
+              Share
+            </button>
+            <button
+              type="button"
+              className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-destructive transition-colors hover:bg-destructive/10"
+              onClick={() => {
+                selectedIds.forEach((id) => onDelete(id));
+                setSelectedIds(new Set());
+              }}
+            >
+              <Trash2 className="size-3.5" />
+              Delete
+            </button>
+            <button
+              type="button"
+              className="ml-auto flex items-center rounded-md p-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              onClick={() => setSelectedIds(new Set())}
+              title="Clear selection"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
+
         {isEmpty && (
           <div className="py-16 px-4 flex items-center justify-center">
             <Empty className="max-w-[448px] rounded-xl border border-solid border-border">
@@ -261,12 +350,9 @@ export function WorkflowsTable({
               </EmptyHeader>
               <EmptyContent>
                 <div className="flex flex-wrap items-center justify-center gap-(--xs,8px)">
-                  <Button
-                    className="gap-(--xs,8px)"
-                    onClick={() => toast.info("Create workflow coming soon")}
-                  >
-                    <Plus className="size-4" />
-                    Create your first workflow
+                  <Button className="gap-(--xs,8px)" onClick={handleNewSession}>
+                    {pending ? <Loader2 className="animate-spin" /> : <Plus className="size-4" />}
+                    Create workflow
                   </Button>
                   <Button variant="outline" onClick={() => toast.info("Examples coming soon")}>
                     See examples

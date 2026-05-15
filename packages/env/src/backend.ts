@@ -19,6 +19,7 @@ export const env = createEnv({
 
     OPENAI_API_KEY: z.string().min(1).optional(),
     ANTHROPIC_API_KEY: z.string().min(1),
+    GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
     ELEVENLABS_API_KEY: z.string().min(1).optional(),
 
     TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
@@ -29,6 +30,9 @@ export const env = createEnv({
     SENTRY_DSN: z.url().optional(),
     POSTHOG_API_KEY: z.string().min(1).optional(),
     POSTHOG_HOST: z.url().default("https://app.posthog.com"),
+
+    COMPOSIO_API_KEY: z.string().min(1).optional(),
+    COMPOSIO_OAUTH_CALLBACK_URL: z.string().url().optional(),
 
     INNGEST_EVENT_KEY: z.string().min(1).optional(),
     INNGEST_SIGNING_KEY: z.string().min(1).optional(),

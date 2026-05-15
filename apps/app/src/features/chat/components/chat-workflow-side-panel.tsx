@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 import { useWorkflowQuery } from "@/features/workflows/api/queries";
 import { DocumentCanvas } from "@/features/workflows/components/document-canvas";
 
 interface ChatWorkflowSidePanelProps {
   workflowId: string;
+  onClose: () => void;
 }
 
 interface WorkflowDocumentShape {
@@ -25,7 +26,7 @@ interface WorkflowDocumentShape {
   }>;
 }
 
-export function ChatWorkflowSidePanel({ workflowId }: ChatWorkflowSidePanelProps) {
+export function ChatWorkflowSidePanel({ workflowId, onClose }: ChatWorkflowSidePanelProps) {
   const { data, isLoading } = useWorkflowQuery(workflowId);
 
   const doc = useMemo<WorkflowDocumentShape | null>(() => {
@@ -59,6 +60,14 @@ export function ChatWorkflowSidePanel({ workflowId }: ChatWorkflowSidePanelProps
           <span className="text-sm font-medium text-foreground">{data.workflow.name}</span>
           <span className="text-xs text-muted-foreground">{data.workflow.kind}</span>
         </div>
+        <button
+          type="button"
+          className="p-1 flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+          onClick={onClose}
+          title="Close workflow viewer"
+        >
+          <X className="size-4" />
+        </button>
       </div>
       <div className="min-h-0 flex-1">
         <DocumentCanvas nodes={doc.nodes} connections={doc.connections} />

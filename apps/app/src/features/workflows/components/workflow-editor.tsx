@@ -30,7 +30,6 @@ interface DocumentShape {
 }
 
 export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
-  const [activeTab, setActiveTab] = useState<"builder" | "prompter">("builder");
   const [isMirropilotOpen, setIsMirropilotOpen] = useState(false);
   const [configSidebarType, _setConfigSidebarType] = useState<ConfigSidebarType | null>(null);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
@@ -50,13 +49,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <WorkflowHeader
-        workflowName={workflowName}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onToggleMirropilot={handleToggleMirropilot}
-        isMirropilotOpen={isMirropilotOpen}
-      />
+      <WorkflowHeader workflowName={workflowName} onToggleMirropilot={handleToggleMirropilot} />
 
       <div className="min-h-0 flex flex-1 gap-(--xs,8px) overflow-hidden px-(--xs,8px) pb-(--xs,8px)">
         {isMirropilotOpen && (

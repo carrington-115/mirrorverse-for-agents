@@ -23,7 +23,7 @@ export function ChatEmptyState({ onPickStarter, inputSlot }: ChatEmptyStateProps
 
 function BrandHeader() {
   return (
-    <div className="gap-y-6 mb-12 flex items-center justify-center">
+    <div className="gap-y-6 mb-[var(--spacing-lg)] flex items-center justify-center">
       <Image
         src={mirropilotIconLight}
         alt="Mirrro"

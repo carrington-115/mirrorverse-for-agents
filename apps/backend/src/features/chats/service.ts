@@ -124,6 +124,16 @@ export const chatsService = {
     }
   },
 
+  async getPendingInterrupt(ctx: BaseCtx, chatId: string) {
+    const chat = await repo.getChatForUser(ctx.db, chatId, ctx.userId);
+    if (!chat) return null;
+    const event = await repo.getLatestInterruptForChat(ctx.db, chatId);
+    if (!event) return null;
+    const payload = event.payload as { kind?: string; interrupt?: unknown };
+    if (payload.kind !== "interrupt") return null;
+    return (payload.interrupt ?? null) as Record<string, unknown> | null;
+  },
+
   async editUserMessage(ctx: BaseCtx, input: EditUserMessageInput) {
     const target = await repo.findOwnedUserMessage(
       ctx.db,

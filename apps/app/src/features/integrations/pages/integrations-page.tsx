@@ -22,44 +22,35 @@ import {
   type DateFilter,
   type TypeFilter,
 } from "@/features/integrations/components/integrations-table-toolbar";
+import { useConnectionsQuery } from "@/features/integrations/api/queries";
+import { useRevokeConnectionMutation } from "@/features/integrations/api/mutations";
 
-const MOCK_INTEGRATIONS: ConnectedIntegration[] = [
-  {
-    id: "1",
-    name: "support@melplace.com",
-    type: "MCP",
-    status: "connected",
-    dateCreated: "2025-08-20T16:20:00",
-    lastUsed: "2026-01-02T03:23:00",
-  },
-  {
-    id: "2",
-    name: "api.acme.corp/mcp",
-    type: "MCP",
-    status: "connected",
-    dateCreated: "2025-09-14T09:45:00",
-    lastUsed: "2026-02-11T14:07:00",
-  },
-  {
-    id: "3",
-    name: "hooks.slack.com/services/T01",
-    type: "Webhook",
-    status: "connected",
-    dateCreated: "2025-11-03T11:10:00",
-    lastUsed: "2026-03-05T08:30:00",
-  },
-  {
-    id: "4",
-    name: "github.webhooks/mirrorverse",
-    type: "Webhook",
-    status: "connected",
-    dateCreated: "2025-12-01T18:00:00",
-    lastUsed: "2026-04-20T22:15:00",
-  },
-];
+function connectionToRow(c: {
+  id: string;
+  appSlug: string;
+  displayName: string;
+  status: string;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+}): ConnectedIntegration {
+  return {
+    id: c.id,
+    name: c.displayName || c.appSlug,
+    type: "OAuth",
+    status: c.status === "active" ? "connected" : "disconnected",
+    dateCreated: c.createdAt.toISOString(),
+    lastUsed: (c.lastUsedAt ?? c.createdAt).toISOString(),
+  };
+}
 
 export function IntegrationsPage() {
-  const [integrations, setIntegrations] = useState<ConnectedIntegration[]>(MOCK_INTEGRATIONS);
+  const { data: connectionsData } = useConnectionsQuery();
+  const revokeConnection = useRevokeConnectionMutation();
+  const liveIntegrations: ConnectedIntegration[] = useMemo(
+    () => (connectionsData ?? []).map(connectionToRow),
+    [connectionsData],
+  );
+
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
   const [browseOpen, setBrowseOpen] = useState(false);
@@ -72,7 +63,7 @@ export function IntegrationsPage() {
   const entries = useMemo(() => data?.items ?? [], [data]);
 
   const filteredIntegrations = useMemo(() => {
-    return integrations.filter((i) => {
+    return liveIntegrations.filter((i) => {
       const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesType = typeFilter === "all" || i.type === typeFilter;
       const matchesDate = (() => {
@@ -92,9 +83,9 @@ export function IntegrationsPage() {
       })();
       return matchesSearch && matchesType && matchesDate;
     });
-  }, [integrations, searchQuery, typeFilter, dateFilter]);
+  }, [liveIntegrations, searchQuery, typeFilter, dateFilter]);
 
-  const hasIntegrations = integrations.length > 0;
+  const hasIntegrations = liveIntegrations.length > 0;
 
   function handleSelect(entry: DirectoryEntry) {
     setSelectedEntry(entry);
@@ -102,22 +93,11 @@ export function IntegrationsPage() {
   }
 
   function handleRemove(id: string) {
-    setIntegrations((prev) => prev.filter((i) => i.id !== id));
+    revokeConnection.mutate({ connectionId: id });
   }
 
-  function handleReorder(reordered: ConnectedIntegration[]) {
-    setIntegrations((prev) => {
-      const reorderedIdSet = new Set(reordered.map((i) => i.id));
-      const filteredIndices = prev
-        .map((item, idx) => ({ item, idx }))
-        .filter(({ item }) => reorderedIdSet.has(item.id))
-        .map(({ idx }) => idx);
-      const next = [...prev];
-      reordered.forEach((item, i) => {
-        next[filteredIndices[i]] = item;
-      });
-      return next;
-    });
+  function handleReorder(_reordered: ConnectedIntegration[]) {
+    // Order is managed server-side; local reorder is a no-op for now
   }
 
   return (

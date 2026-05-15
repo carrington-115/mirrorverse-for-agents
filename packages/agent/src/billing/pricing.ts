@@ -22,9 +22,21 @@ const OPENAI_PRICING: Record<string, ModelPricePerMillionTokens> = {
   "gpt-5": { input: 1.25, output: 10, cacheRead: 0.125, cacheWrite: 1.25 },
 };
 
+const GOOGLE_PRICING: Record<string, ModelPricePerMillionTokens> = {
+  "gemini-2.0-flash": { input: 0.075, output: 0.3, cacheRead: 0.019, cacheWrite: 0.075 },
+  "gemini-2.0-flash-lite": { input: 0.038, output: 0.15, cacheRead: 0.01, cacheWrite: 0.038 },
+  "gemini-2.5-flash": { input: 0.15, output: 0.6, cacheRead: 0.038, cacheWrite: 0.15 },
+  "gemini-2.5-pro": { input: 1.25, output: 10, cacheRead: 0.313, cacheWrite: 1.25 },
+  "gemini-3.0-flash": { input: 0.1, output: 0.4, cacheRead: 0.025, cacheWrite: 0.1 },
+  "gemini-3.0-pro": { input: 2, output: 15, cacheRead: 0.5, cacheWrite: 2 },
+  "gemini-3.5-flash": { input: 0.2, output: 0.8, cacheRead: 0.05, cacheWrite: 0.2 },
+  "gemini-3.5-pro": { input: 3, output: 20, cacheRead: 0.75, cacheWrite: 3 },
+};
+
 const MODEL_PRICING: Record<string, ModelPricePerMillionTokens> = {
   ...ANTHROPIC_PRICING,
   ...OPENAI_PRICING,
+  ...GOOGLE_PRICING,
 };
 
 const DEFAULT_PRICE: ModelPricePerMillionTokens = MODEL_PRICING["claude-haiku-4-5"];

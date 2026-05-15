@@ -233,6 +233,16 @@ export interface AppendChatEventInput {
   readonly payload: ChatEventPayload;
 }
 
+export async function getLatestInterruptForChat(db: Database, chatId: string) {
+  const [row] = await db
+    .select({ payload: chatEvents.payload })
+    .from(chatEvents)
+    .where(and(eq(chatEvents.chatId, chatId), eq(chatEvents.kind, "interrupt")))
+    .orderBy(desc(chatEvents.ts))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function appendChatEvent(
   input: AppendChatEventInput,
 ): Promise<void> {

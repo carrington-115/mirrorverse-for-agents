@@ -76,7 +76,7 @@ function SortableIntegrationRow({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      data-state={selected ? "selected" : undefined}
+      className="border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
     >
       <TableCell className="w-10 px-2">
         <span
@@ -88,8 +88,9 @@ function SortableIntegrationRow({
           <GripVertical className="size-4 text-muted-foreground/50" />
         </span>
       </TableCell>
-      <TableCell className="w-9 px-2">
+      <TableCell className="w-9 px-2" onClick={(e) => e.stopPropagation()}>
         <Checkbox
+          className="size-[14px]"
           checked={selected}
           onCheckedChange={onToggle}
           aria-label={`Select ${integration.name}`}
@@ -201,14 +202,15 @@ export function IntegrationsTable({ integrations, onRemove, onReorder }: Integra
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-lg border border-border">
+    <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
+            <TableRow className="h-9 border-b border-border bg-(--accent-0,#fafafa) hover:bg-(--accent-0,#fafafa)">
               <TableHead className="w-10 px-2" />
               <TableHead className="w-9 px-2">
                 <Checkbox
+                  className="size-[14px]"
                   checked={allSelected}
                   onCheckedChange={toggleAll}
                   aria-label="Select all"
