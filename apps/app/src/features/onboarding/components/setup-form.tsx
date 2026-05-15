@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
@@ -19,10 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
-import {
-  useRegisterUserMutation,
-  useUpdateOwnerMutation,
-} from "@/features/onboarding/api/mutations";
+import { useCompleteOnboardingMutation } from "@/features/onboarding/api/mutations";
 import {
   setupSchema,
   type SetupValues,
@@ -33,8 +29,7 @@ import {
 export function SetupForm() {
   const router = useRouter();
   const { user } = useSupabaseUser();
-  const registerUser = useRegisterUserMutation();
-  const updateOwner = useUpdateOwnerMutation();
+  const completeOnboarding = useCompleteOnboardingMutation();
 
   const {
     handleSubmit,
@@ -56,7 +51,7 @@ export function SetupForm() {
   }, [user, setValue]);
 
   const selectedRole = watch("role");
-  const isPending = isSubmitting || registerUser.isPending || updateOwner.isPending;
+  const isPending = isSubmitting || completeOnboarding.isPending;
 
   const onSubmit = async (data: SetupValues) => {
     if (!user) {
@@ -65,16 +60,22 @@ export function SetupForm() {
       return;
     }
 
+    const name = data.name?.trim();
+    if (!name) {
+      toast.error("Please enter your name to continue.");
+      return;
+    }
+
     try {
-      await registerUser.mutateAsync({ userId: user.id, email: user.email ?? "" });
-
-      if (data.name?.trim()) {
-        await updateOwner.mutateAsync({ userId: user.id, name: data.name.trim() });
-      }
-
+      await completeOnboarding.mutateAsync({
+        name,
+        hearAboutUs: data.hearAboutUs || undefined,
+        role: data.role || undefined,
+        otherRole: data.role === "other" ? data.otherRole?.trim() || undefined : undefined,
+      });
       router.push("/mirropilot");
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     }
   };
 
@@ -85,7 +86,7 @@ export function SetupForm() {
           Tell us about yourself
         </h1>
         <p className="text-sm font-normal leading-(--body-1-line-height) text-muted-foreground">
-          Help us personalise your experience. You can skip this anytime.
+          A few details so we can personalise your workspace.
         </p>
       </div>
 
@@ -170,18 +171,11 @@ export function SetupForm() {
           )}
         </div>
 
-        <div className="gap-3 pt-2 flex flex-col items-center">
+        <div className="pt-2 flex flex-col items-center">
           <Button type="submit" size="lg" className="w-full cursor-pointer" disabled={isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Continue
           </Button>
-
-          <Link
-            href="/mirropilot"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Skip for now &rarr;
-          </Link>
         </div>
       </form>
     </div>

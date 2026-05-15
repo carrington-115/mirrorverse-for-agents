@@ -73,6 +73,9 @@ export interface UserProfile extends Timestamps {
   readonly defaultWorkspaceId: WorkspaceId | null;
   readonly onboardingStep: OnboardingStep;
   readonly onboardingCompletedAt: Date | null;
+  readonly hearAboutUs: string | null;
+  readonly role: string | null;
+  readonly otherRole: string | null;
 }
 
 export type ApiKeyScope =

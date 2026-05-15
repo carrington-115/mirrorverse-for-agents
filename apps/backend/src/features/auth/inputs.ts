@@ -7,3 +7,12 @@ export const syncProfileInput = z.object({
 });
 
 export type SyncProfileInput = z.infer<typeof syncProfileInput>;
+
+export const completeOnboardingInput = z.object({
+  name: z.string().min(1).max(120),
+  hearAboutUs: z.string().max(60).optional(),
+  role: z.string().max(60).optional(),
+  otherRole: z.string().max(120).optional(),
+});
+
+export type CompleteOnboardingInput = z.infer<typeof completeOnboardingInput>;

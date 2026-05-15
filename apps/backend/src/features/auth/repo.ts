@@ -39,3 +39,31 @@ export async function upsertProfile(db: Database, args: UpsertProfileArgs) {
     .returning();
   return row;
 }
+
+export interface CompleteOnboardingArgs {
+  readonly userId: UserId;
+  readonly name: string;
+  readonly defaultWorkspaceId: string;
+  readonly hearAboutUs?: string;
+  readonly role?: string;
+  readonly otherRole?: string;
+}
+
+export async function completeOnboarding(
+  db: Database,
+  args: CompleteOnboardingArgs,
+) {
+  const [row] = await db
+    .update(userProfiles)
+    .set({
+      fullName: args.name,
+      defaultWorkspaceId: args.defaultWorkspaceId,
+      onboardingCompletedAt: new Date(),
+      hearAboutUs: args.hearAboutUs ?? null,
+      role: args.role ?? null,
+      otherRole: args.otherRole ?? null,
+    })
+    .where(eq(userProfiles.id, args.userId))
+    .returning();
+  return row ?? null;
+}

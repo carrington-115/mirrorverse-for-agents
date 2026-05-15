@@ -1,13 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query/keys";
-import { fetchUserProfile } from "./endpoints";
+import { useTRPC } from "@/lib/trpc/client";
 
-export function useUserProfileQuery(userId: string, orgId: string) {
-  return useQuery({
-    queryKey: queryKeys.auth.profile(userId, orgId),
-    queryFn: () => fetchUserProfile(userId, orgId),
-    enabled: Boolean(userId) && Boolean(orgId),
-  });
+export function useMeQuery() {
+  const trpc = useTRPC();
+  return useQuery(trpc.auth.me.queryOptions());
 }
