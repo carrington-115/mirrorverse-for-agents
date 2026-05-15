@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import dashboardLogo from "@/assets/logo-light.svg";
+import logoLight from "@/assets/logo-light.svg";
+import logoDark from "@/assets/logo-dark.svg";
 
 export function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
@@ -9,7 +10,8 @@ export function OnboardingLayout({ children }: { children: ReactNode }) {
       <div className="justify-left flex w-full">
         <div className="h-auto w-[102px] pt-[26px] pl-[16px]">
           <Link href="https://mirrro-ai-website.vercel.app/">
-            <Image src={dashboardLogo} alt="Logo" className="size-full" />
+            <Image src={logoLight} alt="Mirrro" className="block h-auto w-full dark:hidden" />
+            <Image src={logoDark} alt="Mirrro" className="hidden h-auto w-full dark:block" />
           </Link>
         </div>
       </div>

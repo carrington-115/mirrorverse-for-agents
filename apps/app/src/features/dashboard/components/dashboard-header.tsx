@@ -1,10 +1,14 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useTheme } from "next-themes";
 import {
+  BarChart3Icon,
   BellIcon,
   CalculatorIcon,
   CalendarIcon,
+  Check,
   ClipboardPasteIcon,
   CodeIcon,
   CopyIcon,
@@ -18,15 +22,19 @@ import {
   InboxIcon,
   LayoutGridIcon,
   ListIcon,
+  Loader2,
+  MegaphoneIcon,
   PlusIcon,
   ScissorsIcon,
   Search,
   SettingsIcon,
+  SunMoon,
   TrashIcon,
   UserIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -40,8 +48,20 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
+import { signOutAction } from "@/features/auth/actions/sign-out";
 
 interface DashboardHeaderProps {
   title: string;
@@ -56,7 +76,22 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
   const displayImage = avatarUrl.length > 0 ? avatarUrl : fallbackAvatar;
   const fullName = typeof metadata.full_name === "string" ? metadata.full_name : "";
   const fallbackName = typeof metadata.name === "string" ? metadata.name : "";
-  const initials = (fullName || fallbackName || user?.email || "U").charAt(0).toUpperCase();
+  const displayName = fullName || fallbackName || user?.email?.split("@")[0] || "User";
+  const displayEmail = user?.email ?? "";
+  const initials = displayName.charAt(0).toUpperCase();
+
+  const [isSigningOut, startSignOut] = React.useTransition();
+
+  const handleSignOut = () => {
+    startSignOut(async () => {
+      try {
+        await signOutAction();
+      } catch (error) {
+        if (error instanceof Error && error.message === "NEXT_REDIRECT") throw error;
+        toast.error(error instanceof Error ? error.message : "Failed to sign out");
+      }
+    });
+  };
 
   return (
     <div className="h-12 px-3 py-1 flex w-full shrink-0 items-center justify-between border-b border-border">
@@ -67,17 +102,106 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
       <div className="gap-3 flex items-center">
         <HeaderCommand />
         {actions && <div className="gap-2 flex items-center">{actions}</div>}
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <SettingsIcon />
-        </Button>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Avatar>
-            <AvatarImage src={displayImage} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="cursor-pointer rounded-full">
+              <Avatar>
+                <AvatarImage src={displayImage} />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <div className="gap-3 px-3 py-2.5 flex items-center">
+              <Avatar size="lg">
+                <AvatarImage src={displayImage} />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">{displayName}</p>
+                <p className="text-xs truncate text-muted-foreground">{displayEmail}</p>
+              </div>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/settings/profile">
+                  <UserIcon className="mr-2 size-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings/billing">
+                  <CreditCardIcon className="mr-2 size-4" />
+                  Billing
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings/usage">
+                  <BarChart3Icon className="mr-2 size-4" />
+                  Usage
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <AppearanceSubmenu />
+              <DropdownMenuItem asChild>
+                <Link href="/settings/general">
+                  <SettingsIcon className="mr-2 size-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href="mailto:support@mirrorverse.ai">
+                  <HelpCircleIcon className="mr-2 size-4" />
+                  Support
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <MegaphoneIcon className="mr-2 size-4" />
+                {"What's new"}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  handleSignOut();
+                }}
+                disabled={isSigningOut}
+              >
+                {isSigningOut && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+function AppearanceSubmenu() {
+  const { theme, setTheme } = useTheme();
+  const options = ["light", "dark", "system"] as const;
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <SunMoon className="mr-2 size-4" />
+        Appearance
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        {options.map((t) => (
+          <DropdownMenuItem key={t} onSelect={() => setTheme(t)}>
+            <Check className={`mr-2 size-3 ${theme === t ? "opacity-100" : "opacity-0"}`} />
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
   );
 }
 

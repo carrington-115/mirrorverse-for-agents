@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   BotMessageSquare,
@@ -15,18 +15,34 @@ import {
 } from "lucide-react";
 import type { WorkflowChatMessage } from "@/lib/types";
 import mirropilotLogo from "@/assets/mirropilot-icon.svg";
+import mirropilotLogoDark from "@/assets/mirropilot-icon-dark.svg";
 
-const MIRROPILOT_LOGO = (
-  <div className="flex items-center gap-[3.69px]" style={{ opacity: 0.2 }}>
-    <Image src={mirropilotLogo} alt="sidebar mirropilot logo" height={31} width={42} />
-    <span
-      className="font-semibold text-[30px] tracking-[-0.95px] text-secondary-foreground"
-      style={{ lineHeight: "30px" }}
-    >
-      Mirropilot
-    </span>
-  </div>
-);
+function MirropilotLogo() {
+  return (
+    <div className="flex items-center gap-[3.69px]" style={{ opacity: 0.2 }}>
+      <Image
+        src={mirropilotLogo}
+        alt="sidebar mirropilot logo"
+        height={31}
+        width={42}
+        className="dark:hidden"
+      />
+      <Image
+        src={mirropilotLogoDark}
+        alt="sidebar mirropilot logo"
+        height={31}
+        width={42}
+        className="hidden dark:block"
+      />
+      <span
+        className="font-semibold text-[30px] tracking-[-0.95px] text-secondary-foreground"
+        style={{ lineHeight: "30px" }}
+      >
+        Mirrro
+      </span>
+    </div>
+  );
+}
 
 function UserMessage({ message }: { message: WorkflowChatMessage }) {
   return (
@@ -147,7 +163,9 @@ export function MirropilotSidebar({ messages, onSendMessage }: MirropilotSidebar
 
       <div className="flex-1 overflow-y-auto px-(--md,16px)">
         {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center">{MIRROPILOT_LOGO}</div>
+          <div className="flex h-full items-center justify-center">
+            <MirropilotLogo />
+          </div>
         ) : (
           <div className="flex flex-col gap-(--sm,12px) py-(--sm,12px)">
             {messages.map((msg) =>

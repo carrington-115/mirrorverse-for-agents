@@ -9,6 +9,7 @@
     "dev:marketing": "turbo run dev --filter=@mirrorverse/marketing",
     "dev:backend": "turbo run dev --filter=@mirrorverse/backend",
     "dev:inngest": "npx --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3001/api/inngest",
+    "db:pull": "turbo run db:pull --filter=@mirrorverse/db",
     "db:push": "turbo run db:push --filter=@mirrorverse/db",
     "db:generate": "turbo run db:generate --filter=@mirrorverse/db",
     "db:migrate": "turbo run db:migrate --filter=@mirrorverse/db",
