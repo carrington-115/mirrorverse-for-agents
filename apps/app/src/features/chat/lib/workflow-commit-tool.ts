@@ -11,7 +11,8 @@ export interface WorkflowCommitInput {
   readonly intent?: string;
 }
 
-export interface WorkflowCommitResult {
+export interface WorkflowCommitSuccess {
+  readonly ok: true;
   readonly workflowId: string;
   readonly workflowVersionId: string;
   readonly versionNumber: number;
@@ -19,19 +20,42 @@ export interface WorkflowCommitResult {
   readonly kind: WorkflowKind;
 }
 
+export interface WorkflowCommitFailure {
+  readonly ok: false;
+  readonly error: string;
+}
+
+export type WorkflowCommitOutput = WorkflowCommitSuccess | WorkflowCommitFailure;
+
 export type WorkflowCommitStatus = "building" | "ready" | "failed";
+
+export function readWorkflowCommitOutput(
+  part: WorkflowCommitToolPart,
+): WorkflowCommitOutput | undefined {
+  if (part.state !== "output-available") return undefined;
+  return part.output as WorkflowCommitOutput;
+}
 
 export function readWorkflowCommitResult(
   part: WorkflowCommitToolPart,
-): WorkflowCommitResult | undefined {
-  if (part.state !== "output-available") return undefined;
-  return part.output as WorkflowCommitResult;
+): WorkflowCommitSuccess | undefined {
+  const output = readWorkflowCommitOutput(part);
+  if (!output || !output.ok) return undefined;
+  return output;
 }
 
 export function readWorkflowCommitStatus(part: WorkflowCommitToolPart): WorkflowCommitStatus {
-  if (part.state === "output-available") return "ready";
+  const output = readWorkflowCommitOutput(part);
+  if (output) return output.ok ? "ready" : "failed";
   if (part.state === "output-error") return "failed";
   return "building";
+}
+
+export function readWorkflowCommitError(part: WorkflowCommitToolPart): string | undefined {
+  const output = readWorkflowCommitOutput(part);
+  if (output && !output.ok) return output.error;
+  if (part.state === "output-error" && part.errorText) return part.errorText;
+  return undefined;
 }
 
 export function isWorkflowCommitPart<T extends { type: string }>(

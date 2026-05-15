@@ -16,7 +16,18 @@ const ANTHROPIC_PRICING: Record<string, ModelPricePerMillionTokens> = {
   "claude-opus-4-7": { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
 };
 
-const DEFAULT_PRICE: ModelPricePerMillionTokens = ANTHROPIC_PRICING["claude-haiku-4-5"];
+const OPENAI_PRICING: Record<string, ModelPricePerMillionTokens> = {
+  "gpt-5-mini": { input: 0.25, output: 2, cacheRead: 0.025, cacheWrite: 0.25 },
+  "gpt-5-nano": { input: 0.05, output: 0.4, cacheRead: 0.005, cacheWrite: 0.05 },
+  "gpt-5": { input: 1.25, output: 10, cacheRead: 0.125, cacheWrite: 1.25 },
+};
+
+const MODEL_PRICING: Record<string, ModelPricePerMillionTokens> = {
+  ...ANTHROPIC_PRICING,
+  ...OPENAI_PRICING,
+};
+
+const DEFAULT_PRICE: ModelPricePerMillionTokens = MODEL_PRICING["claude-haiku-4-5"];
 
 function canonicalModelId(model: string): string {
   return model.replace(/-\d{8}$/, "");
@@ -24,15 +35,15 @@ function canonicalModelId(model: string): string {
 
 export function getModelPrice(model: string): ModelPricePerMillionTokens {
   const id = canonicalModelId(model);
-  return ANTHROPIC_PRICING[id] ?? ANTHROPIC_PRICING[model] ?? DEFAULT_PRICE;
+  return MODEL_PRICING[id] ?? MODEL_PRICING[model] ?? DEFAULT_PRICE;
 }
 
 export function isSupportedModel(model: string): boolean {
   const id = canonicalModelId(model);
-  return id in ANTHROPIC_PRICING || model in ANTHROPIC_PRICING;
+  return id in MODEL_PRICING || model in MODEL_PRICING;
 }
 
-export const SUPPORTED_CHAT_MODEL_IDS: readonly string[] = Object.keys(ANTHROPIC_PRICING);
+export const SUPPORTED_CHAT_MODEL_IDS: readonly string[] = Object.keys(MODEL_PRICING);
 
 export function tokensToCents(
   tokens: number,

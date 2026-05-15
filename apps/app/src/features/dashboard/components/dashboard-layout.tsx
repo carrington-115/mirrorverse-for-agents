@@ -7,9 +7,9 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ header, children }: DashboardLayoutProps) {
   return (
-    <div className="w-full bg-background">
-      <div className="top-0 sticky w-full bg-background">{header}</div>
-      <div className="flex w-full flex-col items-center justify-center gap-(--xl) pt-[60px] pb-(--xl)">
+    <div className="m-2 relative flex h-[calc(100svh-1rem)] flex-col overflow-hidden rounded-lg border border-border bg-background">
+      <div className="shrink-0">{header}</div>
+      <div className="min-h-0 flex w-full flex-1 flex-col items-center overflow-y-auto">
         {children}
       </div>
     </div>

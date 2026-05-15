@@ -10,5 +10,15 @@ export const getWorkflowInput = z.object({
   workflowId: z.string().min(1).max(128),
 });
 
+export const deleteWorkflowInput = z.object({
+  workflowId: z.string().min(1).max(128),
+});
+
+export const reorderWorkflowsInput = z.object({
+  workflowIds: z.array(z.string().min(1).max(128)).min(1).max(500),
+});
+
 export type ListWorkflowsInput = z.infer<typeof listWorkflowsInput>;
 export type GetWorkflowInput = z.infer<typeof getWorkflowInput>;
+export type DeleteWorkflowInput = z.infer<typeof deleteWorkflowInput>;
+export type ReorderWorkflowsInput = z.infer<typeof reorderWorkflowsInput>;

@@ -8,27 +8,23 @@ import { DashboardLayout } from "@/features/dashboard/components/dashboard-layou
 
 export function WorkflowsListLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative mx-[8px] my-[6px] h-[calc(100vh-12px)] max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-y-scroll rounded-lg border border-border">
-      <DashboardLayout
-        header={
-          <DashboardHeader
-            title="Workflows"
-            actions={
-              <Button
-                className="cursor-pointer"
-                onClick={() => toast.info("Create workflow coming soon")}
-              >
-                <Plus />
-                New workflow
-              </Button>
-            }
-          />
-        }
-      >
-        <div className="pt-0! flex w-[90%] flex-col items-center gap-(--xl) p-(--lg)">
-          {children}
-        </div>
-      </DashboardLayout>
-    </div>
+    <DashboardLayout
+      header={
+        <DashboardHeader
+          title="Workflows"
+          actions={
+            <Button
+              className="cursor-pointer"
+              onClick={() => toast.info("Create workflow coming soon")}
+            >
+              <Plus />
+              New workflow
+            </Button>
+          }
+        />
+      }
+    >
+      <div className="flex w-[90%] flex-col items-center gap-(--xl) p-(--lg)">{children}</div>
+    </DashboardLayout>
   );
 }

@@ -43,6 +43,36 @@
       "skillPath": "skills/cypress-explain/SKILL.md",
       "computedHash": "6532d04771211d18d2dcb20bb55d5c0d6ea8b89bfa9893305b7d0b075e881cac"
     },
+    "inngest-durable-functions": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-durable-functions/SKILL.md",
+      "computedHash": "391dc92b29b79e5ac3b623a1524342b781ba260e8e298e329cd85ceb53019033"
+    },
+    "inngest-events": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-events/SKILL.md",
+      "computedHash": "14bfc909497f6cdee64997f343b38f2a7013f1617b753ffaffe5539a1545bd03"
+    },
+    "inngest-middleware": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-middleware/SKILL.md",
+      "computedHash": "0ca4e3c2f242eb42daaaa41484ab4385588ef2e4be29b7e943750ea198152907"
+    },
+    "inngest-setup": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-setup/SKILL.md",
+      "computedHash": "95ab56c84025d71fa7317807c84cc6bb62a0bffdbd63af2127a7d4a246f30626"
+    },
+    "inngest-steps": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-steps/SKILL.md",
+      "computedHash": "f37a3a423739fba256a5cd8cfa35b6121bf3192a0fe2a964e5c41af1036f3de0"
+    },
     "primitives": {
       "source": "assistant-ui/skills",
       "sourceType": "github",

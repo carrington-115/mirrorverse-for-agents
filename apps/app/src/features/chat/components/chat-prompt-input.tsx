@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useCallback, useState } from "react";
-import { CheckIcon } from "lucide-react";
 
 import {
   Attachment,
@@ -171,14 +170,13 @@ const ModelOptionRow = memo(function ModelOptionRow({
 }) {
   const handleSelect = useCallback(() => onSelect(model.id), [onSelect, model.id]);
   return (
-    <ModelSelectorItem onSelect={handleSelect} value={model.id}>
+    <ModelSelectorItem
+      onSelect={handleSelect}
+      value={model.id}
+      data-checked={selectedId === model.id}
+    >
       <ModelSelectorLogo provider={model.chefSlug} />
       <ModelSelectorName>{model.name}</ModelSelectorName>
-      {selectedId === model.id ? (
-        <CheckIcon className="size-4 ml-auto" />
-      ) : (
-        <div className="size-4 ml-auto" />
-      )}
     </ModelSelectorItem>
   );
 });
