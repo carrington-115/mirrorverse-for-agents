@@ -69,6 +69,9 @@ export const userProfiles = pgTable(
       .notNull()
       .default("select-role"),
     onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
+    hearAboutUs: text("hear_about_us"),
+    role: text("role"),
+    otherRole: text("other_role"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

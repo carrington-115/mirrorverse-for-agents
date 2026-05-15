@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const setupSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().min(1, "Please enter your name").max(120),
   hearAboutUs: z.string().optional(),
   role: z.string().optional(),
   otherRole: z.string().optional(),
