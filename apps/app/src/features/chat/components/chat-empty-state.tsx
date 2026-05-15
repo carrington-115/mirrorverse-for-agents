@@ -1,8 +1,7 @@
 import Image from "next/image";
 
-import { Shimmer } from "@mirrorverse/ui/ai-elements/shimmer";
-
-import mirropilotIcon from "@/assets/mirropilot-icon.svg";
+import mirropilotIconLight from "@/assets/mirropilot-icon.svg";
+import mirropilotIconDark from "@/assets/mirropilot-icon-dark.svg";
 import { CHAT_STARTERS } from "@/features/chat/config";
 
 interface ChatEmptyStateProps {
@@ -25,10 +24,23 @@ export function ChatEmptyState({ onPickStarter, inputSlot }: ChatEmptyStateProps
 function BrandHeader() {
   return (
     <div className="gap-y-6 mb-12 flex items-center justify-center">
-      <Image src={mirropilotIcon} alt="Mirropilot" width={36} height={36} priority />
-      <Shimmer as="h1" className="font-bold text-4xl ml-2">
-        Mirropilot
-      </Shimmer>
+      <Image
+        src={mirropilotIconLight}
+        alt="Mirrro"
+        width={48}
+        height={48}
+        priority
+        className="dark:hidden"
+      />
+      <Image
+        src={mirropilotIconDark}
+        alt="Mirrro"
+        width={48}
+        height={48}
+        priority
+        className="hidden dark:block"
+      />
+      <h1 className="font-bold text-5xl ml-2 text-foreground">Mirrropilot</h1>
     </div>
   );
 }

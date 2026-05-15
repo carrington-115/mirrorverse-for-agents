@@ -25,6 +25,7 @@
     "@mirrorverse/db": "workspace:*",
     "@mirrorverse/env": "workspace:*",
     "@mirrorverse/types": "workspace:*",
+    "@sentry/node": "^9.0.0",
     "@trpc/server": "^11.15.0",
     "ai": "^6.0.177",
     "superjson": "^2.2.2",

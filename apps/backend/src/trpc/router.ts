@@ -1,5 +1,6 @@
 import { router } from "./init";
 
+import { auditRouter } from "../features/audit/router";
 import { authRouter } from "../features/auth/router";
 import { billingRouter } from "../features/billing/router";
 import { chatsRouter } from "../features/chats/router";
@@ -13,6 +14,7 @@ import { voiceRouter } from "../features/voice/router";
 import { workflowsRouter } from "../features/workflows/router";
 
 export const appRouter = router({
+  audit: auditRouter,
   auth: authRouter,
   billing: billingRouter,
   chats: chatsRouter,
