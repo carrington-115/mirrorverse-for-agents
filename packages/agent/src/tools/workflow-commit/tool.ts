@@ -2,7 +2,14 @@ import { tool } from "ai";
 import { z } from "zod";
 
 import { buildWorkflowDocument } from "./builder";
-import { DEFAULT_BUILDER_MODEL } from "./constants";
+import {
+  DEFAULT_BUILDER_MODEL,
+  LOG_PREFIX,
+  MAX_ERROR_MESSAGE_LENGTH,
+  MAX_INTENT_LENGTH,
+  MAX_SUMMARY_LENGTH,
+  WORKFLOW_KINDS,
+} from "./constants";
 import { persistWorkflow } from "./persistence";
 import type { WorkflowCommitDeps, WorkflowCommitResult } from "./types";
 
@@ -10,14 +17,16 @@ const inputSchema = z.object({
   summary: z
     .string()
     .min(1)
-    .max(500)
+    .max(MAX_SUMMARY_LENGTH)
     .describe("One-paragraph summary of what this workflow does, for the version log."),
   intent: z
     .string()
     .min(1)
-    .max(4000)
+    .max(MAX_INTENT_LENGTH)
     .describe(
-      "Plain-English description of the workflow to build. Include: kind (automation / voice-agent / chat-agent / code), trigger, every step in order with the integration/tool involved, any branches/loops/human-review, and any concrete values the user provided (schedules, channels, repo names, prompts). The more specific, the better.",
+      `Plain-English description of the workflow to build. Include: kind (${WORKFLOW_KINDS.join(
+        " / ",
+      )}), trigger, every step in order with the integration/tool involved, any branches/loops/human-review, and any concrete values the user provided (schedules, channels, repo names, prompts). The more specific, the better.`,
     ),
 });
 
@@ -51,8 +60,8 @@ export function makeWorkflowCommitTool(deps: WorkflowCommitDeps) {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        console.error("[workflow_commit] failed:", message);
-        return { ok: false, error: message.slice(0, 800) };
+        console.error(`${LOG_PREFIX} failed:`, message);
+        return { ok: false, error: message.slice(0, MAX_ERROR_MESSAGE_LENGTH) };
       }
     },
   });

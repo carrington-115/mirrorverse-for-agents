@@ -16,6 +16,8 @@ import {
   DEFAULT_WORKFLOW_SETTINGS,
   MAX_BUILDER_ATTEMPTS,
   MAX_BUILDER_STEPS,
+  MAX_TITLE_LENGTH,
+  WORKFLOW_DOCUMENT_SCHEMA_VERSION,
   WORKFLOW_KINDS,
 } from "./constants";
 import type { BuilderState } from "./types";
@@ -27,7 +29,7 @@ function makeBuilderTools(state: BuilderState) {
         "Set the workflow kind and metadata. Call exactly once, before adding nodes. For kind 'code', also pass entrypointNodeId (the id of the node execution starts from).",
       inputSchema: z.object({
         kind: z.enum(WORKFLOW_KINDS),
-        title: z.string().min(1).max(200),
+        title: z.string().min(1).max(MAX_TITLE_LENGTH),
         description: z.string().nullish(),
         notes: z.string().nullish(),
         entrypointNodeId: z.string().nullish(),
@@ -92,7 +94,7 @@ function assembleDocument(state: BuilderState) {
   if (!state.meta) return null;
   return {
     kind: state.meta.kind,
-    schemaVersion: 1,
+    schemaVersion: WORKFLOW_DOCUMENT_SCHEMA_VERSION,
     metadata: {
       title: state.meta.title,
       description: state.meta.description,

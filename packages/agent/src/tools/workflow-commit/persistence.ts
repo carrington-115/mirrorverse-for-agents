@@ -5,6 +5,8 @@ import type { WorkflowDocument } from "@mirrorverse/types";
 
 import type { WorkflowDocumentInput } from "../../schemas/workflow";
 
+import { INITIAL_VERSION_NUMBER, INITIAL_WORKFLOW_STATUS } from "./constants";
+
 const { workflows, workflowVersions, chats } = schema;
 
 export interface PersistedWorkflow {
@@ -38,7 +40,7 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
       name: args.document.metadata.title,
       description: args.document.metadata.description ?? null,
       kind: args.document.kind,
-      status: "draft",
+      status: INITIAL_WORKFLOW_STATUS,
       currentVersionId: versionId,
       createdBy: args.userId,
       tags: [],
@@ -48,7 +50,7 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
       id: versionId,
       workspaceId: args.workspaceId,
       workflowId,
-      versionNumber: 1,
+      versionNumber: INITIAL_VERSION_NUMBER,
       document: args.document as unknown as WorkflowDocument,
       compiledAgent: null,
       createdBy: args.userId,
@@ -60,5 +62,9 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
     await tx.update(chats).set({ workflowId }).where(eq(chats.id, args.chatId));
   });
 
-  return { workflowId, workflowVersionId: versionId, versionNumber: 1 };
+  return {
+    workflowId,
+    workflowVersionId: versionId,
+    versionNumber: INITIAL_VERSION_NUMBER,
+  };
 }

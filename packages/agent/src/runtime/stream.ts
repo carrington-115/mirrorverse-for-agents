@@ -5,18 +5,16 @@ import { breakdownStepUsage } from "../billing";
 import { resolveModel } from "../models/resolve";
 import { sanitizeToolCallHistory } from "../sanitize-history";
 import { MIRROPILOT_SYSTEM_PROMPT } from "../system-prompt";
-import { makeWorkflowCommitTool } from "../tools/workflow-commit";
+import { makeWorkflowCommitTool, WORKFLOW_COMMIT_TOOL_NAME } from "../tools/workflow-commit";
 
+import { DEFAULT_MAX_STEPS, DEFAULT_MIRROPILOT_MODEL, LOG_PREFIX } from "./constants";
 import { makeLifecycleEmitter } from "./lifecycle";
 import { buildProviderOptions } from "./provider-options";
 import type { RunMirropilotDeps } from "./types";
 
-const DEFAULT_MODEL = "claude-haiku-4-5";
-const DEFAULT_MAX_STEPS = 2;
-
 export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> {
   const tools = {
-    workflow_commit: makeWorkflowCommitTool({
+    [WORKFLOW_COMMIT_TOOL_NAME]: makeWorkflowCommitTool({
       db: deps.db,
       userId: deps.userId,
       workspaceId: deps.workspaceId,
@@ -25,14 +23,14 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
     }),
   };
 
-  const modelId = deps.model ?? DEFAULT_MODEL;
+  const modelId = deps.model ?? DEFAULT_MIRROPILOT_MODEL;
   const rawModelMessages = await convertToModelMessages(deps.messages, { tools });
   const modelMessages = sanitizeToolCallHistory(rawModelMessages);
   const assistantMessageId = randomUUID();
   const emit = makeLifecycleEmitter(deps.onLifecycleEvent);
 
   console.log(
-    `[mirropilot] streamText.start model=${modelId} chatId=${deps.chatId} ` +
+    `${LOG_PREFIX} streamText.start model=${modelId} chatId=${deps.chatId} ` +
       `uiMessages=${deps.messages.length} modelMessages=${modelMessages.length} ` +
       `tools=${Object.keys(tools).length}`,
   );
@@ -65,7 +63,7 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
     onStepFinish: async ({ text, toolCalls, finishReason, usage }) => {
       const breakdown = breakdownStepUsage(usage, modelId);
       console.log(
-        `[mirropilot] step.finish reason=${finishReason} ` +
+        `${LOG_PREFIX} step.finish reason=${finishReason} ` +
           `textChars=${text?.length ?? 0} toolCalls=${toolCalls?.length ?? 0} ` +
           `inputTokens=${usage?.inputTokens ?? 0} outputTokens=${usage?.outputTokens ?? 0} ` +
           `cents=${breakdown.totalCostCents}`,
@@ -75,7 +73,7 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
       }
     },
     onError: ({ error }) => {
-      console.error("[mirropilot] streamText error:", error);
+      console.error(`${LOG_PREFIX} streamText error:`, error);
     },
   });
 
@@ -83,12 +81,12 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
     originalMessages: deps.messages,
     sendReasoning: true,
     onError: (error) => {
-      console.error("[mirropilot] stream response error:", error);
+      console.error(`${LOG_PREFIX} stream response error:`, error);
       return error instanceof Error ? error.message : "Internal error";
     },
     onFinish: async ({ responseMessage, messages }) => {
       console.log(
-        `[mirropilot] stream.finish responseParts=${responseMessage.parts.length} ` +
+        `${LOG_PREFIX} stream.finish responseParts=${responseMessage.parts.length} ` +
           `totalMessages=${messages.length} ` +
           `partTypes=${responseMessage.parts.map((p) => p.type).join(",")}`,
       );

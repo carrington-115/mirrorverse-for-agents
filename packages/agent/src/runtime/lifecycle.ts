@@ -1,3 +1,4 @@
+import { LOG_PREFIX } from "./constants";
 import type { AgentLifecycleEvent } from "./types";
 
 type LifecycleHandler = (event: AgentLifecycleEvent) => Promise<void> | void;
@@ -12,7 +13,7 @@ export function makeLifecycleEmitter(handler: LifecycleHandler | undefined) {
     try {
       await handler(event);
     } catch (err) {
-      console.error("[mirropilot] lifecycle event handler failed:", err);
+      console.error(`${LOG_PREFIX} lifecycle event handler failed:`, err);
     }
   };
 }
