@@ -47,6 +47,22 @@ export async function deleteWorkflowForWorkspace(
   return result.length > 0;
 }
 
+export async function renameWorkflowForWorkspace(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+  name: string,
+) {
+  const [row] = await db
+    .update(workflows)
+    .set({ name })
+    .where(
+      and(eq(workflows.id, workflowId), eq(workflows.workspaceId, workspaceId)),
+    )
+    .returning({ id: workflows.id, name: workflows.name });
+  return row ?? null;
+}
+
 export async function updateWorkflowSortOrders(
   db: Database,
   workspaceId: string,
@@ -112,6 +128,50 @@ export async function getLatestVersion(
       ),
     )
     .orderBy(desc(workflowVersions.versionNumber))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function listVersionsForWorkflow(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+) {
+  return db
+    .select({
+      id: workflowVersions.id,
+      versionNumber: workflowVersions.versionNumber,
+      summary: workflowVersions.summary,
+      generatedByChatId: workflowVersions.generatedByChatId,
+      createdBy: workflowVersions.createdBy,
+      createdAt: workflowVersions.createdAt,
+    })
+    .from(workflowVersions)
+    .where(
+      and(
+        eq(workflowVersions.workflowId, workflowId),
+        eq(workflowVersions.workspaceId, workspaceId),
+      ),
+    )
+    .orderBy(desc(workflowVersions.versionNumber));
+}
+
+export async function getVersionByNumber(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+  versionNumber: number,
+) {
+  const [row] = await db
+    .select()
+    .from(workflowVersions)
+    .where(
+      and(
+        eq(workflowVersions.workflowId, workflowId),
+        eq(workflowVersions.workspaceId, workspaceId),
+        eq(workflowVersions.versionNumber, versionNumber),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

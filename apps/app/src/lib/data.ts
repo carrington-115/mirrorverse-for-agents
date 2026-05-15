@@ -11,7 +11,6 @@ import {
   Agent,
   AgentTemplate,
   AgentTemplateCategory,
-  Workflow,
 } from "./types";
 import {
   SiNotion,
@@ -1140,50 +1139,5 @@ export const MOCK_CALL_LOGS: CallLog[] = [
     direction: "Inbound",
     status: "Answered",
     duration: "12:01",
-  },
-];
-
-export const MOCK_WORKFLOWS: Workflow[] = [
-  {
-    id: "wf-1",
-    name: "Lead qualification flow",
-    status: "active",
-    triggerType: "on-click/prompt",
-    lastUpdated: new Date("2025-04-20T10:30:00"),
-  },
-  {
-    id: "wf-2",
-    name: "Customer onboarding",
-    status: "active",
-    triggerType: "scheduled",
-    lastUpdated: new Date("2025-04-18T14:00:00"),
-  },
-  {
-    id: "wf-3",
-    name: "Support escalation",
-    status: "inactive",
-    triggerType: "webhook",
-    lastUpdated: new Date("2025-04-15T09:00:00"),
-  },
-  {
-    id: "wf-4",
-    name: "Weekly digest report",
-    status: "active",
-    triggerType: "scheduled",
-    lastUpdated: new Date("2025-04-10T08:00:00"),
-  },
-  {
-    id: "wf-5",
-    name: "New user welcome",
-    status: "inactive",
-    triggerType: "on-click/prompt",
-    lastUpdated: new Date("2025-04-05T11:00:00"),
-  },
-  {
-    id: "wf-6",
-    name: "Abandoned cart recovery",
-    status: "active",
-    triggerType: "webhook",
-    lastUpdated: new Date("2025-04-01T16:45:00"),
   },
 ];

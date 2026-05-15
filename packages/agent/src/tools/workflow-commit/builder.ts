@@ -20,21 +20,30 @@ import {
   WORKFLOW_DOCUMENT_SCHEMA_VERSION,
   WORKFLOW_KINDS,
 } from "./constants";
-import type { BuilderState } from "./types";
+import type { BuilderState, WorkflowCommitProgressEmitter } from "./types";
 
-function makeBuilderTools(state: BuilderState) {
+const narration = z
+  .string()
+  .min(1)
+  .max(280)
+  .describe(
+    "One short sentence in plain conversational English, addressed to the end user, explaining what you are about to do. No jargon, no JSON, no internal kind names like trigger.chat_message. Example: 'Let me set up a Slack listener so customers can message you directly.'",
+  );
+
+function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgressEmitter) {
   return {
     set_metadata: tool({
       description:
-        "Set the workflow kind and metadata. Call exactly once, before adding nodes. For kind 'code', also pass entrypointNodeId (the id of the node execution starts from).",
+        "Set the workflow kind and metadata. Call exactly once, before adding nodes. For kind 'code', also pass entrypointNodeId (the id of the node execution starts from). Always include a one-sentence `narration` describing what you are doing for the end user.",
       inputSchema: z.object({
         kind: z.enum(WORKFLOW_KINDS),
         title: z.string().min(1).max(MAX_TITLE_LENGTH),
         description: z.string().nullish(),
         notes: z.string().nullish(),
         entrypointNodeId: z.string().nullish(),
+        narration,
       }),
-      execute: ({ kind, title, description, notes, entrypointNodeId }) => {
+      execute: ({ kind, title, description, notes, entrypointNodeId, narration: msg }) => {
         state.meta = {
           kind,
           title,
@@ -42,14 +51,15 @@ function makeBuilderTools(state: BuilderState) {
           notes: notes ?? null,
           entrypointNodeId: entrypointNodeId ?? null,
         };
+        onProgress?.(msg);
         return { ok: true as const };
       },
     }),
     add_node: tool({
       description:
-        "Add one workflow node. `node` is a complete node object matching the node-kind schema in the system prompt. Returns { ok: false, error } when the node is invalid — read the error and call add_node again with a corrected node.",
-      inputSchema: z.object({ node: jsonObject }),
-      execute: ({ node }) => {
+        "Add one workflow node. `node` is a complete node object matching the node-kind schema in the system prompt. Always include a one-sentence `narration` describing what this node does for the end user. Returns { ok: false, error } when the node is invalid; read the error and call add_node again with a corrected node.",
+      inputSchema: z.object({ node: jsonObject, narration }),
+      execute: ({ node, narration: msg }) => {
         const parsed = workflowNode.safeParse(node);
         if (!parsed.success) {
           return { ok: false as const, error: summarizeZodIssues(parsed.error) };
@@ -58,14 +68,15 @@ function makeBuilderTools(state: BuilderState) {
           return { ok: false as const, error: `Duplicate node id "${parsed.data.id}".` };
         }
         state.nodes.push(parsed.data);
+        onProgress?.(msg);
         return { ok: true as const, nodeId: parsed.data.id };
       },
     }),
     add_connection: tool({
       description:
-        "Add one edge between two already-added nodes. `connection` matches the connection schema. Returns { ok: false, error } when invalid — fix and call again.",
-      inputSchema: z.object({ connection: jsonObject }),
-      execute: ({ connection }) => {
+        "Add one edge between two already-added nodes. `connection` matches the connection schema. Always include a one-sentence `narration` describing the wiring for the end user. Returns { ok: false, error } when invalid; fix and call again.",
+      inputSchema: z.object({ connection: jsonObject, narration }),
+      execute: ({ connection, narration: msg }) => {
         const parsed = workflowConnection.safeParse(connection);
         if (!parsed.success) {
           return { ok: false as const, error: summarizeZodIssues(parsed.error) };
@@ -74,16 +85,17 @@ function makeBuilderTools(state: BuilderState) {
         if (!ids.has(parsed.data.fromNodeId)) {
           return {
             ok: false as const,
-            error: `fromNodeId "${parsed.data.fromNodeId}" has no matching node — add that node first.`,
+            error: `fromNodeId "${parsed.data.fromNodeId}" has no matching node; add that node first.`,
           };
         }
         if (!ids.has(parsed.data.toNodeId)) {
           return {
             ok: false as const,
-            error: `toNodeId "${parsed.data.toNodeId}" has no matching node — add that node first.`,
+            error: `toNodeId "${parsed.data.toNodeId}" has no matching node; add that node first.`,
           };
         }
         state.connections.push(parsed.data);
+        onProgress?.(msg);
         return { ok: true as const };
       },
     }),
@@ -111,12 +123,26 @@ function assembleDocument(state: BuilderState) {
   };
 }
 
+export interface BuildWorkflowOptions {
+  readonly existingDocument?: WorkflowDocumentInput | null;
+}
+
 export async function buildWorkflowDocument(
   modelId: string,
   intent: string,
+  onProgress?: WorkflowCommitProgressEmitter,
+  options?: BuildWorkflowOptions,
 ): Promise<WorkflowDocumentInput> {
   let lastError: Error | null = null;
   let priorErrors: string | null = null;
+
+  const editContext = options?.existingDocument
+    ? `\n\nThe user is EDITING an existing workflow. The current workflow document is below. Apply the changes described in the intent and rebuild the full workflow from scratch using the build tools. Keep parts the user did not ask to change. Reuse the same node ids where it makes sense so connections stay consistent.\n\nCurrent workflow:\n\`\`\`json\n${JSON.stringify(
+        options.existingDocument,
+        null,
+        2,
+      )}\n\`\`\``
+    : "";
 
   for (let attempt = 1; attempt <= MAX_BUILDER_ATTEMPTS; attempt++) {
     const state: BuilderState = { meta: null, nodes: [], connections: [] };
@@ -129,8 +155,8 @@ export async function buildWorkflowDocument(
       await generateText({
         model: resolveModel(modelId),
         system: WORKFLOW_DOCUMENT_BUILDER_PROMPT,
-        prompt: intent + repairContext,
-        tools: makeBuilderTools(state),
+        prompt: intent + editContext + repairContext,
+        tools: makeBuilderTools(state, onProgress),
         stopWhen: stepCountIs(MAX_BUILDER_STEPS),
       });
     } catch (err) {

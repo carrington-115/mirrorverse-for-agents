@@ -11,3 +11,13 @@ export function useDeleteChatMutation() {
     onSuccess: () => qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() }),
   });
 }
+
+export function useEditAndTruncateMutation() {
+  const trpc = useTRPC();
+  return useMutation({ ...trpc.chats.editAndTruncate.mutationOptions() });
+}
+
+export function useDeleteLastAssistantMutation() {
+  const trpc = useTRPC();
+  return useMutation({ ...trpc.chats.deleteLastAssistant.mutationOptions() });
+}

@@ -4,11 +4,16 @@ import { useCallback, useMemo, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
+import { toast } from "sonner";
 import type { PromptInputMessage } from "@mirrorverse/ui/ai-elements/prompt-input";
 
 import { useTRPC } from "@/lib/trpc/client";
 import { DEFAULT_CHAT_MODEL } from "@/features/chat/config";
 import { buildChatTransport } from "@/features/chat/lib/transport";
+import {
+  useDeleteLastAssistantMutation,
+  useEditAndTruncateMutation,
+} from "@/features/chat/api/mutations";
 
 import { ChatConversation } from "./chat-conversation";
 import { ChatEmptyState } from "./chat-empty-state";
@@ -36,7 +41,7 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
     setInterruptDismissed(false);
   }, [qc, trpc.chats.list, trpc.workflows.list]);
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages, sendMessage, regenerate, setMessages, status, stop } = useChat({
     id: sessionId,
     transport,
     messages: initialMessages,
@@ -48,6 +53,9 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
     enabled: streamFinished && !interruptDismissed,
     refetchInterval: false,
   });
+
+  const editMutation = useEditAndTruncateMutation();
+  const deleteLastAssistant = useDeleteLastAssistantMutation();
 
   const handleSubmit = useCallback(
     (message: PromptInputMessage) => {
@@ -64,6 +72,54 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
     },
     [sendMessage, model],
   );
+
+  const handleEditUserMessage = useCallback(
+    async (messageId: string, newText: string) => {
+      const trimmed = newText.trim();
+      if (!trimmed) return;
+      try {
+        await editMutation.mutateAsync({
+          messageId,
+          blocks: [{ type: "text", text: trimmed }],
+        });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to save edit");
+        return;
+      }
+      setMessages((current) => {
+        const idx = current.findIndex((m) => m.id === messageId);
+        if (idx === -1) return current;
+        const edited: UIMessage = {
+          ...current[idx],
+          parts: [{ type: "text", text: trimmed }],
+        };
+        return [...current.slice(0, idx), edited];
+      });
+      regenerate({ body: { model, skipUserInsert: true } });
+    },
+    [editMutation, setMessages, regenerate, model],
+  );
+
+  const handleRetryAssistant = useCallback(async () => {
+    try {
+      await deleteLastAssistant.mutateAsync({ chatId: sessionId });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete previous response");
+      return;
+    }
+    setMessages((current) => {
+      let cutoff = -1;
+      for (let i = current.length - 1; i >= 0; i--) {
+        if (current[i].role === "assistant") {
+          cutoff = i;
+          break;
+        }
+      }
+      if (cutoff === -1) return current;
+      return current.slice(0, cutoff);
+    });
+    regenerate({ body: { model, skipUserInsert: true } });
+  }, [deleteLastAssistant, sessionId, setMessages, regenerate, model]);
 
   const isEmpty = messages.length === 0;
   const isStreaming = status === "streaming";
@@ -103,7 +159,13 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
 
   return (
     <div className="flex h-full w-full flex-col">
-      <ChatConversation messages={messages} isStreaming={isStreaming} showThinking={isSubmitted} />
+      <ChatConversation
+        messages={messages}
+        isStreaming={isStreaming}
+        showThinking={isSubmitted}
+        onEditUserMessage={handleEditUserMessage}
+        onRetryAssistant={handleRetryAssistant}
+      />
       <div className="p-3">
         <div className="mx-auto w-full max-w-[780px]">{inputBlock}</div>
       </div>

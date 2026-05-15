@@ -1,9 +1,11 @@
 import { router } from "../../trpc/init";
-import { protectedProc } from "../../trpc/middleware";
+import { protectedProc, workspaceProc } from "../../trpc/middleware";
 
 import {
   appendUserMessageInput,
   deleteChatInput,
+  deleteLastAssistantInput,
+  editAndTruncateInput,
   editUserMessageInput,
   ensureChatInput,
   getChatInput,
@@ -25,10 +27,13 @@ export const chatsRouter = router({
       chatsService.getChat({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 
-  ensure: protectedProc
+  ensure: workspaceProc
     .input(ensureChatInput)
     .mutation(({ ctx, input }) =>
-      chatsService.ensureChat({ db: ctx.db, userId: ctx.user.id }, input),
+      chatsService.ensureChat(
+        { db: ctx.db, userId: ctx.user.id, workspaceId: ctx.workspaceId },
+        input,
+      ),
     ),
 
   appendUserMessage: protectedProc
@@ -44,6 +49,21 @@ export const chatsRouter = router({
     .input(editUserMessageInput)
     .mutation(({ ctx, input }) =>
       chatsService.editUserMessage({ db: ctx.db, userId: ctx.user.id }, input),
+    ),
+
+  editAndTruncate: protectedProc
+    .input(editAndTruncateInput)
+    .mutation(({ ctx, input }) =>
+      chatsService.editAndTruncate({ db: ctx.db, userId: ctx.user.id }, input),
+    ),
+
+  deleteLastAssistant: protectedProc
+    .input(deleteLastAssistantInput)
+    .mutation(({ ctx, input }) =>
+      chatsService.deleteLastAssistant(
+        { db: ctx.db, userId: ctx.user.id },
+        input,
+      ),
     ),
 
   delete: protectedProc

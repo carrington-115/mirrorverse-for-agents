@@ -10,6 +10,11 @@ export function useDeleteWorkflowMutation() {
     ...trpc.workflows.delete.mutationOptions(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+      // chats.workflow_id is FK set-null on delete; refetch chats so the side
+      // panel and chat list reflect the cleared linkage instead of pointing
+      // at a workflowId that returns { workflow: null, version: null }.
+      qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.chats.get.queryKey() });
     },
   });
 }
@@ -21,6 +26,18 @@ export function useReorderWorkflowsMutation() {
     ...trpc.workflows.reorder.mutationOptions(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+    },
+  });
+}
+
+export function useRenameWorkflowMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.workflows.rename.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.get.queryKey() });
     },
   });
 }

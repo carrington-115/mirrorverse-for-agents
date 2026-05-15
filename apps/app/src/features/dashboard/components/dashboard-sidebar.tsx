@@ -185,7 +185,7 @@ function ConversationsSection() {
     <SidebarGroup>
       <SidebarGroupLabel>Conversations</SidebarGroupLabel>
       <SidebarGroupContent>
-        <SidebarMenu>
+        <SidebarMenu className="gap-1.5">
           {conversations.map((c) => (
             <SidebarMenuItem key={c.id}>
               <ConversationSidebarItem chatId={c.id} title={titleFor(c)} />

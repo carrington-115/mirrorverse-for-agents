@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import type { Workflow, WorkflowTriggerType } from "@/lib/types";
+import type { Workflow, WorkflowKind } from "@/lib/types";
 import { useWorkflowsListQuery } from "@/features/workflows/api/queries";
 import {
   useDeleteWorkflowMutation,
@@ -21,36 +21,46 @@ type WorkflowRow = {
   updatedAt: string | Date;
 };
 
+const VALID_KINDS: ReadonlySet<WorkflowKind> = new Set([
+  "automation",
+  "chat-agent",
+  "voice-agent",
+  "code",
+]);
+
 function adaptRow(row: WorkflowRow): Workflow {
   const updated = row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt);
+  const kind = (
+    VALID_KINDS.has(row.kind as WorkflowKind) ? row.kind : "automation"
+  ) as WorkflowKind;
   return {
     id: row.id,
     name: row.name,
     status: row.status === "active" ? "active" : "inactive",
-    triggerType: "on-click/prompt",
+    kind,
     lastUpdated: updated,
   };
 }
 
 export function WorkflowsShell() {
-  const { data: rows } = useWorkflowsListQuery();
+  const { data: rows, isLoading } = useWorkflowsListQuery();
   const deleteMutation = useDeleteWorkflowMutation();
   const reorderMutation = useReorderWorkflowsMutation();
 
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [triggerFilter, setTriggerFilter] = useState<WorkflowTriggerType | "all">("all");
+  const [kindFilter, setKindFilter] = useState<WorkflowKind | "all">("all");
 
   const all = useMemo(() => (rows ?? []).map((r) => adaptRow(r as WorkflowRow)), [rows]);
 
   const filtered = all
     .filter((w) => w.name.toLowerCase().includes(search.toLowerCase()))
     .filter((w) => statusFilter === "all" || w.status === statusFilter)
-    .filter((w) => triggerFilter === "all" || w.triggerType === triggerFilter)
+    .filter((w) => kindFilter === "all" || w.kind === kindFilter)
     .sort((a, b) => (sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)));
 
-  const hasActiveFilter = search !== "" || statusFilter !== "all" || triggerFilter !== "all";
+  const hasActiveFilter = search !== "" || statusFilter !== "all" || kindFilter !== "all";
 
   const handleDelete = (id: string) => {
     deleteMutation.mutate(
@@ -77,8 +87,8 @@ export function WorkflowsShell() {
         onSearchChange={setSearch}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
-        triggerFilter={triggerFilter}
-        onTriggerChange={setTriggerFilter}
+        kindFilter={kindFilter}
+        onKindChange={setKindFilter}
       />
       <WorkflowsTable
         workflows={filtered}
@@ -88,6 +98,7 @@ export function WorkflowsShell() {
         onSortToggle={() => setSortAsc((v) => !v)}
         hasActiveFilter={hasActiveFilter}
         totalWorkflows={all.length}
+        isLoading={isLoading}
       />
     </div>
   );

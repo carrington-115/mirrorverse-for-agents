@@ -23,6 +23,7 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
 
   return (
     <DashboardLayout
+      contentScroll={false}
       header={
         <DashboardHeader
           title="Mirropilot"

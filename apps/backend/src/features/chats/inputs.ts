@@ -43,9 +43,20 @@ export const editUserMessageInput = z.object({
   blocks: z.array(userContentBlock).min(1).max(20),
 });
 
+export const editAndTruncateInput = z.object({
+  messageId: z.string().min(1).max(128),
+  blocks: z.array(userContentBlock).min(1).max(20),
+});
+
+export const deleteLastAssistantInput = z.object({
+  chatId: z.string().min(1).max(128),
+});
+
 export type EnsureChatInput = z.infer<typeof ensureChatInput>;
 export type GetChatInput = z.infer<typeof getChatInput>;
 export type DeleteChatInput = z.infer<typeof deleteChatInput>;
 export type ListChatsInput = z.infer<typeof listChatsInput>;
 export type AppendUserMessageInput = z.infer<typeof appendUserMessageInput>;
 export type EditUserMessageInput = z.infer<typeof editUserMessageInput>;
+export type EditAndTruncateInput = z.infer<typeof editAndTruncateInput>;
+export type DeleteLastAssistantInput = z.infer<typeof deleteLastAssistantInput>;

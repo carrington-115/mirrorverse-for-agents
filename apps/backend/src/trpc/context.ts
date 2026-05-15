@@ -1,15 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import { getDb, verifyToken } from "@mirrorverse/db";
-import type { UserId } from "@mirrorverse/types";
+import { getDb } from "@mirrorverse/db";
 
-import { BEARER } from "../config";
+import { authenticateRequest, type AuthenticatedUser } from "../lib/auth";
 import { makeLogger, type Logger } from "../lib/logger";
 
-export interface ContextUser {
-  readonly id: UserId;
-  readonly email: string;
-}
+export type ContextUser = AuthenticatedUser;
 
 export interface Context {
   readonly db: ReturnType<typeof getDb>;
@@ -26,24 +22,6 @@ export async function createContext({
   const db = getDb();
   const requestId = req.headers.get("x-request-id") ?? randomUUID();
   const logger = makeLogger(requestId);
-
-  const auth = req.headers.get("authorization");
-  const match = auth?.match(BEARER);
-  const token = match?.[1];
-
-  if (!token) {
-    return { db, requestId, logger, user: null };
-  }
-
-  const verified = await verifyToken(token);
-  if (!verified) {
-    return { db, requestId, logger, user: null };
-  }
-
-  return {
-    db,
-    requestId,
-    logger,
-    user: { id: verified.sub as UserId, email: verified.email },
-  };
+  const user = await authenticateRequest(req);
+  return { db, requestId, logger, user };
 }

@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { WorkflowTriggerType } from "@/lib/types";
+import type { WorkflowKind } from "@/lib/types";
 
 const STATUS_LABELS: Record<string, string> = {
   all: "Status",
@@ -17,11 +17,12 @@ const STATUS_LABELS: Record<string, string> = {
   inactive: "Inactive",
 };
 
-const TRIGGER_LABELS: Record<string, string> = {
-  all: "Trigger type",
-  "on-click/prompt": "On-click/prompt",
-  scheduled: "Scheduled",
-  webhook: "Webhook",
+const KIND_LABELS: Record<string, string> = {
+  all: "Type",
+  automation: "Automation",
+  "chat-agent": "Chat agent",
+  "voice-agent": "Voice agent",
+  code: "Code",
 };
 
 interface WorkflowsHeaderProps {
@@ -29,8 +30,8 @@ interface WorkflowsHeaderProps {
   onSearchChange: (value: string) => void;
   statusFilter: string;
   onStatusChange: (value: string) => void;
-  triggerFilter: string;
-  onTriggerChange: (value: WorkflowTriggerType | "all") => void;
+  kindFilter: WorkflowKind | "all";
+  onKindChange: (value: WorkflowKind | "all") => void;
 }
 
 export function WorkflowsHeader({
@@ -38,11 +39,11 @@ export function WorkflowsHeader({
   onSearchChange,
   statusFilter,
   onStatusChange,
-  triggerFilter,
-  onTriggerChange,
+  kindFilter,
+  onKindChange,
 }: WorkflowsHeaderProps) {
   const statusActive = statusFilter !== "all";
-  const triggerActive = triggerFilter !== "all";
+  const kindActive = kindFilter !== "all";
 
   return (
     <div className="flex w-full flex-col gap-(--md,16px)">
@@ -86,26 +87,27 @@ export function WorkflowsHeader({
               <button
                 type="button"
                 className={`gap-1 px-3 py-1 text-xs font-semibold flex items-center rounded-full border transition-colors hover:bg-muted/50 ${
-                  triggerActive
+                  kindActive
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background text-foreground"
                 }`}
               >
-                {TRIGGER_LABELS[triggerFilter]}
+                {KIND_LABELS[kindFilter]}
                 <ChevronDown className="size-3" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onTriggerChange("all")}>All</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onTriggerChange("on-click/prompt")}>
-                On-click/prompt
+              <DropdownMenuItem onClick={() => onKindChange("all")}>All</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onKindChange("automation")}>
+                Automation
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onTriggerChange("scheduled")}>
-                Scheduled
+              <DropdownMenuItem onClick={() => onKindChange("chat-agent")}>
+                Chat agent
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onTriggerChange("webhook")}>
-                Webhook
+              <DropdownMenuItem onClick={() => onKindChange("voice-agent")}>
+                Voice agent
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onKindChange("code")}>Code</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

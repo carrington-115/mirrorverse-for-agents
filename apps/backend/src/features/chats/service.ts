@@ -8,12 +8,13 @@ import type { ContentBlock, UserId } from "@mirrorverse/types";
 
 import { appError, ErrCode } from "../../lib/errors";
 import { getChatTotalCostCents } from "../billing/repo";
-import { ensureUserWorkspace } from "../tenancy/repo";
 
 import * as repo from "./repo";
 import type {
   AppendUserMessageInput,
   DeleteChatInput,
+  DeleteLastAssistantInput,
+  EditAndTruncateInput,
   EditUserMessageInput,
   EnsureChatInput,
   GetChatInput,
@@ -23,6 +24,10 @@ import type {
 interface BaseCtx {
   readonly db: Database;
   readonly userId: UserId;
+}
+
+interface WorkspaceCtx extends BaseCtx {
+  readonly workspaceId: string;
 }
 
 export interface CheckAdmissionInput {
@@ -46,11 +51,10 @@ function echoReply(
 }
 
 export const chatsService = {
-  async ensureChat(ctx: BaseCtx, input: EnsureChatInput) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+  async ensureChat(ctx: WorkspaceCtx, input: EnsureChatInput) {
     const chat = await repo.ensureChat(ctx.db, {
       chatId: input.chatId,
-      workspaceId,
+      workspaceId: ctx.workspaceId,
       userId: ctx.userId,
       title: input.title,
     });
@@ -170,5 +174,38 @@ export const chatsService = {
     await repo.bumpLastMessageAt(ctx.db, target.chatId, new Date());
 
     return { userMessage: updatedUser, assistantMessage: updatedAssistant };
+  },
+
+  async editAndTruncate(ctx: BaseCtx, input: EditAndTruncateInput) {
+    const target = await repo.findOwnedUserMessage(
+      ctx.db,
+      input.messageId,
+      ctx.userId,
+    );
+    if (!target) throw appError(ErrCode.NotFound, "Message not found");
+    if (target.role !== "user") {
+      throw appError(ErrCode.BadInput, "Only user messages can be edited");
+    }
+    const updated = await repo.updateMessageBlocks(
+      ctx.db,
+      target.id,
+      input.blocks as ContentBlock[],
+    );
+    if (!updated)
+      throw appError(ErrCode.Internal, "Failed to update user message");
+    const deleted = await repo.deleteMessagesAfter(
+      ctx.db,
+      target.chatId,
+      target.createdAt,
+    );
+    await repo.bumpLastMessageAt(ctx.db, target.chatId, new Date());
+    return { userMessage: updated, deletedCount: deleted };
+  },
+
+  async deleteLastAssistant(ctx: BaseCtx, input: DeleteLastAssistantInput) {
+    const chat = await repo.getChatForUser(ctx.db, input.chatId, ctx.userId);
+    if (!chat) throw appError(ErrCode.NotFound, "Chat not found");
+    const result = await repo.deleteLastAssistantMessage(ctx.db, chat.id);
+    return { deletedId: result?.id ?? null };
   },
 };

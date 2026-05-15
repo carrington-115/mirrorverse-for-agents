@@ -10,7 +10,7 @@ import {
   MAX_SUMMARY_LENGTH,
   WORKFLOW_KINDS,
 } from "./constants";
-import { persistWorkflow } from "./persistence";
+import { getLatestVersionForChat, persistWorkflow } from "./persistence";
 import type { WorkflowCommitDeps, WorkflowCommitResult } from "./types";
 
 const inputSchema = z.object({
@@ -40,7 +40,10 @@ export function makeWorkflowCommitTool(deps: WorkflowCommitDeps) {
     execute: async ({ summary, intent }): Promise<WorkflowCommitResult> => {
       const modelId = deps.builderModel ?? DEFAULT_BUILDER_MODEL;
       try {
-        const document = await buildWorkflowDocument(modelId, intent);
+        const existing = await getLatestVersionForChat(deps.db, deps.chatId, deps.workspaceId);
+        const document = await buildWorkflowDocument(modelId, intent, deps.onProgress, {
+          existingDocument: existing?.document ?? null,
+        });
         const persisted = await persistWorkflow({
           db: deps.db,
           workspaceId: deps.workspaceId,
