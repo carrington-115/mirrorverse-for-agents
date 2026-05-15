@@ -48,6 +48,7 @@ interface ChatRequestBody {
   readonly chatId?: string;
   readonly messages?: UIMessage[];
   readonly model?: string;
+  readonly builderModel?: string;
 }
 
 function jsonError(status: number, message: string): Response {
@@ -124,6 +125,7 @@ export async function POST(req: Request): Promise<Response> {
     { db, userId: session.userId },
     { chatId: chat.id, limits: DEFAULT_CHAT_LIMITS },
   );
+
   if (breach) {
     const reason = describeChatLimitBreach(breach);
     try {
@@ -161,8 +163,11 @@ export async function POST(req: Request): Promise<Response> {
 
   const runId = randomUUID();
   const modelForRun = requestedModel ?? chat.model;
-  const builderModel =
-    env.NODE_ENV === "production" ? "claude-sonnet-4-5" : "claude-haiku-4-5";
+  const requestedBuilderModel =
+    typeof body.builderModel === "string" && isSupportedModel(body.builderModel)
+      ? body.builderModel
+      : undefined;
+  const builderModel = requestedBuilderModel ?? "claude-sonnet-4-5";
   let stepIndex = 0;
 
   return runMirropilot({

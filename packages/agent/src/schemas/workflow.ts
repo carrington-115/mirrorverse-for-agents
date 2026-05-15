@@ -4,7 +4,7 @@ const jsonPrimitive = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const jsonValue: z.ZodType<unknown> = z.lazy(() =>
   z.union([jsonPrimitive, z.array(jsonValue), z.record(z.string(), jsonValue)]),
 );
-const jsonObject = z.record(z.string(), jsonValue);
+export const jsonObject = z.record(z.string(), jsonValue);
 
 const parameterValue = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("static"), value: jsonValue }),
@@ -311,7 +311,7 @@ const stickyNoteNode = z.object({
   color: z.number().int().min(0),
 });
 
-const workflowNode = z.discriminatedUnion("kind", [
+export const workflowNode = z.discriminatedUnion("kind", [
   manualTrigger,
   cronTrigger,
   webhookTrigger,
@@ -353,7 +353,7 @@ const connectionKind = z.enum([
   "ai_chain",
 ]);
 
-const workflowConnection = z.object({
+export const workflowConnection = z.object({
   id: z.string(),
   kind: connectionKind,
   fromNodeId: z.string(),
@@ -405,3 +405,5 @@ export const workflowDocumentSchema = z.discriminatedUnion("kind", [
 ]);
 
 export type WorkflowDocumentInput = z.infer<typeof workflowDocumentSchema>;
+export type WorkflowNodeInput = z.infer<typeof workflowNode>;
+export type WorkflowConnectionInput = z.infer<typeof workflowConnection>;

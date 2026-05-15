@@ -1,10 +1,16 @@
 import type { Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
+import { appError, ErrCode } from "../../lib/errors";
 import { ensureUserWorkspace } from "../tenancy/repo";
 
 import * as repo from "./repo";
-import type { GetWorkflowInput, ListWorkflowsInput } from "./inputs";
+import type {
+  DeleteWorkflowInput,
+  GetWorkflowInput,
+  ListWorkflowsInput,
+  ReorderWorkflowsInput,
+} from "./inputs";
 
 interface BaseCtx {
   readonly db: Database;
@@ -31,5 +37,26 @@ export const workflowsService = {
       workspaceId,
     );
     return { workflow, version };
+  },
+
+  async delete(ctx: BaseCtx, input: DeleteWorkflowInput) {
+    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+    const ok = await repo.deleteWorkflowForWorkspace(
+      ctx.db,
+      input.workflowId,
+      workspaceId,
+    );
+    if (!ok) throw appError(ErrCode.NotFound, "Workflow not found");
+    return { id: input.workflowId };
+  },
+
+  async reorder(ctx: BaseCtx, input: ReorderWorkflowsInput) {
+    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+    const updated = await repo.updateWorkflowSortOrders(
+      ctx.db,
+      workspaceId,
+      input.workflowIds,
+    );
+    return { updated };
   },
 };

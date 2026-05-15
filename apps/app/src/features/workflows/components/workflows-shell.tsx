@@ -1,8 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+
 import type { Workflow, WorkflowTriggerType } from "@/lib/types";
 import { useWorkflowsListQuery } from "@/features/workflows/api/queries";
+import {
+  useDeleteWorkflowMutation,
+  useReorderWorkflowsMutation,
+} from "@/features/workflows/api/mutations";
+
 import { WorkflowsHeader } from "./workflows-header";
 import { WorkflowsTable } from "./workflows-table";
 
@@ -27,6 +34,9 @@ function adaptRow(row: WorkflowRow): Workflow {
 
 export function WorkflowsShell() {
   const { data: rows } = useWorkflowsListQuery();
+  const deleteMutation = useDeleteWorkflowMutation();
+  const reorderMutation = useReorderWorkflowsMutation();
+
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -42,6 +52,24 @@ export function WorkflowsShell() {
 
   const hasActiveFilter = search !== "" || statusFilter !== "all" || triggerFilter !== "all";
 
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(
+      { workflowId: id },
+      {
+        onError: (err) => toast.error(err.message || "Failed to delete workflow"),
+      },
+    );
+  };
+
+  const handleReorder = (next: Workflow[]) => {
+    reorderMutation.mutate(
+      { workflowIds: next.map((w) => w.id) },
+      {
+        onError: (err) => toast.error(err.message || "Failed to reorder workflows"),
+      },
+    );
+  };
+
   return (
     <div className="flex w-full flex-col gap-(--md,16px)">
       <WorkflowsHeader
@@ -54,7 +82,8 @@ export function WorkflowsShell() {
       />
       <WorkflowsTable
         workflows={filtered}
-        onDelete={() => {}}
+        onDelete={handleDelete}
+        onReorder={handleReorder}
         sortAsc={sortAsc}
         onSortToggle={() => setSortAsc((v) => !v)}
         hasActiveFilter={hasActiveFilter}

@@ -13,30 +13,28 @@ interface ChannelsShellLayoutProps {
 
 export function ChannelsShellLayout({ contentWidth = "90%", children }: ChannelsShellLayoutProps) {
   return (
-    <div className="relative mx-[8px] my-[6px] h-[calc(100vh-12px)] max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-y-scroll rounded-lg border border-border">
-      <DashboardLayout
-        header={
-          <DashboardHeader
-            title="Channels"
-            actions={
-              <Button
-                className="cursor-pointer"
-                onClick={() => toast.info("Channel configuration coming soon")}
-              >
-                Configure channel
-              </Button>
-            }
-          />
-        }
+    <DashboardLayout
+      header={
+        <DashboardHeader
+          title="Channels"
+          actions={
+            <Button
+              className="cursor-pointer"
+              onClick={() => toast.info("Channel configuration coming soon")}
+            >
+              Configure channel
+            </Button>
+          }
+        />
+      }
+    >
+      <div
+        className="flex flex-col items-center gap-(--xl) p-(--lg)"
+        style={{ width: contentWidth }}
       >
-        <div
-          className="pt-0! flex flex-col items-center gap-(--xl) p-(--lg)"
-          style={{ width: contentWidth }}
-        >
-          {children}
-        </div>
-      </DashboardLayout>
-    </div>
+        {children}
+      </div>
+    </DashboardLayout>
   );
 }
 

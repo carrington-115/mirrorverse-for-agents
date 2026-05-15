@@ -11,7 +11,7 @@ export function IntegrationsListLayout({ children }: { children: React.ReactNode
   const [browseOpen, setBrowseOpen] = useState(false);
 
   return (
-    <div className="relative mx-[8px] my-[6px] h-[calc(100vh-12px)] max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-y-scroll rounded-lg border border-border">
+    <>
       <DashboardLayout
         header={
           <DashboardHeader
@@ -29,12 +29,10 @@ export function IntegrationsListLayout({ children }: { children: React.ReactNode
           />
         }
       >
-        <div className="pt-0! flex w-[90%] flex-col items-center gap-(--xl) p-(--lg)">
-          {children}
-        </div>
+        <div className="flex w-[90%] flex-col items-center gap-(--xl) p-(--lg)">{children}</div>
       </DashboardLayout>
 
       <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
-    </div>
+    </>
   );
 }

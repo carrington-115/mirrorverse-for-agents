@@ -94,7 +94,7 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
   };
 
   return (
-    <div className="flex h-[48px] w-full items-center justify-between border-b border-border px-[12px] py-[4px]">
+    <div className="h-12 px-3 py-1 flex w-full shrink-0 items-center justify-between border-b border-border">
       <div className="gap-2 flex items-center">
         <SidebarTrigger />
         <span className="text-sm">{title}</span>

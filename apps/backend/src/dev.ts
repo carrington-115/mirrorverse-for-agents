@@ -10,6 +10,11 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { env } from "@mirrorverse/env/backend";
 
 import { POST as chatHandler } from "../api/chat";
+import {
+  GET as inngestGet,
+  POST as inngestPost,
+  PUT as inngestPut,
+} from "../api/inngest";
 import { TRPC_ENDPOINT } from "./config";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./trpc/router";
@@ -36,7 +41,7 @@ async function toFetchRequest(req: IncomingMessage): Promise<Request> {
   }
 
   const body = await readBody(req);
-  return new Request(url, { method, headers, body });
+  return new Request(url, { method, headers, body: new Uint8Array(body) });
 }
 
 async function pipeResponse(
@@ -94,6 +99,19 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/chat") {
       const response = await chatHandler(request);
+      await pipeResponse(res, response);
+      return;
+    }
+
+    if (url.pathname === "/api/inngest") {
+      const method = request.method.toUpperCase();
+      const handler =
+        method === "GET"
+          ? inngestGet
+          : method === "PUT"
+            ? inngestPut
+            : inngestPost;
+      const response = await handler(request);
       await pipeResponse(res, response);
       return;
     }

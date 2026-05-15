@@ -30,6 +30,11 @@ export const env = createEnv({
     POSTHOG_API_KEY: z.string().min(1).optional(),
     POSTHOG_HOST: z.url().default("https://app.posthog.com"),
 
+    INNGEST_EVENT_KEY: z.string().min(1).optional(),
+    INNGEST_SIGNING_KEY: z.string().min(1).optional(),
+    INNGEST_SIGNING_KEY_FALLBACK: z.string().min(1).optional(),
+    INNGEST_DEV: z.string().optional(),
+
     CORS_ORIGIN: z.string().default("http://localhost:3000"),
   },
   runtimeEnv: process.env,

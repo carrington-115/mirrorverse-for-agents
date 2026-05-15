@@ -1,4 +1,12 @@
-import { and, desc, eq, schema, type Database } from "@mirrorverse/db";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  schema,
+  type Database,
+} from "@mirrorverse/db";
 
 const { workflows, workflowVersions } = schema;
 
@@ -15,13 +23,63 @@ export async function listWorkflowsForWorkspace(
       kind: workflows.kind,
       status: workflows.status,
       currentVersionId: workflows.currentVersionId,
+      sortOrder: workflows.sortOrder,
       createdAt: workflows.createdAt,
       updatedAt: workflows.updatedAt,
     })
     .from(workflows)
     .where(eq(workflows.workspaceId, workspaceId))
-    .orderBy(desc(workflows.updatedAt))
+    .orderBy(asc(workflows.sortOrder), desc(workflows.updatedAt))
     .limit(limit);
+}
+
+export async function deleteWorkflowForWorkspace(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+): Promise<boolean> {
+  const result = await db
+    .delete(workflows)
+    .where(
+      and(eq(workflows.id, workflowId), eq(workflows.workspaceId, workspaceId)),
+    )
+    .returning({ id: workflows.id });
+  return result.length > 0;
+}
+
+export async function updateWorkflowSortOrders(
+  db: Database,
+  workspaceId: string,
+  orderedIds: readonly string[],
+): Promise<number> {
+  if (orderedIds.length === 0) return 0;
+
+  return db.transaction(async (tx) => {
+    const owned = await tx
+      .select({ id: workflows.id })
+      .from(workflows)
+      .where(
+        and(
+          eq(workflows.workspaceId, workspaceId),
+          inArray(workflows.id, [...orderedIds]),
+        ),
+      );
+    const ownedSet = new Set(owned.map((r) => r.id));
+    const validIds = orderedIds.filter((id) => ownedSet.has(id));
+
+    for (let i = 0; i < validIds.length; i++) {
+      await tx
+        .update(workflows)
+        .set({ sortOrder: i })
+        .where(
+          and(
+            eq(workflows.id, validIds[i]),
+            eq(workflows.workspaceId, workspaceId),
+          ),
+        );
+    }
+    return validIds.length;
+  });
 }
 
 export async function getWorkflowForWorkspace(

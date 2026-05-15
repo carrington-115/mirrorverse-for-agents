@@ -49,6 +49,27 @@ export const CHAT_MODELS = [
     chefSlug: "anthropic",
     description: "Peak intelligence for frontier agentic workflows",
   },
+  {
+    id: "gpt-5-nano",
+    name: "GPT-5 nano",
+    chef: "OpenAI",
+    chefSlug: "openai",
+    description: "Cheapest GPT-5 tier for short, low-stakes turns",
+  },
+  {
+    id: "gpt-5-mini",
+    name: "GPT-5 mini",
+    chef: "OpenAI",
+    chefSlug: "openai",
+    description: "Cost-efficient GPT-5 with solid tool-use reliability",
+  },
+  {
+    id: "gpt-5",
+    name: "GPT-5",
+    chef: "OpenAI",
+    chefSlug: "openai",
+    description: "Flagship GPT-5 for the hardest reasoning and planning",
+  },
 ] as const satisfies readonly ModelOption[];
 
 export const DEFAULT_CHAT_MODEL: ModelOption["id"] = CHAT_MODELS[0].id;

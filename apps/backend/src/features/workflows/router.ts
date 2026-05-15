@@ -1,7 +1,12 @@
 import { router } from "../../trpc/init";
 import { protectedProc } from "../../trpc/middleware";
 
-import { getWorkflowInput, listWorkflowsInput } from "./inputs";
+import {
+  deleteWorkflowInput,
+  getWorkflowInput,
+  listWorkflowsInput,
+  reorderWorkflowsInput,
+} from "./inputs";
 import { workflowsService } from "./service";
 
 export const workflowsRouter = router({
@@ -15,5 +20,17 @@ export const workflowsRouter = router({
     .input(getWorkflowInput)
     .query(({ ctx, input }) =>
       workflowsService.get({ db: ctx.db, userId: ctx.user.id }, input),
+    ),
+
+  delete: protectedProc
+    .input(deleteWorkflowInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.delete({ db: ctx.db, userId: ctx.user.id }, input),
+    ),
+
+  reorder: protectedProc
+    .input(reorderWorkflowsInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.reorder({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 });
