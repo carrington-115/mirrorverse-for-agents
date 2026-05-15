@@ -65,8 +65,11 @@ export function ChatShell({ sessionId }: ChatShellProps) {
   const workflowId = data.chat?.workflowId ?? null;
 
   if (!workflowId) {
+    // Chat panel fills the full width so the scrollbar lands at the page
+    // edge. The 780px reading-column constraint lives inside the conversation
+    // and input, not on this outer container.
     return (
-      <div className="mx-auto flex h-full w-full max-w-[860px] flex-col">
+      <div className="flex h-full w-full flex-col">
         <ChatRuntime sessionId={sessionId} initialMessages={initialMessages} />
       </div>
     );

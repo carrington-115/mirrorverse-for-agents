@@ -27,7 +27,12 @@ export function resolveModel(modelId: string): LanguageModel {
     case "anthropic":
       return anthropic(modelId);
     case "openai":
-      return openai(modelId);
+      // Use Chat Completions API instead of the Responses API. The Responses
+      // API ties reasoning items to message items in conversation history, so
+      // replaying history after retry/edit (where we drop the prior assistant
+      // turn) fails with "message provided without its required reasoning
+      // item". Chat Completions has no such pairing constraint.
+      return openai.chat(modelId);
     case "google":
       return google(modelId);
   }

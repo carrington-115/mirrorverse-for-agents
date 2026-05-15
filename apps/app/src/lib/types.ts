@@ -276,13 +276,13 @@ export interface AgentTemplate {
   category: AgentTemplateCategory[];
 }
 
-export type WorkflowTriggerType = "on-click/prompt" | "scheduled" | "webhook";
+export type WorkflowKind = "automation" | "chat-agent" | "voice-agent" | "code";
 
 export interface Workflow {
   id: string;
   name: string;
   status: "active" | "inactive";
-  triggerType: WorkflowTriggerType;
+  kind: WorkflowKind;
   lastUpdated: Date;
 }
 

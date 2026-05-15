@@ -9,16 +9,15 @@ import { randomUUID } from "node:crypto";
 import { tool, type Tool } from "ai";
 
 import { env } from "@mirrorverse/env/backend";
-import { eq, isNull, and, verifyToken, getDb, schema } from "@mirrorverse/db";
+import { eq, isNull, and, getDb, schema } from "@mirrorverse/db";
 import type {
-  UserId,
   ChatId,
   McpServerId,
   ConnectionRequestId,
 } from "@mirrorverse/types";
 import type { UIMessage } from "ai";
 
-import { BEARER } from "../src/config";
+import { authenticateRequest } from "../src/lib/auth";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
 import { recordChatUsage } from "../src/features/billing/repo";
 import {
@@ -71,6 +70,15 @@ async function lookupComposioMcpServerId(db: Database): Promise<string | null> {
     )
     .limit(1);
   return row?.id ?? null;
+}
+
+function isConnectedAccountNotFound(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return (
+    err.constructor.name === "ComposioConnectedAccountNotFoundError" ||
+    err.message.toLowerCase().includes("connected account") ||
+    err.message.toLowerCase().includes("not found")
+  );
 }
 
 async function buildComposioTools(
@@ -159,21 +167,13 @@ async function buildComposioTools(
   return result;
 }
 
-function isConnectedAccountNotFound(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  return (
-    err.constructor.name === "ComposioConnectedAccountNotFoundError" ||
-    err.message.toLowerCase().includes("connected account") ||
-    err.message.toLowerCase().includes("not found")
-  );
-}
-
 interface ChatRequestBody {
   readonly id?: string;
   readonly chatId?: string;
   readonly messages?: UIMessage[];
   readonly model?: string;
   readonly builderModel?: string;
+  readonly skipUserInsert?: boolean;
 }
 
 function jsonError(status: number, message: string): Response {
@@ -181,18 +181,6 @@ function jsonError(status: number, message: string): Response {
     status,
     headers: { "content-type": "application/json" },
   });
-}
-
-async function authenticate(
-  req: Request,
-): Promise<{ userId: UserId; email: string } | null> {
-  const auth = req.headers.get("authorization");
-  const match = auth?.match(BEARER);
-  const token = match?.[1];
-  if (!token) return null;
-  const verified = await verifyToken(token);
-  if (!verified) return null;
-  return { userId: verified.sub as UserId, email: verified.email };
 }
 
 function resolveChatId(body: ChatRequestBody): string | null {
@@ -209,8 +197,8 @@ function resolveModel(body: ChatRequestBody): string | null | undefined {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const session = await authenticate(req);
-  if (!session) {
+  const user = await authenticateRequest(req);
+  if (!user) {
     console.warn("[chat] 401 missing/invalid bearer");
     return jsonError(401, "Authentication required");
   }
@@ -233,21 +221,17 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   console.log(
-    `[chat] POST userId=${session.userId} chatId=${chatId} ` +
+    `[chat] POST userId=${user.id} chatId=${chatId} ` +
       `messages=${body.messages.length} model=${requestedModel ?? "<default>"}`,
   );
 
   const db = getDb();
-  const workspaceId = await ensureUserWorkspace(db, session.userId);
-  const chat = await ensureChat(db, {
-    chatId,
-    workspaceId,
-    userId: session.userId,
-  });
+  const workspaceId = await ensureUserWorkspace(db, user.id);
+  const chat = await ensureChat(db, { chatId, workspaceId, userId: user.id });
   if (!chat) return jsonError(500, "Failed to ensure chat");
 
   const breach = await chatsService.checkAdmission(
-    { db, userId: session.userId },
+    { db, userId: user.id },
     { chatId: chat.id, limits: DEFAULT_CHAT_LIMITS },
   );
 
@@ -277,11 +261,13 @@ export async function POST(req: Request): Promise<Response> {
   const userBlocks = uiMessageToContentBlocks(lastUser);
   if (userBlocks.length === 0) return jsonError(400, "Empty user message");
 
-  await insertMessage(db, {
-    chatId: chat.id,
-    role: "user",
-    contentBlocks: userBlocks,
-  });
+  if (!body.skipUserInsert) {
+    await insertMessage(db, {
+      chatId: chat.id,
+      role: "user",
+      contentBlocks: userBlocks,
+    });
+  }
 
   const startingText = firstUserText(userBlocks);
   const needsTitle = !chat.title && startingText.length > 0;
@@ -309,7 +295,7 @@ export async function POST(req: Request): Promise<Response> {
   return runMirropilot({
     additionalTools,
     db,
-    userId: session.userId,
+    userId: user.id,
     workspaceId,
     chatId: chat.id,
     messages: body.messages,

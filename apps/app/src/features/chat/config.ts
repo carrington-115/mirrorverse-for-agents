@@ -121,7 +121,9 @@ export const CHAT_MODELS = [
   },
 ] as const satisfies readonly ModelOption[];
 
-export const DEFAULT_CHAT_MODEL: ModelOption["id"] = CHAT_MODELS[0].id;
+// Cheapest model in the picker. ~$0.05 / 1M input, ~$0.40 / 1M output —
+// roughly 20× cheaper than Haiku for the same orchestration role.
+export const DEFAULT_CHAT_MODEL: ModelOption["id"] = "gpt-5-nano";
 
 export type ChatStarter = {
   readonly title: string;

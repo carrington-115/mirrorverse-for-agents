@@ -2,18 +2,22 @@ import type { Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
 import { appError, ErrCode } from "../../lib/errors";
-import { ensureUserWorkspace } from "../tenancy/repo";
 
 import * as repo from "./repo";
 import type { CompleteOnboardingInput, SyncProfileInput } from "./inputs";
 
-interface BaseCtx {
+interface UserCtx {
   readonly db: Database;
   readonly userId: UserId;
 }
 
+interface WorkspaceCtx extends UserCtx {
+  readonly workspaceId: string;
+  readonly email: string;
+}
+
 export const authService = {
-  async syncProfile(ctx: BaseCtx, input: SyncProfileInput) {
+  async syncProfile(ctx: UserCtx, input: SyncProfileInput) {
     return repo.upsertProfile(ctx.db, {
       userId: ctx.userId,
       email: input.email,
@@ -22,7 +26,7 @@ export const authService = {
     });
   },
 
-  async me(ctx: BaseCtx & { email: string }) {
+  async me(ctx: WorkspaceCtx) {
     let profile = await repo.getProfile(ctx.db, ctx.userId);
     if (!profile) {
       profile = await repo.upsertProfile(ctx.db, {
@@ -33,24 +37,17 @@ export const authService = {
     if (!profile) {
       throw appError(ErrCode.Internal, "Failed to hydrate profile");
     }
-    // Every authenticated user is guaranteed a default workspace. Lazy-create
-    // on first me() call so OAuth users (who skip the setup form) still get one.
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
-    if (profile.defaultWorkspaceId !== workspaceId) {
-      profile = { ...profile, defaultWorkspaceId: workspaceId };
+    if (profile.defaultWorkspaceId !== ctx.workspaceId) {
+      profile = { ...profile, defaultWorkspaceId: ctx.workspaceId };
     }
     return {
       profile,
-      workspaceId,
+      workspaceId: ctx.workspaceId,
       onboardingCompleted: profile.onboardingCompletedAt !== null,
     };
   },
 
-  async completeOnboarding(
-    ctx: BaseCtx & { email: string },
-    input: CompleteOnboardingInput,
-  ) {
-    // Make sure the profile row exists before we update it.
+  async completeOnboarding(ctx: WorkspaceCtx, input: CompleteOnboardingInput) {
     let profile = await repo.getProfile(ctx.db, ctx.userId);
     if (!profile) {
       profile = await repo.upsertProfile(ctx.db, {
@@ -63,12 +60,10 @@ export const authService = {
       throw appError(ErrCode.Internal, "Failed to hydrate profile");
     }
 
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
-
     const updated = await repo.completeOnboarding(ctx.db, {
       userId: ctx.userId,
       name: input.name,
-      defaultWorkspaceId: workspaceId,
+      defaultWorkspaceId: ctx.workspaceId,
       hearAboutUs: input.hearAboutUs,
       role: input.role,
       otherRole: input.otherRole,
@@ -77,6 +72,10 @@ export const authService = {
       throw appError(ErrCode.Internal, "Failed to complete onboarding");
     }
 
-    return { profile: updated, workspaceId, onboardingCompleted: true };
+    return {
+      profile: updated,
+      workspaceId: ctx.workspaceId,
+      onboardingCompleted: true,
+    };
   },
 };

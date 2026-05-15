@@ -12,12 +12,15 @@ interface BaseCtx {
   readonly userId: UserId;
 }
 
+interface WorkspaceCtx extends BaseCtx {
+  readonly workspaceId: string;
+}
+
 export const toolsService = {
-  async createMcpServer(ctx: BaseCtx, input: CreateMcpServerInput) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+  async createMcpServer(ctx: WorkspaceCtx, input: CreateMcpServerInput) {
     const slug = slugify(input.name) || `mcp-${Date.now()}`;
     return repo.createMcpServer(ctx.db, {
-      workspaceId,
+      workspaceId: ctx.workspaceId,
       addedBy: ctx.userId,
       name: input.name,
       slug,

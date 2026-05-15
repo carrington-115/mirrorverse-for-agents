@@ -15,3 +15,22 @@ export function useWorkflowQuery(workflowId: string | null) {
     enabled: Boolean(workflowId),
   });
 }
+
+export function useWorkflowVersionsQuery(workflowId: string | null) {
+  const trpc = useTRPC();
+  return useQuery({
+    ...trpc.workflows.listVersions.queryOptions({ workflowId: workflowId ?? "" }),
+    enabled: Boolean(workflowId),
+  });
+}
+
+export function useWorkflowVersionQuery(workflowId: string | null, versionNumber: number | null) {
+  const trpc = useTRPC();
+  return useQuery({
+    ...trpc.workflows.getVersion.queryOptions({
+      workflowId: workflowId ?? "",
+      versionNumber: versionNumber ?? 1,
+    }),
+    enabled: Boolean(workflowId) && versionNumber != null,
+  });
+}

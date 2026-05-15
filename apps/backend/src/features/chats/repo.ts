@@ -226,6 +226,35 @@ export async function markChatFailed(
     .where(eq(chats.id, chatId));
 }
 
+export async function deleteMessagesAfter(
+  db: Database,
+  chatId: string,
+  afterCreatedAt: Date,
+): Promise<number> {
+  const result = await db
+    .delete(messages)
+    .where(
+      and(eq(messages.chatId, chatId), gt(messages.createdAt, afterCreatedAt)),
+    )
+    .returning({ id: messages.id });
+  return result.length;
+}
+
+export async function deleteLastAssistantMessage(
+  db: Database,
+  chatId: string,
+): Promise<{ id: string } | null> {
+  const [last] = await db
+    .select({ id: messages.id, createdAt: messages.createdAt })
+    .from(messages)
+    .where(and(eq(messages.chatId, chatId), eq(messages.role, "assistant")))
+    .orderBy(desc(messages.createdAt))
+    .limit(1);
+  if (!last) return null;
+  await db.delete(messages).where(eq(messages.id, last.id));
+  return { id: last.id };
+}
+
 export interface AppendChatEventInput {
   readonly db: Database;
   readonly chatId: string;

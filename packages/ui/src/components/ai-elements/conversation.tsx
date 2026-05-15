@@ -23,7 +23,10 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
 export type ConversationContentProps = ComponentProps<typeof StickToBottom.Content>;
 
 export const ConversationContent = ({ className, ...props }: ConversationContentProps) => (
-  <StickToBottom.Content className={cn("gap-8 p-4 flex flex-col", className)} {...props} />
+  <StickToBottom.Content
+    className={cn("gap-8 p-4 flex scrollbar-subtle flex-col", className)}
+    {...props}
+  />
 );
 
 export type ConversationEmptyStateProps = ComponentProps<"div"> & {

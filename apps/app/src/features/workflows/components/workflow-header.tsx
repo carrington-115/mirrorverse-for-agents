@@ -1,20 +1,135 @@
 "use client";
 
+import { useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, PanelLeft } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ArrowLeft, Check, PanelLeft, Pencil, Share2, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+
+import {
+  useDeleteWorkflowMutation,
+  useRenameWorkflowMutation,
+} from "@/features/workflows/api/mutations";
+
+import { VersionSwitcher } from "./version-switcher";
 
 interface WorkflowHeaderProps {
+  workflowId: string;
   workflowName: string;
+  workflowKind: string | null;
+  workflowStatus: string | null;
+  updatedAt: Date | string | null;
+  currentVersionNumber: number | null;
+  onSelectVersion: (versionNumber: number | null) => void;
   onToggleMirropilot: () => void;
 }
 
-export function WorkflowHeader({ workflowName, onToggleMirropilot }: WorkflowHeaderProps) {
+const KIND_LABEL: Record<string, string> = {
+  automation: "Automation",
+  "chat-agent": "Chat agent",
+  "voice-agent": "Voice agent",
+  code: "Code",
+};
+
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  draft: "outline",
+  active: "default",
+  paused: "secondary",
+  archived: "secondary",
+};
+
+function asDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
+export function WorkflowHeader({
+  workflowId,
+  workflowName,
+  workflowKind,
+  workflowStatus,
+  updatedAt,
+  currentVersionNumber,
+  onSelectVersion,
+  onToggleMirropilot,
+}: WorkflowHeaderProps) {
   const router = useRouter();
+  const renameMutation = useRenameWorkflowMutation();
+  const deleteMutation = useDeleteWorkflowMutation();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(workflowName);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const beginRename = () => {
+    setDraftName(workflowName);
+    setIsEditingName(true);
+  };
+
+  const cancelRename = () => {
+    setIsEditingName(false);
+    setDraftName(workflowName);
+  };
+
+  const saveRename = async () => {
+    const trimmed = draftName.trim();
+    if (!trimmed || trimmed === workflowName) {
+      cancelRename();
+      return;
+    }
+    try {
+      await renameMutation.mutateAsync({ workflowId, name: trimmed });
+      setIsEditingName(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename");
+    }
+  };
+
+  const onRenameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveRename();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelRename();
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const url = `${window.location.origin}/workflows/${workflowId}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteMutation.mutateAsync({ workflowId });
+      toast.success("Workflow deleted");
+      router.push("/workflows");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete");
+    }
+  };
 
   return (
-    <div className="px-3 py-2 flex shrink-0 items-center" style={{ height: 52 }}>
-      <div className="gap-3 flex items-center">
+    <div className="px-3 py-2 flex shrink-0 items-center justify-between" style={{ height: 52 }}>
+      <div className="gap-3 min-w-0 flex items-center">
         <div className="gap-1 flex items-center">
           <Button
             variant="ghost"
@@ -35,12 +150,122 @@ export function WorkflowHeader({ workflowName, onToggleMirropilot }: WorkflowHea
             <PanelLeft className="size-4" />
           </Button>
         </div>
-        <div className="gap-1 px-2 py-0.5 flex items-center rounded-md bg-secondary">
-          <span className="text-xs font-semibold whitespace-nowrap text-secondary-foreground">
-            {workflowName}
-          </span>
+
+        <div className="gap-2 min-w-0 flex items-center">
+          {isEditingName ? (
+            <div className="gap-1 flex items-center">
+              <Input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={onRenameKeyDown}
+                autoFocus
+                className="h-7 text-xs w-[260px]"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                onClick={saveRename}
+                disabled={renameMutation.isPending}
+                aria-label="Save"
+              >
+                <Check className="size-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                onClick={cancelRename}
+                aria-label="Cancel"
+              >
+                <X className="size-3" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={beginRename}
+                className="gap-1 px-2 py-0.5 flex items-center rounded-md bg-secondary transition-colors hover:bg-secondary/80"
+                title="Rename workflow"
+              >
+                <span className="text-xs font-semibold max-w-[280px] truncate whitespace-nowrap text-secondary-foreground">
+                  {workflowName}
+                </span>
+                <Pencil className="size-3 text-muted-foreground" />
+              </button>
+              {workflowKind ? (
+                <Badge variant="outline" className="h-6 px-2 text-xs font-normal">
+                  {KIND_LABEL[workflowKind] ?? workflowKind}
+                </Badge>
+              ) : null}
+              {workflowStatus ? (
+                <Badge
+                  variant={STATUS_VARIANT[workflowStatus] ?? "outline"}
+                  className="h-6 px-2 text-xs font-normal capitalize"
+                >
+                  {workflowStatus}
+                </Badge>
+              ) : null}
+              {currentVersionNumber != null ? (
+                <VersionSwitcher
+                  workflowId={workflowId}
+                  currentVersionNumber={currentVersionNumber}
+                  onSelectVersion={onSelectVersion}
+                />
+              ) : null}
+              {updatedAt ? (
+                <span className="text-xs whitespace-nowrap text-muted-foreground">
+                  Updated {formatDistanceToNow(asDate(updatedAt), { addSuffix: true })}
+                </span>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
+
+      <div className="gap-2 flex items-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 rounded-md"
+          onClick={handleShare}
+          title="Copy link"
+        >
+          <Share2 className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 rounded-md"
+          onClick={() => setDeleteOpen(true)}
+          title="Delete workflow"
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete workflow?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This deletes <span className="font-medium text-foreground">{workflowName}</span> and
+              every version of it. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

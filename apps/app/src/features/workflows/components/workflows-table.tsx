@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useState, useTransition, type KeyboardEvent } from "react";
 import { DndContext, type DragEndEvent, closestCenter } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -13,9 +13,12 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Check,
+  Copy,
   Ellipsis,
   GripVertical,
   Loader2,
+  Pencil,
   Play,
   Plus,
   RefreshCw,
@@ -23,9 +26,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import { useRenameWorkflowMutation } from "@/features/workflows/api/mutations";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -42,15 +50,40 @@ import {
   EmptyContent,
 } from "@/components/ui/empty";
 import type { Workflow } from "@/lib/types";
-import { formatDate, formatTime } from "@/lib/date";
 import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 
 const PAGE_SIZE = 10;
+const SKELETON_ROWS = 6;
 
-const TRIGGER_LABELS: Record<Workflow["triggerType"], string> = {
-  "on-click/prompt": "On-click/prompt",
-  scheduled: "Scheduled",
-  webhook: "Webhook",
+function WorkflowSkeletonRow() {
+  return (
+    <div className="flex w-full items-center border-b border-border last:border-b-0">
+      <div className="w-[38px] shrink-0" />
+      <div className="flex w-[33px] shrink-0 items-center px-(--xs,8px) py-[10px]">
+        <Skeleton className="size-[14px] rounded-sm" />
+      </div>
+      <div className="min-w-0 flex flex-1 items-center px-(--xs,8px) py-[14px]">
+        <Skeleton className="h-4 w-[55%] max-w-[280px]" />
+      </div>
+      <div className="flex w-[214px] shrink-0 items-center p-(--xs,8px)">
+        <Skeleton className="h-5 w-[78px] rounded-lg" />
+      </div>
+      <div className="flex w-[187px] shrink-0 items-center p-(--xs,8px)">
+        <Skeleton className="h-5 w-[96px] rounded-lg" />
+      </div>
+      <div className="flex w-[200px] shrink-0 items-center px-(--xs,8px) py-[14px]">
+        <Skeleton className="h-4 w-[140px]" />
+      </div>
+      <div className="w-[187px] shrink-0" />
+    </div>
+  );
+}
+
+const KIND_LABELS: Record<Workflow["kind"], string> = {
+  automation: "Automation",
+  "chat-agent": "Chat agent",
+  "voice-agent": "Voice agent",
+  code: "Code",
 };
 
 function SortableWorkflowRow({
@@ -68,6 +101,40 @@ function SortableWorkflowRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: w.id,
   });
+  const renameMutation = useRenameWorkflowMutation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftName, setDraftName] = useState(w.name);
+
+  const beginRename = () => {
+    setDraftName(w.name);
+    setIsEditing(true);
+  };
+  const cancelRename = () => {
+    setIsEditing(false);
+    setDraftName(w.name);
+  };
+  const saveRename = async () => {
+    const trimmed = draftName.trim();
+    if (!trimmed || trimmed === w.name) {
+      cancelRename();
+      return;
+    }
+    try {
+      await renameMutation.mutateAsync({ workflowId: w.id, name: trimmed });
+      setIsEditing(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rename");
+    }
+  };
+  const onNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveRename();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelRename();
+    }
+  };
 
   return (
     <div
@@ -77,8 +144,11 @@ function SortableWorkflowRow({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="flex w-full cursor-pointer items-center border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
-      onClick={() => router.push(`/workflows/${w.id}`)}
+      className="group flex w-full cursor-pointer items-center border-b border-border transition-colors last:border-b-0 hover:bg-muted/30"
+      onClick={() => {
+        if (isEditing) return;
+        router.push(`/workflows/${w.id}`);
+      }}
     >
       <div
         className="flex w-[38px] shrink-0 items-center justify-center py-[7.5px]"
@@ -104,8 +174,47 @@ function SortableWorkflowRow({
           aria-label={`Select ${w.name}`}
         />
       </div>
-      <div className="min-w-0 flex flex-1 items-center px-(--xs,8px) py-[7.5px]">
-        <p className="text-sm font-normal leading-5 truncate text-foreground">{w.name}</p>
+      <div
+        className="min-w-0 flex flex-1 items-center px-(--xs,8px) py-[7.5px]"
+        onClick={isEditing ? (e) => e.stopPropagation() : undefined}
+      >
+        {isEditing ? (
+          <div className="gap-1 flex w-full items-center">
+            <Input
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={onNameKeyDown}
+              autoFocus
+              className="h-7 text-sm"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                saveRename();
+              }}
+              aria-label="Save"
+            >
+              <Check className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                cancelRename();
+              }}
+              aria-label="Cancel"
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm font-normal leading-5 truncate text-foreground">{w.name}</p>
+        )}
       </div>
       <div className="flex w-[214px] shrink-0 items-center p-(--xs,8px)">
         <div
@@ -126,19 +235,14 @@ function SortableWorkflowRow({
       <div className="flex w-[187px] shrink-0 items-center p-(--xs,8px)">
         <div className="flex items-center justify-center rounded-lg border border-border px-(--xs,8px) py-(--3xs,2px)">
           <span className="text-xs font-medium leading-4 whitespace-nowrap text-foreground">
-            {TRIGGER_LABELS[w.triggerType]}
+            {KIND_LABELS[w.kind]}
           </span>
         </div>
       </div>
       <div className="flex w-[200px] shrink-0 items-center px-(--xs,8px) py-[7.5px]">
-        <div className="flex flex-col">
-          <p className="text-sm font-normal leading-5 text-foreground">
-            {formatDate(w.lastUpdated)}
-          </p>
-          <p className="text-xs font-normal leading-4 text-muted-foreground">
-            {formatTime(w.lastUpdated)}
-          </p>
-        </div>
+        <p className="text-sm font-normal leading-5 text-muted-foreground">
+          Updated {formatDistanceToNow(w.lastUpdated, { addSuffix: true })}
+        </p>
       </div>
       <div
         className="flex w-[187px] shrink-0 items-center justify-end px-(--xs,8px) py-(--3xs,2px)"
@@ -158,6 +262,25 @@ function SortableWorkflowRow({
             <DropdownMenuItem onClick={() => toast.info(`Run "${w.name}" coming soon`)}>
               <Play className="size-4" />
               Run workflow
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(
+                    `${window.location.origin}/workflows/${w.id}`,
+                  );
+                  toast.success("Link copied");
+                } catch {
+                  toast.error("Failed to copy link");
+                }
+              }}
+            >
+              <Copy className="size-4" />
+              Copy link
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={beginRename}>
+              <Pencil className="size-4" />
+              Rename
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => toast.info(`Share "${w.name}" coming soon`)}>
               <Share2 className="size-4" />
@@ -190,6 +313,7 @@ interface WorkflowsTableProps {
   onSortToggle: () => void;
   hasActiveFilter: boolean;
   totalWorkflows: number;
+  isLoading?: boolean;
 }
 
 export function WorkflowsTable({
@@ -200,6 +324,7 @@ export function WorkflowsTable({
   onSortToggle,
   hasActiveFilter: _hasActiveFilter,
   totalWorkflows,
+  isLoading = false,
 }: WorkflowsTableProps) {
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -212,8 +337,8 @@ export function WorkflowsTable({
 
   const SortIcon = workflows.length === 0 ? ArrowUpDown : sortAsc ? ArrowUp : ArrowDown;
 
-  const isEmpty = totalWorkflows === 0;
-  const noResults = !isEmpty && workflows.length === 0;
+  const isEmpty = !isLoading && totalWorkflows === 0;
+  const noResults = !isLoading && !isEmpty && workflows.length === 0;
 
   const allPageSelected = pageSlice.length > 0 && pageSlice.every((w) => selectedIds.has(w.id));
 
@@ -284,7 +409,7 @@ export function WorkflowsTable({
           </div>
           <div className="flex w-[187px] shrink-0 items-center px-(--xs,8px) py-[8px]">
             <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
-              Trigger type
+              Type
             </span>
           </div>
           <div className="flex w-[200px] shrink-0 items-center px-(--xs,8px) py-[8px]">
@@ -337,6 +462,14 @@ export function WorkflowsTable({
           </div>
         )}
 
+        {isLoading && (
+          <div>
+            {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+              <WorkflowSkeletonRow key={`workflow-skeleton-${i}`} />
+            ))}
+          </div>
+        )}
+
         {isEmpty && (
           <div className="py-16 px-4 flex items-center justify-center">
             <Empty className="max-w-[448px] rounded-xl border border-solid border-border">
@@ -372,7 +505,7 @@ export function WorkflowsTable({
           </div>
         )}
 
-        {!isEmpty && !noResults && (
+        {!isLoading && !isEmpty && !noResults && (
           <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext
               items={pageSlice.map((w) => w.id)}
@@ -392,7 +525,7 @@ export function WorkflowsTable({
         )}
       </div>
 
-      {!isEmpty && (
+      {!isLoading && !isEmpty && (
         <div className="flex items-center justify-between">
           <button
             type="button"

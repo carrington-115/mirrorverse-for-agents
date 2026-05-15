@@ -1,6 +1,6 @@
 export type {
   Workflow,
-  WorkflowTriggerType,
+  WorkflowKind,
   WorkflowNodeData,
   WorkflowChatMessage,
   ConfigSidebarType,

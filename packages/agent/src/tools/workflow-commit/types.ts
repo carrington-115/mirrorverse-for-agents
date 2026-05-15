@@ -21,12 +21,15 @@ export interface BuilderState {
   readonly connections: WorkflowConnectionInput[];
 }
 
+export type WorkflowCommitProgressEmitter = (message: string) => void;
+
 export interface WorkflowCommitDeps {
   readonly db: Database;
   readonly userId: string;
   readonly workspaceId: string;
   readonly chatId: string;
   readonly builderModel?: string;
+  readonly onProgress?: WorkflowCommitProgressEmitter;
 }
 
 export interface SuccessfulWorkflowCommit {

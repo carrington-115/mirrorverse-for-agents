@@ -1,62 +1,100 @@
 import type { Database } from "@mirrorverse/db";
-import type { UserId } from "@mirrorverse/types";
 
 import { appError, ErrCode } from "../../lib/errors";
-import { ensureUserWorkspace } from "../tenancy/repo";
 
 import * as repo from "./repo";
 import type {
   DeleteWorkflowInput,
   GetWorkflowInput,
+  GetWorkflowVersionInput,
+  ListWorkflowVersionsInput,
   ListWorkflowsInput,
+  RenameWorkflowInput,
   ReorderWorkflowsInput,
 } from "./inputs";
 
-interface BaseCtx {
+interface WorkspaceCtx {
   readonly db: Database;
-  readonly userId: UserId;
+  readonly workspaceId: string;
 }
 
 export const workflowsService = {
-  async list(ctx: BaseCtx, input: ListWorkflowsInput) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
-    return repo.listWorkflowsForWorkspace(ctx.db, workspaceId, input.limit);
+  async list(ctx: WorkspaceCtx, input: ListWorkflowsInput) {
+    return repo.listWorkflowsForWorkspace(ctx.db, ctx.workspaceId, input.limit);
   },
 
-  async get(ctx: BaseCtx, input: GetWorkflowInput) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+  async get(ctx: WorkspaceCtx, input: GetWorkflowInput) {
     const workflow = await repo.getWorkflowForWorkspace(
       ctx.db,
       input.workflowId,
-      workspaceId,
+      ctx.workspaceId,
     );
     if (!workflow) return { workflow: null, version: null };
     const version = await repo.getLatestVersion(
       ctx.db,
       workflow.id,
-      workspaceId,
+      ctx.workspaceId,
     );
     return { workflow, version };
   },
 
-  async delete(ctx: BaseCtx, input: DeleteWorkflowInput) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+  async delete(ctx: WorkspaceCtx, input: DeleteWorkflowInput) {
     const ok = await repo.deleteWorkflowForWorkspace(
       ctx.db,
       input.workflowId,
-      workspaceId,
+      ctx.workspaceId,
     );
     if (!ok) throw appError(ErrCode.NotFound, "Workflow not found");
     return { id: input.workflowId };
   },
 
-  async reorder(ctx: BaseCtx, input: ReorderWorkflowsInput) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
+  async rename(ctx: WorkspaceCtx, input: RenameWorkflowInput) {
+    const trimmed = input.name.trim();
+    if (trimmed.length === 0) {
+      throw appError(ErrCode.BadInput, "Name cannot be empty");
+    }
+    const row = await repo.renameWorkflowForWorkspace(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+      trimmed,
+    );
+    if (!row) throw appError(ErrCode.NotFound, "Workflow not found");
+    return row;
+  },
+
+  async reorder(ctx: WorkspaceCtx, input: ReorderWorkflowsInput) {
     const updated = await repo.updateWorkflowSortOrders(
       ctx.db,
-      workspaceId,
+      ctx.workspaceId,
       input.workflowIds,
     );
     return { updated };
+  },
+
+  async listVersions(ctx: WorkspaceCtx, input: ListWorkflowVersionsInput) {
+    const workflow = await repo.getWorkflowForWorkspace(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+    );
+    if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+    const versions = await repo.listVersionsForWorkflow(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+    );
+    return { workflow, versions };
+  },
+
+  async getVersion(ctx: WorkspaceCtx, input: GetWorkflowVersionInput) {
+    const version = await repo.getVersionByNumber(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+      input.versionNumber,
+    );
+    if (!version) throw appError(ErrCode.NotFound, "Version not found");
+    return { version };
   },
 };
