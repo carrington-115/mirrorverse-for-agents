@@ -20,12 +20,20 @@ export function isComposioConfigured(): boolean {
 }
 
 export async function listComposioTools(
-  _workspaceId: string,
+  workspaceId: string,
 ): Promise<Record<string, Tool>> {
   const composio = getComposioInstance();
-  const rawTools = await composio.tools.getRawComposioTools(
-    {} as unknown as Parameters<typeof composio.tools.getRawComposioTools>[0],
-  );
+
+  const connected = await composio.connectedAccounts.list({
+    userIds: [workspaceId],
+    statuses: ["ACTIVE"],
+  });
+  const toolkitSlugs = [...new Set(connected.items.map((a) => a.toolkit.slug))];
+  if (toolkitSlugs.length === 0) return {};
+
+  const rawTools = await composio.tools.getRawComposioTools({
+    toolkits: toolkitSlugs,
+  });
 
   const result: Record<string, Tool> = {};
   for (const raw of rawTools) {

@@ -12,6 +12,15 @@ export function useDeleteChatMutation() {
   });
 }
 
+export function usePinChatMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.chats.pin.mutationOptions(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() }),
+  });
+}
+
 export function useEditAndTruncateMutation() {
   const trpc = useTRPC();
   return useMutation({ ...trpc.chats.editAndTruncate.mutationOptions() });

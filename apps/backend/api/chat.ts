@@ -278,6 +278,17 @@ export async function POST(req: Request): Promise<Response> {
   const startingText = firstUserText(userBlocks);
   const needsTitle = !chat.title && startingText.length > 0;
 
+  // Generate the title before streaming starts so the DB has it by the time
+  // the client's onFinish invalidates the sidebar query. Haiku is fast (~500ms)
+  // so the added latency before the first chunk is negligible.
+  if (needsTitle) {
+    const title = await generateChatTitle(startingText).catch((err) => {
+      console.error("[chat] title generation failed:", err);
+      return null;
+    });
+    if (title) await setChatTitleIfEmpty(db, chat.id, title);
+  }
+
   const runId = randomUUID();
   const modelForRun = requestedModel ?? chat.model;
   const requestedBuilderModel =
@@ -347,12 +358,6 @@ export async function POST(req: Request): Promise<Response> {
           });
         }
         await bumpLastMessageAt(db, chat.id, new Date());
-        if (needsTitle) {
-          const title = await generateChatTitle(startingText);
-          if (title) {
-            await setChatTitleIfEmpty(db, chat.id, title);
-          }
-        }
       } catch (err) {
         if (env.NODE_ENV === "development") {
           console.error("[chat] failed to persist assistant message:", err);

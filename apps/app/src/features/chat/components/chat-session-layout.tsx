@@ -2,7 +2,7 @@
 
 import { useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { History, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
@@ -32,9 +32,6 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
               <Button onClick={handleNewSession} disabled={busy} className="cursor-pointer">
                 {busy ? <Loader2 className="animate-spin" /> : <Plus />}
                 New Chat
-              </Button>
-              <Button variant={"ghost"} size={"icon"} className="cursor-pointer">
-                <History />
               </Button>
             </div>
           }

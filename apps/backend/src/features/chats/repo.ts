@@ -88,13 +88,32 @@ export async function listRecentChatsForUser(
       id: chats.id,
       title: chats.title,
       status: chats.status,
+      isPinned: chats.isPinned,
       lastMessageAt: chats.lastMessageAt,
       updatedAt: chats.updatedAt,
     })
     .from(chats)
     .where(eq(chats.userId, userId))
-    .orderBy(desc(chats.lastMessageAt), desc(chats.updatedAt))
+    .orderBy(
+      desc(chats.isPinned),
+      desc(chats.lastMessageAt),
+      desc(chats.updatedAt),
+    )
     .limit(limit);
+}
+
+export async function setChatPinned(
+  db: Database,
+  chatId: string,
+  userId: string,
+  isPinned: boolean,
+) {
+  const result = await db
+    .update(chats)
+    .set({ isPinned })
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)))
+    .returning({ id: chats.id });
+  return result.length > 0;
 }
 
 export interface InsertMessageArgs {

@@ -11,6 +11,7 @@ import {
   getChatInput,
   getPendingInterruptInput,
   listChatsInput,
+  pinChatInput,
 } from "./inputs";
 import { chatsService } from "./service";
 
@@ -70,6 +71,12 @@ export const chatsRouter = router({
     .input(deleteChatInput)
     .mutation(({ ctx, input }) =>
       chatsService.deleteChat({ db: ctx.db, userId: ctx.user.id }, input),
+    ),
+
+  pin: protectedProc
+    .input(pinChatInput)
+    .mutation(({ ctx, input }) =>
+      chatsService.pinChat({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 
   pendingInterrupt: protectedProc

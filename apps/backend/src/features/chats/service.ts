@@ -19,6 +19,7 @@ import type {
   EnsureChatInput,
   GetChatInput,
   ListChatsInput,
+  PinChatInput,
 } from "./inputs";
 
 interface BaseCtx {
@@ -81,6 +82,17 @@ export const chatsService = {
     const ok = await repo.deleteChatForUser(ctx.db, input.chatId, ctx.userId);
     if (!ok) throw appError(ErrCode.NotFound, "Chat not found");
     return { id: input.chatId };
+  },
+
+  async pinChat(ctx: BaseCtx, input: PinChatInput) {
+    const ok = await repo.setChatPinned(
+      ctx.db,
+      input.chatId,
+      ctx.userId,
+      input.isPinned,
+    );
+    if (!ok) throw appError(ErrCode.NotFound, "Chat not found");
+    return { id: input.chatId, isPinned: input.isPinned };
   },
 
   async appendUserMessage(ctx: BaseCtx, input: AppendUserMessageInput) {

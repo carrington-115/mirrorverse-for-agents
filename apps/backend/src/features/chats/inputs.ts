@@ -27,6 +27,12 @@ export const deleteChatInput = z.object({
   chatId: z.string().min(1).max(128),
 });
 
+export const pinChatInput = z.object({
+  chatId: z.string().min(1).max(128),
+  isPinned: z.boolean(),
+});
+export type PinChatInput = z.infer<typeof pinChatInput>;
+
 export const listChatsInput = z
   .object({
     limit: z.number().int().min(1).max(100).default(50),

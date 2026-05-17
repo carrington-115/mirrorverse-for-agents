@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm";
-import { bigint, index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import type {
   ChatEventKind,
   ChatEventPayload,
@@ -32,6 +41,7 @@ export const chats = pgTable(
     purpose: text("purpose").$type<ChatPurpose>().notNull(),
     status: text("status").$type<ChatStatus>().notNull().default("active"),
     title: text("title"),
+    isPinned: boolean("is_pinned").notNull().default(false),
     workflowId: text("workflow_id").references(() => workflows.id, { onDelete: "set null" }),
     inngestRunId: text("inngest_run_id"),
     model: text("model").notNull(),

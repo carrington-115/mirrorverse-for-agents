@@ -181,18 +181,41 @@ function ConversationsSection() {
     );
   }
 
+  const pinned = conversations.filter((c) => c.isPinned);
+  const unpinned = conversations.filter((c) => !c.isPinned);
+
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Conversations</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu className="gap-1.5">
-          {conversations.map((c) => (
-            <SidebarMenuItem key={c.id}>
-              <ConversationSidebarItem chatId={c.id} title={titleFor(c)} />
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <>
+      {pinned.length > 0 && (
+        <SidebarGroup>
+          <SidebarGroupLabel>Pinned chats</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-1.5">
+              {pinned.map((c) => (
+                <SidebarMenuItem key={c.id}>
+                  <ConversationSidebarItem chatId={c.id} title={titleFor(c)} isPinned={true} />
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
+      <SidebarGroup>
+        <SidebarGroupLabel>Conversations</SidebarGroupLabel>
+        {unpinned.length === 0 ? (
+          <p className="px-2 text-xs text-muted-foreground">No unpinned chats.</p>
+        ) : (
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-1.5">
+              {unpinned.map((c) => (
+                <SidebarMenuItem key={c.id}>
+                  <ConversationSidebarItem chatId={c.id} title={titleFor(c)} isPinned={false} />
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        )}
+      </SidebarGroup>
+    </>
   );
 }

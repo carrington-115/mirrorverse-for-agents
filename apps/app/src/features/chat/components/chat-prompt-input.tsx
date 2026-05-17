@@ -217,6 +217,8 @@ function fileTypeName(mediaType: string | undefined): string {
   return "File";
 }
 
+const ALL_PROVIDER = "All" as const;
+
 const PROVIDERS = [
   { chef: "Anthropic", slug: "anthropic" },
   { chef: "OpenAI", slug: "openai" },
@@ -233,27 +235,38 @@ function ChatModelPicker({
   const allModels: readonly ModelOption[] = CHAT_MODELS;
   const selected = allModels.find((m) => m.id === selectedId) ?? allModels[0];
   const [open, setOpen] = useState(false);
-  const [activeProvider, setActiveProvider] = useState(selected.chef);
+  const [activeProvider, setActiveProvider] = useState<string>(ALL_PROVIDER);
   const [search, setSearch] = useState("");
 
   const handleOpenChange = (next: boolean) => {
-    if (next) setActiveProvider(selected.chef);
+    if (next) setActiveProvider(ALL_PROVIDER);
     setSearch("");
     setOpen(next);
   };
 
   const providerModels = allModels.filter(
     (m) =>
-      m.chef === activeProvider &&
+      (activeProvider === ALL_PROVIDER || m.chef === activeProvider) &&
       (search === "" ||
         m.name.toLowerCase().includes(search.toLowerCase()) ||
         m.description.toLowerCase().includes(search.toLowerCase())),
   );
 
+  const searchPlaceholder =
+    activeProvider === ALL_PROVIDER ? "Search all models…" : `Search ${activeProvider} models…`;
+
   const seriesOrder: string[] = [];
   for (const m of providerModels) {
     if (m.series !== undefined && !seriesOrder.includes(m.series)) {
       seriesOrder.push(m.series);
+    }
+  }
+
+  // When showing all providers, group by chef instead of series
+  const chefOrder: string[] = [];
+  if (activeProvider === ALL_PROVIDER) {
+    for (const m of providerModels) {
+      if (!chefOrder.includes(m.chef)) chefOrder.push(m.chef);
     }
   }
 
@@ -275,6 +288,23 @@ function ChatModelPicker({
           <p className="px-2 pb-1.5 pt-1 font-semibold tracking-wider text-[10px] text-muted-foreground/60 uppercase">
             Providers
           </p>
+          {/* All models section */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveProvider(ALL_PROVIDER);
+              setSearch("");
+            }}
+            className={cn(
+              "gap-2.5 px-2.5 py-2 text-sm flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent/60",
+              activeProvider === ALL_PROVIDER
+                ? "font-medium bg-accent text-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            <Grid2x2 className="size-4 shrink-0" />
+            All
+          </button>
           {PROVIDERS.map(({ chef, slug }) => (
             <button
               key={chef}
@@ -304,7 +334,7 @@ function ChatModelPicker({
             <input
               type="text"
               className="text-sm flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-              placeholder={`Search ${activeProvider} models…`}
+              placeholder={searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -314,6 +344,27 @@ function ChatModelPicker({
           <div className="min-h-0 p-1.5 flex-1 overflow-y-auto">
             {providerModels.length === 0 ? (
               <p className="py-8 text-sm text-center text-muted-foreground">No models found</p>
+            ) : activeProvider === ALL_PROVIDER ? (
+              chefOrder.map((chef) => (
+                <Fragment key={chef}>
+                  <p className="px-2 pb-0.5 pt-2 font-semibold tracking-wider text-[10px] text-muted-foreground/60 uppercase">
+                    {chef}
+                  </p>
+                  {providerModels
+                    .filter((m) => m.chef === chef)
+                    .map((m) => (
+                      <ModelItem
+                        key={m.id}
+                        model={m}
+                        selected={selectedId === m.id}
+                        onSelect={() => {
+                          onSelect(m.id);
+                          setOpen(false);
+                        }}
+                      />
+                    ))}
+                </Fragment>
+              ))
             ) : seriesOrder.length > 0 ? (
               seriesOrder.map((series) => (
                 <Fragment key={series}>

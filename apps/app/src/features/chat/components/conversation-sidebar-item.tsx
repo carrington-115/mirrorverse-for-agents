@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Loader2, MoreVertical, Trash2 } from "lucide-react";
+import { Loader2, MoreVertical, Pin, PinOff, Trash2 } from "lucide-react";
 
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 import {
@@ -20,17 +20,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useDeleteChatMutation } from "@/features/chat/api/mutations";
+import { useDeleteChatMutation, usePinChatMutation } from "@/features/chat/api/mutations";
 
 interface ConversationSidebarItemProps {
   chatId: string;
   title: string;
+  isPinned: boolean;
 }
 
-export function ConversationSidebarItem({ chatId, title }: ConversationSidebarItemProps) {
+export function ConversationSidebarItem({ chatId, title, isPinned }: ConversationSidebarItemProps) {
   const pathname = usePathname();
   const router = useRouter();
   const href = `/mirropilot/${chatId}`;
@@ -38,6 +40,7 @@ export function ConversationSidebarItem({ chatId, title }: ConversationSidebarIt
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const del = useDeleteChatMutation();
+  const pin = usePinChatMutation();
 
   const handleDelete = () => {
     del.mutate(
@@ -49,6 +52,11 @@ export function ConversationSidebarItem({ chatId, title }: ConversationSidebarIt
         },
       },
     );
+  };
+
+  const handlePin = () => {
+    setMenuOpen(false);
+    pin.mutate({ chatId, isPinned: !isPinned });
   };
 
   return (
@@ -76,6 +84,16 @@ export function ConversationSidebarItem({ chatId, title }: ConversationSidebarIt
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="start">
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              handlePin();
+            }}
+          >
+            {isPinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+            {isPinned ? "Unpin" : "Pin chat"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
             onSelect={(e) => {
