@@ -23,6 +23,7 @@ interface MessageRowProps {
   canRetry: boolean;
   onEdit: (newText: string) => void;
   onRetry: () => void;
+  onWorkflowSelect?: (workflowId: string) => void;
 }
 
 function extractCopyText(message: UIMessage): string {
@@ -40,6 +41,7 @@ export function MessageRow({
   canRetry,
   onEdit,
   onRetry,
+  onWorkflowSelect,
 }: MessageRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const initialText = extractCopyText(message);
@@ -127,7 +129,9 @@ export function MessageRow({
             const key = `${message.id}-${i}`;
             if (isTextUIPart(part)) return <MessageResponse key={key}>{part.text}</MessageResponse>;
             if (isToolUIPart(part) && isWorkflowCommitPart(part)) {
-              return <WorkflowCommitCard key={key} part={part} />;
+              return (
+                <WorkflowCommitCard key={key} part={part} onWorkflowSelect={onWorkflowSelect} />
+              );
             }
             return null;
           })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
@@ -15,6 +15,7 @@ import {
   useEditAndTruncateMutation,
 } from "@/features/chat/api/mutations";
 
+import { AppConnectPanel } from "./app-connect-panel";
 import { ChatConversation } from "./chat-conversation";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatPromptInput } from "./chat-prompt-input";
@@ -23,13 +24,15 @@ import { CredentialInterruptDialog } from "./credential-interrupt-dialog";
 interface ChatRuntimeProps {
   sessionId: string;
   initialMessages: UIMessage[];
+  onWorkflowSelect?: (workflowId: string) => void;
 }
 
-export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
+export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: ChatRuntimeProps) {
   const trpc = useTRPC();
   const qc = useQueryClient();
   const [model, setModel] = useState<string>(DEFAULT_CHAT_MODEL);
   const [interruptDismissed, setInterruptDismissed] = useState(false);
+  const [credentialsDismissed, setCredentialsDismissed] = useState(false);
   const [streamFinished, setStreamFinished] = useState(false);
 
   const transport = useMemo(() => buildChatTransport(sessionId), [sessionId]);
@@ -39,6 +42,7 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
     qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
     setStreamFinished(true);
     setInterruptDismissed(false);
+    setCredentialsDismissed(false);
   }, [qc, trpc.chats.list, trpc.workflows.list]);
 
   const { messages, sendMessage, regenerate, setMessages, status, stop } = useChat({
@@ -137,22 +141,66 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
     />
   );
 
+  const interrupt = pendingInterrupt as Record<string, unknown> | null | undefined;
+
   const credentialInterrupt =
-    pendingInterrupt &&
-    typeof pendingInterrupt === "object" &&
-    (pendingInterrupt as Record<string, unknown>).kind === "needs_credential"
-      ? (pendingInterrupt as { kind: string; appSlug: string; redirectUrl: string })
+    interrupt?.kind === "needs_credential"
+      ? (interrupt as {
+          kind: string;
+          appSlug: string;
+          redirectUrl: string;
+          connectionRequestId: string;
+        })
       : null;
+
+  const credentialsInterrupt =
+    interrupt?.kind === "needs_credentials"
+      ? (interrupt as { kind: string; id: string; appSlugs: string[] })
+      : null;
+
+  // Auto-resume: when the needs_credentials panel dismisses via polling (not manual cancel),
+  // re-send the last user message so the agent continues automatically.
+  const autoResumeRef = useRef(false);
+  useEffect(() => {
+    if (credentialsInterrupt) {
+      autoResumeRef.current = true;
+    }
+  }, [credentialsInterrupt]);
+  useEffect(() => {
+    if (autoResumeRef.current && !credentialsInterrupt && !credentialsDismissed && streamFinished) {
+      autoResumeRef.current = false;
+      setStreamFinished(false);
+      regenerate({ body: { model, skipUserInsert: true } });
+    }
+  }, [credentialsInterrupt, credentialsDismissed, streamFinished, regenerate, model]);
+
+  // Reset dismissed flags when a new interrupt arrives (different id).
+  const prevInterruptId = useRef<string | null>(null);
+  useEffect(() => {
+    const id = credentialInterrupt?.connectionRequestId ?? credentialsInterrupt?.id ?? null;
+    if (id && id !== prevInterruptId.current) {
+      prevInterruptId.current = id;
+      setInterruptDismissed(false);
+      setCredentialsDismissed(false);
+    }
+  }, [credentialInterrupt, credentialsInterrupt]);
 
   if (isEmpty) {
     return (
       <>
         <ChatEmptyState onPickStarter={handleStarter} inputSlot={inputBlock} />
-        {credentialInterrupt && (
+        {credentialInterrupt && !interruptDismissed && (
           <CredentialInterruptDialog
             appSlug={credentialInterrupt.appSlug}
             redirectUrl={credentialInterrupt.redirectUrl}
             onDismiss={() => setInterruptDismissed(true)}
+          />
+        )}
+        {credentialsInterrupt && !credentialsDismissed && (
+          <AppConnectPanel
+            appSlugs={credentialsInterrupt.appSlugs}
+            chatId={sessionId}
+            onDismiss={() => setCredentialsDismissed(true)}
           />
         )}
       </>
@@ -167,11 +215,19 @@ export function ChatRuntime({ sessionId, initialMessages }: ChatRuntimeProps) {
         showThinking={isSubmitted}
         onEditUserMessage={handleEditUserMessage}
         onRetryAssistant={handleRetryAssistant}
+        onWorkflowSelect={onWorkflowSelect}
       />
+      {credentialsInterrupt && !credentialsDismissed && (
+        <AppConnectPanel
+          appSlugs={credentialsInterrupt.appSlugs}
+          chatId={sessionId}
+          onDismiss={() => setCredentialsDismissed(true)}
+        />
+      )}
       <div className="p-3">
         <div className="mx-auto w-full max-w-[780px]">{inputBlock}</div>
       </div>
-      {credentialInterrupt && (
+      {credentialInterrupt && !interruptDismissed && (
         <CredentialInterruptDialog
           appSlug={credentialInterrupt.appSlug}
           redirectUrl={credentialInterrupt.redirectUrl}

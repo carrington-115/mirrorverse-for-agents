@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq, schema, type Database } from "@mirrorverse/db";
 
 export interface CreateConnectionRequestArgs {
+  readonly id?: string;
   readonly workspaceId: string;
   readonly chatId: string;
   readonly mcpServerId: string;
@@ -13,7 +14,7 @@ export async function createConnectionRequest(
   db: Database,
   args: CreateConnectionRequestArgs,
 ) {
-  const id = randomUUID();
+  const id = args.id ?? randomUUID();
   const resumeEventName = `connection.completed.${id}`;
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
