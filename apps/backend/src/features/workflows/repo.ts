@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from "node:crypto";
+
 import {
   and,
   asc,
@@ -7,8 +9,14 @@ import {
   schema,
   type Database,
 } from "@mirrorverse/db";
+import type { WorkflowDocumentInput } from "@mirrorverse/agent";
+import type { WorkflowDocument } from "@mirrorverse/types";
 
 const { workflows, workflowVersions } = schema;
+
+function checksumDocument(doc: WorkflowDocumentInput): string {
+  return createHash("sha256").update(JSON.stringify(doc)).digest("hex");
+}
 
 export async function listWorkflowsForWorkspace(
   db: Database,
@@ -174,4 +182,76 @@ export async function getVersionByNumber(
     )
     .limit(1);
   return row ?? null;
+}
+
+export interface SaveWorkflowVersionResult {
+  readonly id: string;
+  readonly versionNumber: number;
+}
+
+export async function saveWorkflowVersionForWorkspace(
+  db: Database,
+  workspaceId: string,
+  workflowId: string,
+  userId: string,
+  document: WorkflowDocumentInput,
+  summary: string,
+): Promise<SaveWorkflowVersionResult | null> {
+  return db.transaction(async (tx) => {
+    const [workflow] = await tx
+      .select({ id: workflows.id })
+      .from(workflows)
+      .where(
+        and(
+          eq(workflows.id, workflowId),
+          eq(workflows.workspaceId, workspaceId),
+        ),
+      )
+      .limit(1);
+    if (!workflow) return null;
+
+    const [latest] = await tx
+      .select({ versionNumber: workflowVersions.versionNumber })
+      .from(workflowVersions)
+      .where(
+        and(
+          eq(workflowVersions.workflowId, workflowId),
+          eq(workflowVersions.workspaceId, workspaceId),
+        ),
+      )
+      .orderBy(desc(workflowVersions.versionNumber))
+      .limit(1);
+    const nextVersionNumber = (latest?.versionNumber ?? 0) + 1;
+    const versionId = randomUUID();
+
+    await tx.insert(workflowVersions).values({
+      id: versionId,
+      workspaceId,
+      workflowId,
+      versionNumber: nextVersionNumber,
+      document: document as unknown as WorkflowDocument,
+      compiledAgent: null,
+      createdBy: userId,
+      generatedByChatId: null,
+      summary,
+      checksum: checksumDocument(document),
+    });
+
+    await tx
+      .update(workflows)
+      .set({
+        currentVersionId: versionId,
+        name: document.metadata.title,
+        description: document.metadata.description ?? null,
+        kind: document.kind,
+      })
+      .where(
+        and(
+          eq(workflows.id, workflowId),
+          eq(workflows.workspaceId, workspaceId),
+        ),
+      );
+
+    return { id: versionId, versionNumber: nextVersionNumber };
+  });
 }

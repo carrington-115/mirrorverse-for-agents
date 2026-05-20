@@ -11,11 +11,13 @@ import type {
   ListWorkflowsInput,
   RenameWorkflowInput,
   ReorderWorkflowsInput,
+  SaveWorkflowVersionInput,
 } from "./inputs";
 
 interface WorkspaceCtx {
   readonly db: Database;
   readonly workspaceId: string;
+  readonly userId: string;
 }
 
 export const workflowsService = {
@@ -96,5 +98,18 @@ export const workflowsService = {
     );
     if (!version) throw appError(ErrCode.NotFound, "Version not found");
     return { version };
+  },
+
+  async saveVersion(ctx: WorkspaceCtx, input: SaveWorkflowVersionInput) {
+    const result = await repo.saveWorkflowVersionForWorkspace(
+      ctx.db,
+      ctx.workspaceId,
+      input.workflowId,
+      ctx.userId,
+      input.document,
+      input.summary ?? "Edited via canvas",
+    );
+    if (!result) throw appError(ErrCode.NotFound, "Workflow not found");
+    return result;
   },
 };

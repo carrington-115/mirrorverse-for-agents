@@ -9,6 +9,7 @@ import {
   listWorkflowsInput,
   renameWorkflowInput,
   reorderWorkflowsInput,
+  saveWorkflowVersionInput,
 } from "./inputs";
 import { workflowsService } from "./service";
 
@@ -17,7 +18,7 @@ export const workflowsRouter = router({
     .input(listWorkflowsInput)
     .query(({ ctx, input }) =>
       workflowsService.list(
-        { db: ctx.db, workspaceId: ctx.workspaceId },
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),
     ),
@@ -25,14 +26,17 @@ export const workflowsRouter = router({
   get: workspaceProc
     .input(getWorkflowInput)
     .query(({ ctx, input }) =>
-      workflowsService.get({ db: ctx.db, workspaceId: ctx.workspaceId }, input),
+      workflowsService.get(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
     ),
 
   listVersions: workspaceProc
     .input(listWorkflowVersionsInput)
     .query(({ ctx, input }) =>
       workflowsService.listVersions(
-        { db: ctx.db, workspaceId: ctx.workspaceId },
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),
     ),
@@ -41,7 +45,16 @@ export const workflowsRouter = router({
     .input(getWorkflowVersionInput)
     .query(({ ctx, input }) =>
       workflowsService.getVersion(
-        { db: ctx.db, workspaceId: ctx.workspaceId },
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
+
+  saveVersion: workspaceProc
+    .input(saveWorkflowVersionInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.saveVersion(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),
     ),
@@ -50,7 +63,7 @@ export const workflowsRouter = router({
     .input(deleteWorkflowInput)
     .mutation(({ ctx, input }) =>
       workflowsService.delete(
-        { db: ctx.db, workspaceId: ctx.workspaceId },
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),
     ),
@@ -59,7 +72,7 @@ export const workflowsRouter = router({
     .input(renameWorkflowInput)
     .mutation(({ ctx, input }) =>
       workflowsService.rename(
-        { db: ctx.db, workspaceId: ctx.workspaceId },
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),
     ),
@@ -68,7 +81,7 @@ export const workflowsRouter = router({
     .input(reorderWorkflowsInput)
     .mutation(({ ctx, input }) =>
       workflowsService.reorder(
-        { db: ctx.db, workspaceId: ctx.workspaceId },
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),
     ),

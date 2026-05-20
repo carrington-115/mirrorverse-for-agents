@@ -295,7 +295,11 @@ export async function POST(req: Request): Promise<Response> {
     typeof body.builderModel === "string" && isSupportedModel(body.builderModel)
       ? body.builderModel
       : undefined;
-  const builderModel = requestedBuilderModel ?? "claude-sonnet-4-5";
+  // Default the builder to whatever model the user picked for the chat, so
+  // their pick actually controls cost. We previously fell back to a hardcoded
+  // Anthropic Sonnet, which billed users on a different provider than they
+  // selected.
+  const builderModel = requestedBuilderModel ?? modelForRun;
   let stepIndex = 0;
 
   const additionalTools = await buildComposioTools(
