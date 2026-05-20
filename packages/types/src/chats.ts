@@ -147,6 +147,7 @@ export type ChatEventPayload =
  */
 export type ChatInterrupt =
   | NeedsCredentialInterrupt
+  | NeedsCredentialsInterrupt
   | NeedsConfigInterrupt
   | NeedsConfirmationInterrupt
   | NeedsClarificationInterrupt;
@@ -164,6 +165,14 @@ export interface NeedsCredentialInterrupt extends InterruptBase {
   readonly appSlug: string;
   readonly redirectUrl: string;
   readonly connectionRequestId: ConnectionRequestId;
+}
+
+/** Pre-flight multi-app interrupt: all slugs that need connecting before the agent can run. */
+export interface NeedsCredentialsInterrupt {
+  readonly kind: "needs_credentials";
+  readonly id: string;
+  readonly chatId: ChatId;
+  readonly appSlugs: readonly string[];
 }
 
 export interface NeedsConfigInterrupt extends InterruptBase {

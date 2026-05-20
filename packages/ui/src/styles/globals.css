@@ -358,6 +358,22 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 14%, transparent) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--foreground) 14%, transparent);
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--foreground) 26%, transparent);
   }
   body {
     @apply bg-background text-foreground;
@@ -369,22 +385,20 @@
 
 @utility scrollbar-subtle {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklch, var(--foreground) 18%, transparent) transparent;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 12%, transparent) transparent;
   &::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   &::-webkit-scrollbar-track {
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: color-mix(in oklch, var(--foreground) 14%, transparent);
+    background-color: color-mix(in oklch, var(--foreground) 12%, transparent);
     border-radius: 9999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
   }
   &:hover::-webkit-scrollbar-thumb {
-    background-color: color-mix(in oklch, var(--foreground) 24%, transparent);
+    background-color: color-mix(in oklch, var(--foreground) 22%, transparent);
   }
 }
 

@@ -16,15 +16,37 @@ const STATUS_LABEL: Record<ReturnType<typeof readWorkflowCommitStatus>, string> 
   failed: "Workflow build failed",
 };
 
-export function WorkflowCommitCard({ part }: { part: WorkflowCommitToolPart }) {
+interface WorkflowCommitCardProps {
+  part: WorkflowCommitToolPart;
+  onWorkflowSelect?: (workflowId: string) => void;
+}
+
+export function WorkflowCommitCard({ part, onWorkflowSelect }: WorkflowCommitCardProps) {
   const result = readWorkflowCommitResult(part);
   const status = readWorkflowCommitStatus(part);
   const error = readWorkflowCommitError(part);
   const title = result?.title ?? (status === "failed" ? "Build failed" : "New workflow");
   const kind = result?.kind;
 
+  const isClickable = !!result && !!onWorkflowSelect;
+
   return (
-    <div className="my-3 gap-3 p-4 flex items-center rounded-2xl border border-border bg-card">
+    <div
+      className={`my-3 gap-3 p-4 flex items-center rounded-2xl border border-border bg-card transition-colors${isClickable ? "cursor-pointer hover:bg-muted/50" : ""}`}
+      onClick={isClickable ? () => onWorkflowSelect(result.workflowId) : undefined}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={
+        isClickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onWorkflowSelect(result.workflowId);
+              }
+            }
+          : undefined
+      }
+    >
       <div
         className={
           status === "failed"
@@ -49,9 +71,11 @@ export function WorkflowCommitCard({ part }: { part: WorkflowCommitToolPart }) {
         ) : null}
       </div>
       {result ? (
-        <Button asChild size="sm" className="h-8 shrink-0">
-          <Link href={`/workflows/${result.workflowId}`}>Open</Link>
-        </Button>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Button asChild size="sm" className="h-8 shrink-0">
+            <Link href={`/workflows/${result.workflowId}`}>Open</Link>
+          </Button>
+        </div>
       ) : null}
     </div>
   );

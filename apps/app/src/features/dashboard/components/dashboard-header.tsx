@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
   BarChart3Icon,
@@ -31,6 +30,7 @@ import {
   SunMoon,
   TrashIcon,
   UserIcon,
+  ZapIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "lucide-react";
@@ -62,6 +62,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { signOutAction } from "@/features/auth/actions/sign-out";
+import { useSettingsModal } from "@/features/settings/hooks/use-settings-modal";
 
 interface DashboardHeaderProps {
   title: string;
@@ -81,6 +82,7 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
   const initials = displayName.charAt(0).toUpperCase();
 
   const [isSigningOut, startSignOut] = React.useTransition();
+  const { openSettings } = useSettingsModal();
 
   const handleSignOut = () => {
     startSignOut(async () => {
@@ -123,37 +125,29 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
               </div>
             </div>
             <div className="px-2 pb-2">
-              <BillingCard />
+              <BillingCard onOpenSettings={openSettings} />
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/settings/profile">
-                  <UserIcon className="mr-2 size-4" />
-                  Profile
-                </Link>
+              <DropdownMenuItem onSelect={() => openSettings("profile")}>
+                <UserIcon className="mr-2 size-4" />
+                Profile
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings/billing">
-                  <CreditCardIcon className="mr-2 size-4" />
-                  Billing
-                </Link>
+              <DropdownMenuItem onSelect={() => openSettings("billing")}>
+                <CreditCardIcon className="mr-2 size-4" />
+                Billing
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings/usage">
-                  <BarChart3Icon className="mr-2 size-4" />
-                  Usage
-                </Link>
+              <DropdownMenuItem onSelect={() => openSettings("usage")}>
+                <BarChart3Icon className="mr-2 size-4" />
+                Usage
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <AppearanceSubmenu />
-              <DropdownMenuItem asChild>
-                <Link href="/settings/general">
-                  <SettingsIcon className="mr-2 size-4" />
-                  Settings
-                </Link>
+              <DropdownMenuItem onSelect={() => openSettings("general")}>
+                <SettingsIcon className="mr-2 size-4" />
+                Settings
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a href="mailto:support@mirrorverse.ai">
@@ -242,12 +236,23 @@ function ProfileAvatarWithRing({
   );
 }
 
-function BillingCard() {
+function BillingCard({ onOpenSettings }: { onOpenSettings: (page: "pricing") => void }) {
   return (
     <div className="p-3 space-y-2.5 rounded-lg border border-border bg-muted/30">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-foreground">Pro Plan</span>
-        <span className="text-[11px] text-muted-foreground">Renews Jun 15</span>
+        <div className="gap-1.5 flex items-center">
+          <span className="text-xs font-semibold text-foreground">Pro Plan</span>
+          <span className="px-1.5 font-medium inline-flex items-center rounded-full bg-primary/10 py-px text-[10px] text-primary">
+            Current
+          </span>
+        </div>
+        <button
+          onClick={() => onOpenSettings("pricing")}
+          className="h-5 gap-1 px-1.5 font-medium inline-flex cursor-pointer items-center rounded-sm border border-primary/30 bg-primary/10 text-[10px] text-primary transition-colors hover:bg-primary/20"
+        >
+          <ZapIcon className="size-2.5" />
+          Upgrade
+        </button>
       </div>
       <div className="space-y-1">
         <div className="flex items-center justify-between">
@@ -260,11 +265,11 @@ function BillingCard() {
       </div>
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">API calls</span>
-          <span className="font-medium text-[11px]">2.4K / 10K</span>
+          <span className="text-[11px] text-muted-foreground">LLM tokens</span>
+          <span className="font-medium text-[11px]">0 / 100K</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: "24%" }} />
+          <div className="h-full rounded-full bg-primary" style={{ width: "0%" }} />
         </div>
       </div>
     </div>

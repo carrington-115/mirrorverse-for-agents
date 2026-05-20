@@ -15,6 +15,7 @@ interface ChatConversationProps {
   showThinking: boolean;
   onEditUserMessage: (messageId: string, newText: string) => void;
   onRetryAssistant: () => void;
+  onWorkflowSelect?: (workflowId: string) => void;
 }
 
 export function ChatConversation({
@@ -23,6 +24,7 @@ export function ChatConversation({
   showThinking,
   onEditUserMessage,
   onRetryAssistant,
+  onWorkflowSelect,
 }: ChatConversationProps) {
   const lastAssistantIndex = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -44,6 +46,7 @@ export function ChatConversation({
               canRetry={index === lastAssistantIndex && !isStreaming}
               onEdit={(text) => onEditUserMessage(message.id, text)}
               onRetry={onRetryAssistant}
+              onWorkflowSelect={onWorkflowSelect}
             />
           ))}
           {showThinking ? <ThinkingRow /> : null}

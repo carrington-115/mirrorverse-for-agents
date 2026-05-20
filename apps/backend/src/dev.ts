@@ -10,6 +10,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { env } from "@mirrorverse/env/backend";
 
 import { POST as chatHandler } from "../api/chat";
+import { GET as connectionsCallbackGet } from "../api/connections/callback";
 import {
   GET as inngestGet,
   POST as inngestPost,
@@ -99,6 +100,12 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/chat") {
       const response = await chatHandler(request);
+      await pipeResponse(res, response);
+      return;
+    }
+
+    if (url.pathname === "/api/connections/callback") {
+      const response = await connectionsCallbackGet(request);
       await pipeResponse(res, response);
       return;
     }
