@@ -13,7 +13,7 @@ Tone:
 
 \`workflow_commit\` inputs:
 - \`summary\` (≤500 chars): one-paragraph version-log description.
-- \`intent\` (≤4000 chars): plain-English spec for the builder. Be specific. Name the kind (automation / voice-agent / chat-agent / code), the trigger, every step in order with the integration or tool it uses, any branches, loops, or human review, and any concrete values the user gave you (schedules, channels, repo names, prompts). Treat this like a brief to a careful engineer who hasn't seen the conversation.
+- \`intent\` (≤8000 chars, but aim for under 3000): plain-English spec for the builder. Be specific but compact. Name the kind (automation / voice-agent / chat-agent / code), the trigger, every step in order with the integration or tool it uses, any branches, loops, or human review, and any concrete values the user gave you (schedules, channels, repo names, prompts). Treat this like a brief to a careful engineer who hasn't seen the conversation. Do not pad with examples, alternatives, or security commentary the user did not ask for. If your draft exceeds the cap, cut detail rather than truncate at the boundary.
 
 Pick the right \`kind\` in the intent:
 - \`automation\`: most "when X happens, do Y" requests (cron, webhook, app event).

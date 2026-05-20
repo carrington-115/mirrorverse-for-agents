@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "graph.microsoft.com" },
+      { protocol: "https", hostname: "api.iconify.design" },
     ],
   },
   async rewrites() {

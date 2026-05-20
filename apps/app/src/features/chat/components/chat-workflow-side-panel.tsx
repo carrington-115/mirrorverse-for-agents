@@ -5,6 +5,7 @@ import { Loader2, X } from "lucide-react";
 
 import { useWorkflowQuery } from "@/features/workflows/api/queries";
 import { DocumentCanvas } from "@/features/workflows/components/document-canvas";
+import { extractIconHints, type NodeIconHints } from "@/features/workflows/lib/node-icon";
 
 interface ChatWorkflowSidePanelProps {
   workflowId: string;
@@ -17,6 +18,7 @@ interface WorkflowDocumentShape {
     name: string;
     kind: string;
     position: { x: number; y: number };
+    hints?: NodeIconHints;
   }>;
   readonly connections: ReadonlyArray<{
     id: string;
@@ -34,7 +36,11 @@ export function ChatWorkflowSidePanel({ workflowId, onClose }: ChatWorkflowSideP
     if (!document || typeof document !== "object") return null;
     const candidate = document as Partial<WorkflowDocumentShape>;
     if (!Array.isArray(candidate.nodes) || !Array.isArray(candidate.connections)) return null;
-    return candidate as WorkflowDocumentShape;
+    const nodes = candidate.nodes.map((n) => ({
+      ...n,
+      hints: extractIconHints(n as Record<string, unknown>),
+    }));
+    return { nodes, connections: candidate.connections } as WorkflowDocumentShape;
   }, [data]);
 
   if (isLoading) {

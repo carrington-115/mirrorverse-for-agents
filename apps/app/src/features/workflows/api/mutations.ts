@@ -30,6 +30,19 @@ export function useReorderWorkflowsMutation() {
   });
 }
 
+export function useSaveWorkflowVersionMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.workflows.saveVersion.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.workflows.get.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.listVersions.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+    },
+  });
+}
+
 export function useRenameWorkflowMutation() {
   const trpc = useTRPC();
   const qc = useQueryClient();

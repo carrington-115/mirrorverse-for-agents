@@ -34,3 +34,15 @@ export function useWorkflowVersionQuery(workflowId: string | null, versionNumber
     enabled: Boolean(workflowId) && versionNumber != null,
   });
 }
+
+export function useMcpDirectoryListQuery(search?: string) {
+  const trpc = useTRPC();
+  const term = search?.trim();
+  return useQuery({
+    ...trpc.mcpDirectory.list.queryOptions({
+      limit: 50,
+      ...(term ? { search: term } : {}),
+    }),
+    staleTime: 60_000,
+  });
+}
