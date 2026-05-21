@@ -3,7 +3,7 @@ import { AuthForm } from "@/features/auth/components/auth-form";
 
 export const metadata = buildMetadata({
   title: "Create your account",
-  description: "Create a Mirroverse account to start building with agents.",
+  description: "Create a Mirrorverse account to start building with agents.",
   path: "/sign-up",
 });
 

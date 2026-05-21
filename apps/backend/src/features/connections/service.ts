@@ -36,8 +36,10 @@ export const connectionsService = {
     ctx: WorkspaceCtx,
     input: InitiateAppConnectionInput,
   ) {
-    const chat = await getChatForUser(ctx.db, input.chatId, ctx.userId);
-    if (!chat) throw appError(ErrCode.NotFound, "Chat not found");
+    if (input.chatId) {
+      const chat = await getChatForUser(ctx.db, input.chatId, ctx.userId);
+      if (!chat) throw appError(ErrCode.NotFound, "Chat not found");
+    }
 
     const mcpServerId = await lookupComposioMcpServerId(ctx.db);
     if (!mcpServerId)

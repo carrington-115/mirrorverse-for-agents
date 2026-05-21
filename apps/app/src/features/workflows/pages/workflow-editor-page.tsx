@@ -3,7 +3,7 @@ import { WorkflowEditor } from "@/features/workflows/components/workflow-editor"
 
 export const metadata = buildMetadata({
   title: "Workflow editor",
-  description: "Design and edit workflows with the Mirroverse editor.",
+  description: "Design and edit workflows with the Mirrorverse editor.",
   noIndex: true,
 });
 

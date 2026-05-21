@@ -14,7 +14,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { AssistantAvatar } from "./assistant-avatar";
 import { MessageActions } from "./message-actions";
 import { WorkflowCommitCard } from "./workflow-commit-card";
+import { PhoneNumberSelectionCard } from "./phone-number-selection-card";
+import { PhoneNumberProvisionCard } from "./phone-number-provision-card";
 import { isWorkflowCommitPart } from "@/features/chat/lib/workflow-commit-tool";
+import {
+  isPhoneSearchPart,
+  isPhoneProvisionPart,
+  isByoTwilioPart,
+  type PhoneSearchToolPart,
+  type PhoneProvisionToolPart,
+  type ByoTwilioToolPart,
+} from "@/features/chat/lib/phone-tools";
 
 interface MessageRowProps {
   message: UIMessage;
@@ -24,6 +34,7 @@ interface MessageRowProps {
   onEdit: (newText: string) => void;
   onRetry: () => void;
   onWorkflowSelect?: (workflowId: string) => void;
+  onPhoneSelect?: (phoneNumber: string) => void;
 }
 
 function extractCopyText(message: UIMessage): string {
@@ -42,6 +53,7 @@ export function MessageRow({
   onEdit,
   onRetry,
   onWorkflowSelect,
+  onPhoneSelect,
 }: MessageRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const initialText = extractCopyText(message);
@@ -77,7 +89,7 @@ export function MessageRow({
 
   const body = (
     <Message from={message.role}>
-      <MessageContent>
+      <MessageContent className="text-[14.6px]">
         {reasoningParts.length > 0 ? (
           <ChainOfThought defaultOpen={false}>
             <ChainOfThoughtHeader>
@@ -133,6 +145,23 @@ export function MessageRow({
                 <WorkflowCommitCard key={key} part={part} onWorkflowSelect={onWorkflowSelect} />
               );
             }
+            if (isToolUIPart(part) && isPhoneSearchPart(part)) {
+              return (
+                <PhoneNumberSelectionCard
+                  key={key}
+                  part={part as PhoneSearchToolPart}
+                  onPhoneSelect={onPhoneSelect}
+                />
+              );
+            }
+            if (isToolUIPart(part) && (isPhoneProvisionPart(part) || isByoTwilioPart(part))) {
+              return (
+                <PhoneNumberProvisionCard
+                  key={key}
+                  part={part as PhoneProvisionToolPart | ByoTwilioToolPart}
+                />
+              );
+            }
             return null;
           })
         )}
@@ -159,7 +188,7 @@ export function MessageRow({
   }
 
   return (
-    <div className="my-6 gap-3 group flex w-full">
+    <div className="gap-3 group flex w-full">
       <AssistantAvatar />
       <div className="min-w-0 flex-1">
         {body}

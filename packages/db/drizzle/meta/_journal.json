@@ -15,6 +15,20 @@
       "when": 1747612800000,
       "tag": "0008_add_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779349474983,
+      "tag": "0002_tidy_ronan",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779385462718,
+      "tag": "0003_milky_thor",
+      "breakpoints": true
     }
   ]
 }

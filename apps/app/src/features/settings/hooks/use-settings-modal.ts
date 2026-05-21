@@ -8,7 +8,6 @@ export type SettingsPage =
   | "billing"
   | "usage"
   | "security"
-  | "audit-logs"
   | "apps"
   | "channels"
   | "profile";

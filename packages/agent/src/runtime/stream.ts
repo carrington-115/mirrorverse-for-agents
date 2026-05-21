@@ -79,9 +79,13 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
         ...deps.additionalTools,
       };
 
+      const system = deps.systemPromptSuffix
+        ? `${MIRROPILOT_SYSTEM_PROMPT}\n\n${deps.systemPromptSuffix}`
+        : MIRROPILOT_SYSTEM_PROMPT;
+
       const result = streamText({
         model: resolveModel(modelId),
-        system: MIRROPILOT_SYSTEM_PROMPT,
+        system,
         messages: modelMessages,
         tools,
         stopWhen: stepCountIs(deps.maxSteps ?? DEFAULT_MAX_STEPS),

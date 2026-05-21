@@ -1,20 +1,23 @@
-import { buildMetadata } from "@/lib/seo/metadata";
-import { MOCK_CALL_LOGS } from "@/lib/data";
+"use client";
+
+import { useListCallsByPhoneQuery } from "@/features/deploy/api/queries";
 import { CallLogsTable } from "@/features/deploy/components/phone/call-logs-table";
 import { EmptyTabState } from "@/features/deploy/components/phone/empty-tab-state";
-
-export const metadata = buildMetadata({
-  title: "Call logs",
-  description: "Review call activity for this phone number.",
-  noIndex: true,
-});
 
 interface CallLogsPageProps {
   phoneId: string;
 }
 
 export function CallLogsPage({ phoneId }: CallLogsPageProps) {
-  const callLogs = MOCK_CALL_LOGS.filter((log) => log.phoneNumberId === phoneId);
+  const { data: callLogs = [], isLoading } = useListCallsByPhoneQuery(phoneId);
+
+  if (isLoading) {
+    return (
+      <div className="py-16 text-sm flex items-center justify-center text-muted-foreground">
+        Loading call logs...
+      </div>
+    );
+  }
 
   if (callLogs.length === 0) {
     return (

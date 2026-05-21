@@ -1,18 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Search, Shapes, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useTRPC } from "@/lib/trpc/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -26,6 +20,7 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
 import { useDirectoryListQuery } from "@/features/mcp-directory/api/queries";
+import { useConnectionsQuery } from "@/features/integrations/api/queries";
 import { useDebouncedValue } from "@/features/mcp-directory/lib/use-debounced-value";
 import { DirectoryGrid } from "@/features/mcp-directory/components/directory-grid";
 import { DirectoryIcon } from "@/features/mcp-directory/components/directory-icon";
@@ -91,47 +86,41 @@ interface AddIntegrationSheetProps {
 }
 
 export function AddIntegrationSheet({ open, onOpenChange, entry }: AddIntegrationSheetProps) {
-  const [credentialType, setCredentialType] = useState("oauth");
-  const [credentialValue, setCredentialValue] = useState("");
+  const trpc = useTRPC();
+  const connectMutation = useMutation(
+    trpc.connections.initiateAppConnection.mutationOptions({
+      onSuccess: ({ redirectUrl }) => {
+        if (redirectUrl) {
+          window.open(redirectUrl, "_blank", "noopener,noreferrer,width=600,height=700");
+        }
+        onOpenChange(false);
+      },
+      onError: () => {
+        toast.error(
+          `Could not connect ${entry?.displayName ?? "this integration"}. Please add it on your Composio dashboard.`,
+        );
+      },
+    }),
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-sm">
         <SheetHeader>
-          <SheetTitle>Add integration</SheetTitle>
+          <SheetTitle>Integration details</SheetTitle>
         </SheetHeader>
 
         <Tabs defaultValue="credentials" className="px-4">
           <TabsList variant="line">
-            <TabsTrigger value="credentials">Credentials</TabsTrigger>
+            <TabsTrigger value="credentials">Connect</TabsTrigger>
             <TabsTrigger value="tools">Tools</TabsTrigger>
             <TabsTrigger value="about">About</TabsTrigger>
           </TabsList>
 
           <TabsContent value="credentials" className="mt-4 gap-4 flex flex-col">
             <p className="text-sm text-muted-foreground">
-              Select a credential to use for this integration.
+              Authentication is handled via Composio. Click Connect below to start the OAuth flow.
             </p>
-            <div className="gap-2 flex flex-col">
-              <Select value={credentialType} onValueChange={setCredentialType}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="oauth">OAuth</SelectItem>
-                  <SelectItem value="api-key">API Key</SelectItem>
-                  <SelectItem value="access-token">Access Token</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="gap-2 flex flex-col">
-              <Label>Value</Label>
-              <Input
-                placeholder="Enter credential value"
-                value={credentialValue}
-                onChange={(e) => setCredentialValue(e.target.value)}
-              />
-            </div>
           </TabsContent>
 
           <TabsContent value="tools" className="mt-4 gap-2 flex flex-col">
@@ -174,7 +163,15 @@ export function AddIntegrationSheet({ open, onOpenChange, entry }: AddIntegratio
         </Tabs>
 
         <div className="p-4 mt-auto">
-          <Button className="w-full cursor-pointer">Add Integration</Button>
+          <Button
+            className="w-full cursor-pointer"
+            disabled={!entry || connectMutation.isPending}
+            onClick={() => {
+              if (entry) connectMutation.mutate({ appSlug: entry.slug });
+            }}
+          >
+            {connectMutation.isPending ? "Connecting..." : "Connect"}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -200,7 +197,15 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
     category: selectedCategory === DEFAULT_CATEGORY ? undefined : selectedCategory,
     limit: 60,
   });
-  const entries = useMemo(() => data?.items ?? [], [data]);
+  const { data: connectionsData } = useConnectionsQuery();
+  const connectedSlugs = useMemo(
+    () => new Set((connectionsData ?? []).map((c) => c.appSlug)),
+    [connectionsData],
+  );
+  const entries = useMemo(
+    () => (data?.items ?? []).filter((e) => !connectedSlugs.has(e.slug)),
+    [data, connectedSlugs],
+  );
 
   const [seenCategories, setSeenCategories] = useState<readonly string[]>([]);
   useEffect(() => {
@@ -254,12 +259,7 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
               </div>
 
               <div className="px-5 py-4 flex-1 overflow-y-auto">
-                <DirectoryGrid
-                  entries={entries}
-                  loading={isLoading}
-                  onAdd={handleSelect}
-                  onViewDetails={handleSelect}
-                />
+                <DirectoryGrid entries={entries} loading={isLoading} onViewDetails={handleSelect} />
               </div>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { appError, ErrCode } from "../../lib/errors";
 import { getChatTotalCostCents } from "../billing/repo";
 
 import * as repo from "./repo";
+import * as workflowsRepo from "../workflows/repo";
 import type {
   AppendUserMessageInput,
   DeleteChatInput,
@@ -79,6 +80,17 @@ export const chatsService = {
   },
 
   async deleteChat(ctx: BaseCtx, input: DeleteChatInput) {
+    const chat = await repo.getChatForUser(ctx.db, input.chatId, ctx.userId);
+    if (!chat) throw appError(ErrCode.NotFound, "Chat not found");
+
+    if (chat.workflowId) {
+      await workflowsRepo.deleteWorkflowForWorkspace(
+        ctx.db,
+        chat.workflowId,
+        chat.workspaceId,
+      );
+    }
+
     const ok = await repo.deleteChatForUser(ctx.db, input.chatId, ctx.userId);
     if (!ok) throw appError(ErrCode.NotFound, "Chat not found");
     return { id: input.chatId };

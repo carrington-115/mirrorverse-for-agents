@@ -11,6 +11,8 @@ import { env } from "@mirrorverse/env/backend";
 
 import { POST as chatHandler } from "../api/chat";
 import { GET as connectionsCallbackGet } from "../api/connections/callback";
+import { POST as speechHandler } from "../api/speech";
+import { vapiWebhookHandler } from "./features/voice/webhook";
 import {
   GET as inngestGet,
   POST as inngestPost,
@@ -98,6 +100,12 @@ const server = createServer(async (req, res) => {
     const request = await toFetchRequest(req);
     const url = new URL(request.url);
 
+    if (url.pathname === "/api/voice/webhook") {
+      const response = await vapiWebhookHandler(request);
+      await pipeResponse(res, response);
+      return;
+    }
+
     if (url.pathname === "/api/chat") {
       const response = await chatHandler(request);
       await pipeResponse(res, response);
@@ -106,6 +114,12 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/connections/callback") {
       const response = await connectionsCallbackGet(request);
+      await pipeResponse(res, response);
+      return;
+    }
+
+    if (url.pathname === "/api/speech/transcribe") {
+      const response = await speechHandler(request);
       await pipeResponse(res, response);
       return;
     }
@@ -129,7 +143,13 @@ const server = createServer(async (req, res) => {
       router: appRouter,
       createContext: () => createContext({ req: request }),
       onError({ error, path }) {
-        console.error(`[trpc] ${path ?? "<no-path>"}: ${error.message}`);
+        const cause =
+          (error.cause as { cause?: unknown } | undefined)?.cause ??
+          error.cause;
+        console.error(
+          `[trpc] ${path ?? "<no-path>"}: ${error.message}`,
+          cause ?? "",
+        );
       },
     });
     await pipeResponse(res, response);

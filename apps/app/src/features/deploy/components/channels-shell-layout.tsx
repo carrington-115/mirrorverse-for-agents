@@ -1,8 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
 
@@ -13,21 +11,7 @@ interface ChannelsShellLayoutProps {
 
 export function ChannelsShellLayout({ contentWidth = "90%", children }: ChannelsShellLayoutProps) {
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title="Channels"
-          actions={
-            <Button
-              className="cursor-pointer"
-              onClick={() => toast.info("Channel configuration coming soon")}
-            >
-              Configure channel
-            </Button>
-          }
-        />
-      }
-    >
+    <DashboardLayout header={<DashboardHeader title="Channels" />}>
       <div
         className="flex flex-col items-center gap-(--xl) p-(--lg)"
         style={{ width: contentWidth }}

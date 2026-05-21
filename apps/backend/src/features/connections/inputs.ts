@@ -6,7 +6,7 @@ export const toolkitInfoInput = z.object({
 
 export const initiateAppConnectionInput = z.object({
   appSlug: z.string().min(1).max(128),
-  chatId: z.string().min(1).max(128),
+  chatId: z.string().min(1).max(128).optional(),
 });
 
 export type ToolkitInfoInput = z.infer<typeof toolkitInfoInput>;

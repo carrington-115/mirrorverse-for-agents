@@ -7,8 +7,6 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import type { PhoneNumber } from "@/lib/types";
-import { MOCK_PHONE_NUMBERS } from "@/lib/data";
 import { ChannelSearchBar } from "@/features/deploy/components/channel-search-bar";
 import { ChannelEmptyState } from "@/features/deploy/components/channel-empty-state";
 import {
@@ -17,17 +15,23 @@ import {
   type ChannelColumn,
   type ChannelAction,
 } from "@/features/deploy/components/channel-table";
+import { useListNumbersQuery } from "@/features/deploy/api/queries";
+import { useReleaseNumberMutation } from "@/features/deploy/api/mutations";
+import { AddPhoneChoiceDialog } from "./add-phone-choice-dialog";
 import { AddPhoneSheet } from "./add-phone-sheet";
-
-const USE_MOCK_DATA = true;
+import { PhoneNumbersListSheet } from "./phone-numbers-list-sheet";
+import type { PhoneNumber } from "@/lib/types";
 
 export function PhoneShell() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
-  const [addOpen, setAddOpen] = useState(false);
+  const [choiceOpen, setChoiceOpen] = useState(false);
+  const [twilioOpen, setTwilioOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
 
-  const phoneNumbers = USE_MOCK_DATA ? MOCK_PHONE_NUMBERS : [];
+  const { data: phoneNumbers = [], isLoading } = useListNumbersQuery();
+  const { mutate: releaseNumber } = useReleaseNumberMutation();
 
   const filtered = phoneNumbers.filter((n) => {
     const q = search.toLowerCase();
@@ -113,7 +117,7 @@ export function PhoneShell() {
     { label: "Edit", onClick: () => toast.info("Edit coming soon") },
     {
       label: "Delete",
-      onClick: () => toast.info("Delete coming soon"),
+      onClick: (row) => releaseNumber({ phoneNumberId: row.id }),
       destructive: true,
     },
   ];
@@ -131,7 +135,7 @@ export function PhoneShell() {
             </span>
           )}
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setChoiceOpen(true)}>
           <Plus className="size-3.5" />
           Add phone number
         </Button>
@@ -146,15 +150,19 @@ export function PhoneShell() {
       />
       <Separator />
 
-      {filtered.length === 0 && search === "" ? (
-        <ChannelEmptyState
-          title="No Added phone numbers yet"
-          description="Add your first phone number to enable automated outbound/inbound calls — your superagents can use verified numbers for support inquiries, sales outreach, order updates, or appointment reminders across industries."
-          primaryLabel="Add phone number"
-          secondaryLabel="Configure channels"
-          onPrimary={() => setAddOpen(true)}
-          onSecondary={() => toast.info("Configure channels coming soon")}
-        />
+      {isLoading ? (
+        <div className="py-16 text-sm flex items-center justify-center text-muted-foreground">
+          Loading phone numbers...
+        </div>
+      ) : filtered.length === 0 && search === "" ? (
+        <div className="flex w-full items-center justify-center">
+          <ChannelEmptyState
+            title="No added phone numbers yet"
+            description="Add your first phone number to enable automated outbound/inbound calls — your superagents can use verified numbers for support inquiries, sales outreach, order updates, or appointment reminders across industries."
+            primaryLabel="Add phone number"
+            onPrimary={() => setChoiceOpen(true)}
+          />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="py-16 text-sm flex items-center justify-center text-muted-foreground">
           No phone numbers match your search.
@@ -169,7 +177,14 @@ export function PhoneShell() {
         />
       )}
 
-      <AddPhoneSheet open={addOpen} onOpenChange={setAddOpen} />
+      <AddPhoneChoiceDialog
+        open={choiceOpen}
+        onOpenChange={setChoiceOpen}
+        onSelectTwilio={() => setTwilioOpen(true)}
+        onSelectList={() => setListOpen(true)}
+      />
+      <AddPhoneSheet open={twilioOpen} onOpenChange={setTwilioOpen} />
+      <PhoneNumbersListSheet open={listOpen} onOpenChange={setListOpen} />
     </div>
   );
 }

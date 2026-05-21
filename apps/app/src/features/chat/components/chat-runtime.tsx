@@ -15,6 +15,9 @@ import {
   useEditAndTruncateMutation,
 } from "@/features/chat/api/mutations";
 
+import { ManageIntegrationsDialog } from "@/features/integrations/components/integration";
+import { AddWebhookSheet } from "@/features/webhooks/components/add-webhook-sheet";
+
 import { AppConnectPanel } from "./app-connect-panel";
 import { ChatConversation } from "./chat-conversation";
 import { ChatEmptyState } from "./chat-empty-state";
@@ -34,6 +37,8 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
   const [interruptDismissed, setInterruptDismissed] = useState(false);
   const [credentialsDismissed, setCredentialsDismissed] = useState(false);
   const [streamFinished, setStreamFinished] = useState(false);
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [webhookOpen, setWebhookOpen] = useState(false);
 
   const transport = useMemo(() => buildChatTransport(sessionId), [sessionId]);
 
@@ -75,6 +80,14 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
     (prompt: string) => {
       setStreamFinished(false);
       sendMessage({ text: prompt }, { body: { model } });
+    },
+    [sendMessage, model],
+  );
+
+  const handlePhoneSelect = useCallback(
+    (phoneNumber: string) => {
+      setStreamFinished(false);
+      sendMessage({ text: `Provision ${phoneNumber}` }, { body: { model } });
     },
     [sendMessage, model],
   );
@@ -138,6 +151,8 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
       onStop={stop}
       model={model}
       onModelChange={setModel}
+      onConnectApp={() => setBrowseOpen(true)}
+      onConnectWebhook={() => setWebhookOpen(true)}
     />
   );
 
@@ -203,6 +218,8 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
             onDismiss={() => setCredentialsDismissed(true)}
           />
         )}
+        <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
+        <AddWebhookSheet open={webhookOpen} onOpenChange={setWebhookOpen} />
       </>
     );
   }
@@ -216,6 +233,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
         onEditUserMessage={handleEditUserMessage}
         onRetryAssistant={handleRetryAssistant}
         onWorkflowSelect={onWorkflowSelect}
+        onPhoneSelect={handlePhoneSelect}
       />
       {credentialsInterrupt && !credentialsDismissed && (
         <AppConnectPanel
@@ -234,6 +252,8 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
           onDismiss={() => setInterruptDismissed(true)}
         />
       )}
+      <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
+      <AddWebhookSheet open={webhookOpen} onOpenChange={setWebhookOpen} />
     </div>
   );
 }

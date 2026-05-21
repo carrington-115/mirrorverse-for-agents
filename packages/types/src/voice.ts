@@ -13,6 +13,7 @@ export interface VoiceAgent extends Timestamps, Tenanted {
   readonly id: VoiceAgentId;
   readonly workflowId: WorkflowId;
   readonly provider: "vapi" | "retell" | "elevenlabs";
+  readonly direction: "inbound" | "outbound";
   readonly externalAssistantId: string;
   readonly voiceId: string;
   readonly model: string;
@@ -29,7 +30,10 @@ export interface PhoneNumber extends Timestamps, Tenanted {
   readonly id: PhoneNumberId;
   readonly e164: string;
   readonly twilioSid: string;
+  readonly vapiPhoneNumberId: string;
   readonly providerNumberId: string | null;
+  readonly source: "managed" | "byo";
+  readonly connectionId: string | null;
   readonly voiceAgentId: VoiceAgentId | null;
   readonly status: PhoneNumberStatus;
   readonly capabilities: {

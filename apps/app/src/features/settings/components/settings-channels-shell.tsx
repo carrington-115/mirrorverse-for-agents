@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { MOCK_PHONE_NUMBERS, MOCK_WHATSAPP_CHANNELS } from "@/lib/data";
 
 export function ChannelsSettingsShell() {
   return (
@@ -36,28 +35,11 @@ export function ChannelsSettingsShell() {
           </CardTitle>
           <CardDescription>Voice agent phone numbers.</CardDescription>
           <CardAction>
-            <Badge variant="secondary">{MOCK_PHONE_NUMBERS.length} numbers</Badge>
+            <Badge variant="secondary">0 numbers</Badge>
           </CardAction>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col divide-y divide-border">
-            {MOCK_PHONE_NUMBERS.map((num) => (
-              <div key={num.id} className="py-2.5 text-sm flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{num.number}</p>
-                  {num.description && (
-                    <p className="text-xs text-muted-foreground">{num.description}</p>
-                  )}
-                </div>
-                <Badge
-                  variant={num.status === "active" ? "outline" : "secondary"}
-                  className="capitalize"
-                >
-                  {num.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground">No phone numbers configured.</p>
         </CardContent>
         <CardFooter className="gap-2">
           <Button asChild variant="outline" size="sm">
@@ -84,26 +66,11 @@ export function ChannelsSettingsShell() {
           </CardTitle>
           <CardDescription>WhatsApp agent numbers.</CardDescription>
           <CardAction>
-            <Badge variant="secondary">{MOCK_WHATSAPP_CHANNELS.length} numbers</Badge>
+            <Badge variant="secondary">0 numbers</Badge>
           </CardAction>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col divide-y divide-border">
-            {MOCK_WHATSAPP_CHANNELS.map((channel) => (
-              <div key={channel.id} className="py-2.5 text-sm flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{channel.phoneNumber}</p>
-                  <p className="text-xs text-muted-foreground">{channel.displayName}</p>
-                </div>
-                <Badge
-                  variant={channel.status === "active" ? "outline" : "secondary"}
-                  className="capitalize"
-                >
-                  {channel.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground">No WhatsApp numbers configured.</p>
         </CardContent>
         <CardFooter className="gap-2">
           <Button asChild variant="outline" size="sm">

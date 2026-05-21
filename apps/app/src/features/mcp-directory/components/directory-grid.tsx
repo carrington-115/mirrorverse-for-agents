@@ -7,7 +7,6 @@ interface DirectoryGridProps {
   entries: readonly DirectoryEntry[];
   loading?: boolean;
   emptyMessage?: string;
-  onAdd?: (entry: DirectoryEntry) => void;
   onViewDetails?: (entry: DirectoryEntry) => void;
 }
 
@@ -15,7 +14,6 @@ export function DirectoryGrid({
   entries,
   loading,
   emptyMessage = "No integrations match your search.",
-  onAdd,
   onViewDetails,
 }: DirectoryGridProps) {
   if (loading && entries.length === 0) {
@@ -39,7 +37,7 @@ export function DirectoryGrid({
   return (
     <div className="sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 grid w-full grid-cols-3">
       {entries.map((entry) => (
-        <DirectoryCard key={entry.id} entry={entry} onAdd={onAdd} onViewDetails={onViewDetails} />
+        <DirectoryCard key={entry.id} entry={entry} onViewDetails={onViewDetails} />
       ))}
     </div>
   );

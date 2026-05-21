@@ -23,7 +23,9 @@ import type {
 import type { UIMessage } from "ai";
 
 import { authenticateRequest } from "../src/lib/auth";
+import { buildPhoneTools } from "../src/features/voice/chat-tools";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
+import { listWorkspaceWebhooks } from "../src/features/webhooks/repo";
 import { recordChatUsage } from "../src/features/billing/repo";
 import {
   firstUserText,
@@ -303,16 +305,29 @@ export async function POST(req: Request): Promise<Response> {
   const builderModel = requestedBuilderModel ?? modelForRun;
   let stepIndex = 0;
 
-  const additionalTools = await buildComposioTools(
-    db,
-    workspaceId,
-    chat.id,
-  ).catch((err) => {
-    if (env.NODE_ENV === "development") {
-      console.error("[chat] failed to build composio tools:", err);
-    }
-    return {} as Record<string, Tool>;
+  const [composioTools, workspaceWebhooks] = await Promise.all([
+    buildComposioTools(db, workspaceId, chat.id).catch((err) => {
+      if (env.NODE_ENV === "development") {
+        console.error("[chat] failed to build composio tools:", err);
+      }
+      return {} as Record<string, Tool>;
+    }),
+    listWorkspaceWebhooks(db, workspaceId).catch(() => []),
+  ]);
+
+  const phoneTools = buildPhoneTools({ db, workspaceId, userId: user.id });
+
+  const additionalTools = { ...composioTools, ...phoneTools };
+
+  const webhookContextLines = workspaceWebhooks.map((w) => {
+    let line = `- ${w.name}: ${w.url}`;
+    if (w.description) line += ` — ${w.description}`;
+    return line;
   });
+  const systemPromptSuffix =
+    webhookContextLines.length > 0
+      ? `Workspace webhooks:\n${webhookContextLines.join("\n")}\nWhen the user asks to call back to their system, trigger an event, or send data to an external endpoint, reference these webhook URLs.`
+      : undefined;
 
   // Pre-flight: detect external app slugs in the user message and check
   // whether they're connected. If a connection is missing, emit an interrupt
@@ -347,6 +362,7 @@ export async function POST(req: Request): Promise<Response> {
     messages: body.messages,
     model: modelForRun,
     builderModel,
+    systemPromptSuffix,
     onLifecycleEvent: async (event) => {
       await safeAppendChatEvent({
         db,

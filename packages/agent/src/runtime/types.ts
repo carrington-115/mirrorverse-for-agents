@@ -39,6 +39,7 @@ export interface RunMirropilotDeps {
   readonly builderModel?: string;
   readonly maxSteps?: number;
   readonly additionalTools?: Record<string, Tool>;
+  readonly systemPromptSuffix?: string;
   readonly onUsage?: (event: UsageEvent) => Promise<void> | void;
   readonly onLifecycleEvent?: (event: AgentLifecycleEvent) => Promise<void> | void;
   readonly onFinish?: (event: FinishEvent) => Promise<void> | void;
