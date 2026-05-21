@@ -6,10 +6,15 @@ import {
   runMirropilot,
 } from "@mirrorverse/agent";
 import { randomUUID } from "node:crypto";
-import { tool, type Tool } from "ai";
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  tool,
+  type Tool,
+} from "ai";
 
 import { env } from "@mirrorverse/env/backend";
-import { eq, isNull, and, getDb, schema } from "@mirrorverse/db";
+import { getDb } from "@mirrorverse/db";
 import type {
   ChatId,
   McpServerId,
@@ -38,12 +43,14 @@ import {
   isComposioConfigured,
   listComposioTools,
   getComposioAuthRedirectUrl,
+  lookupComposioMcpServerId,
 } from "../src/mcp/composio/client";
 import {
   NeedsAuthError,
   invokeComposioTool,
 } from "../src/mcp/composio/dispatcher";
 import { createConnectionRequest } from "../src/mcp/composio/auth";
+import { runPreflightCheck } from "../src/mcp/composio/preflight";
 import type { Database } from "@mirrorverse/db";
 
 async function safeAppendChatEvent(
@@ -56,20 +63,6 @@ async function safeAppendChatEvent(
       console.error("[chat] failed to append chat_event:", err);
     }
   }
-}
-
-async function lookupComposioMcpServerId(db: Database): Promise<string | null> {
-  const [row] = await db
-    .select({ id: schema.mcpServers.id })
-    .from(schema.mcpServers)
-    .where(
-      and(
-        eq(schema.mcpServers.slug, "composio"),
-        isNull(schema.mcpServers.workspaceId),
-      ),
-    )
-    .limit(1);
-  return row?.id ?? null;
 }
 
 function isConnectedAccountNotFound(err: unknown): boolean {
@@ -118,10 +111,17 @@ async function buildComposioTools(
             let redirectUrl =
               err instanceof NeedsAuthError ? err.redirectUrl : null;
 
+            const connectionRequestId = randomUUID();
+
             if (!redirectUrl) {
+              const callbackBase =
+                env.COMPOSIO_OAUTH_CALLBACK_URL ??
+                `http://localhost:${env.PORT}/api/connections/callback`;
+              const callbackUrl = `${callbackBase}?requestId=${connectionRequestId}`;
               redirectUrl = await getComposioAuthRedirectUrl(
                 workspaceId,
                 resolvedSlug,
+                callbackUrl,
               ).catch(() => null);
             }
 
@@ -133,6 +133,7 @@ async function buildComposioTools(
 
             if (redirectUrl) {
               const connectionReq = await createConnectionRequest(db, {
+                id: connectionRequestId,
                 workspaceId,
                 chatId,
                 mcpServerId: composioMcpServerId,
@@ -310,8 +311,32 @@ export async function POST(req: Request): Promise<Response> {
     if (env.NODE_ENV === "development") {
       console.error("[chat] failed to build composio tools:", err);
     }
-    return {};
+    return {} as Record<string, Tool>;
   });
+
+  // Pre-flight: detect external app slugs in the user message and check
+  // whether they're connected. If a connection is missing, emit an interrupt
+  // event and return an empty stream so the frontend polls pendingInterrupt.
+  const preflight = await runPreflightCheck(
+    db,
+    workspaceId,
+    chat.id,
+    startingText,
+  );
+  if (preflight.interrupted) {
+    console.log(
+      `[chat] preflight interrupted chatId=${chat.id} missingSlug=${preflight.missingSlug}`,
+    );
+    // Return an empty stream so useChat's onFinish fires, streamFinished becomes
+    // true, and the pendingInterrupt poll picks up the connectionRequest row.
+    const stream = createUIMessageStream<UIMessage>({
+      originalMessages: body.messages,
+      execute: async () => {
+        /* intentionally empty */
+      },
+    });
+    return createUIMessageStreamResponse({ stream });
+  }
 
   return runMirropilot({
     additionalTools,

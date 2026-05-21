@@ -1,6 +1,7 @@
 "use client";
 
-import { ExternalLink, KeyRound } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,9 +23,12 @@ export function CredentialInterruptDialog({
   redirectUrl,
   onDismiss,
 }: CredentialInterruptDialogProps) {
+  const [state, setState] = useState<"idle" | "waiting">("idle");
+
   function handleConnect() {
     window.open(redirectUrl, "_blank", "noopener,noreferrer,width=600,height=700");
-    onDismiss();
+    setState("waiting");
+    // Do NOT call onDismiss here — keep polling active until connection resolves.
   }
 
   return (
@@ -36,17 +40,26 @@ export function CredentialInterruptDialog({
           </div>
           <DialogTitle>Connect {appSlug}</DialogTitle>
           <DialogDescription>
-            The agent needs access to {appSlug} to continue. Connect your account to proceed.
+            {state === "idle"
+              ? `The agent needs access to ${appSlug} to continue. Connect your account to proceed.`
+              : `Waiting for your ${appSlug} connection to complete. You can close the popup once you&apos;ve authorized.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={onDismiss}>
             Cancel
           </Button>
-          <Button onClick={handleConnect}>
-            <ExternalLink className="size-4" />
-            Connect {appSlug}
-          </Button>
+          {state === "idle" ? (
+            <Button onClick={handleConnect}>
+              <ExternalLink className="size-4" />
+              Connect {appSlug}
+            </Button>
+          ) : (
+            <Button disabled>
+              <Loader2 className="size-4 animate-spin" />
+              Connecting&hellip;
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

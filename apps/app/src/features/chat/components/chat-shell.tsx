@@ -21,6 +21,7 @@ export function ChatShell({ sessionId }: ChatShellProps) {
   const { data, isLoading } = useChatQuery(sessionId);
   const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_VW);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const dragState = useRef({ isDragging: false, startX: 0, startWidthPx: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +29,16 @@ export function ChatShell({ sessionId }: ChatShellProps) {
     () => (data ? data.messages.map(contentBlocksToUIMessage) : []),
     [data],
   );
+
+  const handleWorkflowSelect = useCallback((workflowId: string) => {
+    setSelectedWorkflowId(workflowId);
+    setIsPanelOpen(true);
+  }, []);
+
+  const handlePanelClose = useCallback(() => {
+    setIsPanelOpen(false);
+    setSelectedWorkflowId(null);
+  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     dragState.current = {
@@ -62,25 +73,20 @@ export function ChatShell({ sessionId }: ChatShellProps) {
 
   if (isLoading || !data) return <ChatSkeleton />;
 
-  const workflowId = data.chat?.workflowId ?? null;
-
-  if (!workflowId) {
-    // Chat panel fills the full width so the scrollbar lands at the page
-    // edge. The 780px reading-column constraint lives inside the conversation
-    // and input, not on this outer container.
-    return (
-      <div className="flex h-full w-full flex-col">
-        <ChatRuntime sessionId={sessionId} initialMessages={initialMessages} />
-      </div>
-    );
-  }
+  const chatWorkflowId = data.chat?.workflowId ?? null;
+  const effectiveWorkflowId = selectedWorkflowId ?? chatWorkflowId;
+  const showPanel = isPanelOpen && !!effectiveWorkflowId;
 
   return (
     <div className="flex h-full w-full overflow-hidden">
       <div className="min-w-0 flex h-full flex-1 flex-col">
-        <ChatRuntime sessionId={sessionId} initialMessages={initialMessages} />
+        <ChatRuntime
+          sessionId={sessionId}
+          initialMessages={initialMessages}
+          onWorkflowSelect={handleWorkflowSelect}
+        />
       </div>
-      {isPanelOpen && (
+      {showPanel && (
         <>
           <div
             className="lg:flex w-1 group hidden shrink-0 cursor-col-resize items-stretch select-none"
@@ -93,7 +99,7 @@ export function ChatShell({ sessionId }: ChatShellProps) {
             className="lg:flex hidden h-full shrink-0 flex-col"
             style={{ width: `${panelWidth}vw` }}
           >
-            <ChatWorkflowSidePanel workflowId={workflowId} onClose={() => setIsPanelOpen(false)} />
+            <ChatWorkflowSidePanel workflowId={effectiveWorkflowId} onClose={handlePanelClose} />
           </div>
         </>
       )}

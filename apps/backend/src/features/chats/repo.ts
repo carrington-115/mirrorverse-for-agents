@@ -4,6 +4,7 @@ import {
   desc,
   eq,
   gt,
+  inArray,
   schema,
   sql,
   type Database,
@@ -279,6 +280,26 @@ export interface AppendChatEventInput {
   readonly chatId: string;
   readonly kind: ChatEventKind;
   readonly payload: ChatEventPayload;
+}
+
+export async function filterUnconnectedSlugs(
+  db: Database,
+  workspaceId: string,
+  slugs: readonly string[],
+): Promise<string[]> {
+  if (slugs.length === 0) return [];
+  const activeRows = await db
+    .select({ appSlug: schema.connections.appSlug })
+    .from(schema.connections)
+    .where(
+      and(
+        eq(schema.connections.workspaceId, workspaceId),
+        eq(schema.connections.status, "active"),
+        inArray(schema.connections.appSlug, [...slugs]),
+      ),
+    );
+  const activeSet = new Set(activeRows.map((r) => r.appSlug));
+  return slugs.filter((s) => !activeSet.has(s));
 }
 
 export async function getLatestInterruptForChat(db: Database, chatId: string) {

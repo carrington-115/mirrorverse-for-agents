@@ -2,7 +2,6 @@
 
 import { useTransition } from "react";
 import { useTheme } from "next-themes";
-import Link from "next/link";
 import {
   BarChart3Icon,
   Check,
@@ -32,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { signOutAction } from "@/features/auth/actions/sign-out";
+import { useSettingsModal } from "@/features/settings/hooks/use-settings-modal";
 
 interface SidebarProfileProps {
   name: string;
@@ -82,36 +82,30 @@ function ProfileMenuItems({
   onSignOut: () => void;
   isSigningOut: boolean;
 }) {
+  const { openSettings } = useSettingsModal();
+
   return (
     <>
       <DropdownMenuGroup>
-        <DropdownMenuItem asChild>
-          <Link href="/settings/profile">
-            <UserIcon className="mr-2 size-4" />
-            Profile
-          </Link>
+        <DropdownMenuItem onSelect={() => openSettings("profile")}>
+          <UserIcon className="mr-2 size-4" />
+          Profile
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/settings/billing">
-            <CreditCardIcon className="mr-2 size-4" />
-            Billing
-          </Link>
+        <DropdownMenuItem onSelect={() => openSettings("billing")}>
+          <CreditCardIcon className="mr-2 size-4" />
+          Billing
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/settings/usage">
-            <BarChart3Icon className="mr-2 size-4" />
-            Usage
-          </Link>
+        <DropdownMenuItem onSelect={() => openSettings("usage")}>
+          <BarChart3Icon className="mr-2 size-4" />
+          Usage
         </DropdownMenuItem>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <AppearanceSubmenu />
-        <DropdownMenuItem asChild>
-          <Link href="/settings/general">
-            <SettingsIcon className="mr-2 size-4" />
-            Settings
-          </Link>
+        <DropdownMenuItem onSelect={() => openSettings("general")}>
+          <SettingsIcon className="mr-2 size-4" />
+          Settings
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <a href="mailto:support@mirrorverse.ai">

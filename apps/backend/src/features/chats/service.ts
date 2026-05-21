@@ -147,7 +147,25 @@ export const chatsService = {
     if (!event) return null;
     const payload = event.payload as { kind?: string; interrupt?: unknown };
     if (payload.kind !== "interrupt") return null;
-    return (payload.interrupt ?? null) as Record<string, unknown> | null;
+    const interrupt = (payload.interrupt ?? null) as Record<
+      string,
+      unknown
+    > | null;
+    if (!interrupt) return null;
+
+    // For the plural preflight interrupt, filter out slugs that are now connected.
+    // Returns null when all apps are connected so the frontend panel auto-dismisses.
+    if (interrupt.kind === "needs_credentials") {
+      const stillMissing = await repo.filterUnconnectedSlugs(
+        ctx.db,
+        chat.workspaceId,
+        interrupt.appSlugs as string[],
+      );
+      if (stillMissing.length === 0) return null;
+      return { ...interrupt, appSlugs: stillMissing };
+    }
+
+    return interrupt;
   },
 
   async editUserMessage(ctx: BaseCtx, input: EditUserMessageInput) {
