@@ -30,7 +30,7 @@ const COUNTRY_LABELS: Record<string, string> = {
 function CapabilityBadge({ label, active }: { label: string; active: boolean }) {
   if (!active) return null;
   return (
-    <span className="rounded-sm px-1.5 py-0.5 font-medium inline-flex items-center bg-primary/10 text-[10px] text-primary">
+    <span className="px-1.5 py-0.5 font-medium inline-flex items-center rounded-sm bg-primary/10 text-[10px] text-primary">
       {label}
     </span>
   );
@@ -66,10 +66,10 @@ function SkeletonRow() {
   return (
     <div className="gap-3 px-3 py-2.5 flex items-center justify-between rounded-lg">
       <div className="space-y-1.5 flex-1">
-        <div className="h-4 w-36 rounded-sm animate-pulse bg-muted" />
-        <div className="h-3 w-24 rounded-sm animate-pulse bg-muted" />
+        <div className="h-4 w-36 animate-pulse rounded-sm bg-muted" />
+        <div className="h-3 w-24 animate-pulse rounded-sm bg-muted" />
       </div>
-      <div className="h-7 w-14 rounded-sm animate-pulse shrink-0 bg-muted" />
+      <div className="h-7 w-14 animate-pulse shrink-0 rounded-sm bg-muted" />
     </div>
   );
 }
