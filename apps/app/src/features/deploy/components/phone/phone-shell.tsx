@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import type { PhoneNumber } from "@/lib/types";
-import { MOCK_PHONE_NUMBERS } from "@/lib/data";
 import { ChannelSearchBar } from "@/features/deploy/components/channel-search-bar";
 import { ChannelEmptyState } from "@/features/deploy/components/channel-empty-state";
 import {
@@ -17,17 +16,19 @@ import {
   type ChannelColumn,
   type ChannelAction,
 } from "@/features/deploy/components/channel-table";
+import { AddPhoneChoiceDialog } from "./add-phone-choice-dialog";
 import { AddPhoneSheet } from "./add-phone-sheet";
+import { PhoneNumbersListSheet } from "./phone-numbers-list-sheet";
 
-const USE_MOCK_DATA = true;
+const phoneNumbers: PhoneNumber[] = [];
 
 export function PhoneShell() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
-  const [addOpen, setAddOpen] = useState(false);
-
-  const phoneNumbers = USE_MOCK_DATA ? MOCK_PHONE_NUMBERS : [];
+  const [choiceOpen, setChoiceOpen] = useState(false);
+  const [twilioOpen, setTwilioOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
 
   const filtered = phoneNumbers.filter((n) => {
     const q = search.toLowerCase();
@@ -131,7 +132,7 @@ export function PhoneShell() {
             </span>
           )}
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setChoiceOpen(true)}>
           <Plus className="size-3.5" />
           Add phone number
         </Button>
@@ -147,14 +148,14 @@ export function PhoneShell() {
       <Separator />
 
       {filtered.length === 0 && search === "" ? (
-        <ChannelEmptyState
-          title="No Added phone numbers yet"
-          description="Add your first phone number to enable automated outbound/inbound calls — your superagents can use verified numbers for support inquiries, sales outreach, order updates, or appointment reminders across industries."
-          primaryLabel="Add phone number"
-          secondaryLabel="Configure channels"
-          onPrimary={() => setAddOpen(true)}
-          onSecondary={() => toast.info("Configure channels coming soon")}
-        />
+        <div className="flex w-full items-center justify-center">
+          <ChannelEmptyState
+            title="No added phone numbers yet"
+            description="Add your first phone number to enable automated outbound/inbound calls — your superagents can use verified numbers for support inquiries, sales outreach, order updates, or appointment reminders across industries."
+            primaryLabel="Add phone number"
+            onPrimary={() => setChoiceOpen(true)}
+          />
+        </div>
       ) : filtered.length === 0 ? (
         <div className="py-16 text-sm flex items-center justify-center text-muted-foreground">
           No phone numbers match your search.
@@ -169,7 +170,14 @@ export function PhoneShell() {
         />
       )}
 
-      <AddPhoneSheet open={addOpen} onOpenChange={setAddOpen} />
+      <AddPhoneChoiceDialog
+        open={choiceOpen}
+        onOpenChange={setChoiceOpen}
+        onSelectTwilio={() => setTwilioOpen(true)}
+        onSelectList={() => setListOpen(true)}
+      />
+      <AddPhoneSheet open={twilioOpen} onOpenChange={setTwilioOpen} />
+      <PhoneNumbersListSheet open={listOpen} onOpenChange={setListOpen} />
     </div>
   );
 }

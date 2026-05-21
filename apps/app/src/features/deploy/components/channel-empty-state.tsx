@@ -14,9 +14,9 @@ interface ChannelEmptyStateProps {
   title: string;
   description: string;
   primaryLabel: string;
-  secondaryLabel: string;
+  secondaryLabel?: string;
   onPrimary: () => void;
-  onSecondary: () => void;
+  onSecondary?: () => void;
 }
 
 export function ChannelEmptyState({
@@ -44,9 +44,11 @@ export function ChannelEmptyState({
               <Plus className="size-4" />
               {primaryLabel}
             </Button>
-            <Button variant="outline" onClick={onSecondary}>
-              {secondaryLabel}
-            </Button>
+            {secondaryLabel && onSecondary && (
+              <Button variant="outline" onClick={onSecondary}>
+                {secondaryLabel}
+              </Button>
+            )}
           </div>
         </EmptyContent>
       </Empty>

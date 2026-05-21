@@ -10,6 +10,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { env } from "@mirrorverse/env/backend";
 
 import { POST as chatHandler } from "../api/chat";
+import { vapiWebhookHandler } from "./features/voice/webhook";
 import {
   GET as inngestGet,
   POST as inngestPost,
@@ -96,6 +97,12 @@ const server = createServer(async (req, res) => {
     }
     const request = await toFetchRequest(req);
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/voice/webhook") {
+      const response = await vapiWebhookHandler(request);
+      await pipeResponse(res, response);
+      return;
+    }
 
     if (url.pathname === "/api/chat") {
       const response = await chatHandler(request);

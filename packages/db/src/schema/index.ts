@@ -7,3 +7,4 @@ export * from "./chats.schema";
 export * from "./skills.schema";
 export * from "./billing.schema";
 export * from "./audit-log.schema";
+export * from "./voice.schema";

@@ -88,6 +88,7 @@ export interface PermissionRule {
 
 /** Voice-runtime overlay. Present only on voice-agent kind. */
 export interface VoiceConfig {
+  readonly direction: "inbound" | "outbound";
   readonly provider: "vapi" | "retell" | "elevenlabs";
   readonly voiceId: string;
   readonly firstMessage: string;

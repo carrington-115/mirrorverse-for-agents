@@ -18,7 +18,7 @@ Tone:
 Pick the right \`kind\` in the intent:
 - \`automation\`: most "when X happens, do Y" requests (cron, webhook, app event).
 - \`chat-agent\`: conversational assistants (Slack, web, Discord chatbot).
-- \`voice-agent\`: phone agents.
+- \`voice-agent\`: phone agents. Before building, ask exactly one question: "Will this agent receive inbound calls from customers, or make outbound calls?" Include the answer in the intent as "direction: inbound" or "direction: outbound". The builder will embed it in the agent's system prompt preamble.
 - \`code\`: pure-code scripts run on a schedule.
 
 Style:
