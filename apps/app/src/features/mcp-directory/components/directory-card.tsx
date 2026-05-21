@@ -1,7 +1,10 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTRPC } from "@/lib/trpc/client";
 import { DirectoryIcon } from "./directory-icon";
 import type { DirectoryEntry } from "../api/types";
 
@@ -27,11 +30,26 @@ export function DirectoryCardSkeleton() {
 
 interface DirectoryCardProps {
   entry: DirectoryEntry;
-  onAdd?: (entry: DirectoryEntry) => void;
   onViewDetails?: (entry: DirectoryEntry) => void;
 }
 
-export function DirectoryCard({ entry, onAdd, onViewDetails }: DirectoryCardProps) {
+export function DirectoryCard({ entry, onViewDetails }: DirectoryCardProps) {
+  const trpc = useTRPC();
+  const connectMutation = useMutation(
+    trpc.connections.initiateAppConnection.mutationOptions({
+      onSuccess: ({ redirectUrl }) => {
+        if (redirectUrl) {
+          window.open(redirectUrl, "_blank", "noopener,noreferrer,width=600,height=700");
+        }
+      },
+      onError: () => {
+        toast.error(
+          `Could not connect ${entry.displayName}. Please add it on your Composio dashboard.`,
+        );
+      },
+    }),
+  );
+
   return (
     <div className="gap-3 p-4 hover:shadow-sm flex cursor-pointer flex-col justify-between rounded-xl border border-border bg-background transition-shadow">
       <div className="gap-1.5 flex flex-col">
@@ -46,10 +64,10 @@ export function DirectoryCard({ entry, onAdd, onViewDetails }: DirectoryCardProp
         <Button
           size="sm"
           className="text-xs w-1/2 cursor-pointer"
-          onClick={() => onAdd?.(entry)}
-          disabled={!onAdd}
+          onClick={() => connectMutation.mutate({ appSlug: entry.slug })}
+          disabled={connectMutation.isPending}
         >
-          Add integration
+          {connectMutation.isPending ? "Connecting..." : "Connect"}
         </Button>
         <Button
           size="sm"
@@ -58,7 +76,7 @@ export function DirectoryCard({ entry, onAdd, onViewDetails }: DirectoryCardProp
           onClick={() => onViewDetails?.(entry)}
           disabled={!onViewDetails}
         >
-          View details
+          Details
         </Button>
       </div>
     </div>

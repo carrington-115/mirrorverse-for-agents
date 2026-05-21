@@ -14,6 +14,26 @@ import { connections } from "./tools.schema";
 import { workspaces } from "./tenancy.schema";
 import { workflows, workflowVersions } from "./workflows.schema";
 
+/**
+ * Stores encrypted Twilio credentials for BYO (bring-your-own) phone numbers
+ * connected via the Mirrropilot chat flow. Separate from the Composio
+ * connections table, which requires an MCP server reference.
+ */
+export const voiceTwilioCreds = pgTable(
+  "voice_twilio_creds",
+  {
+    id: text("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()::text`),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    credentialEncrypted: text("credential_encrypted").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("voice_twilio_creds_workspace_idx").on(t.workspaceId)],
+);
+
 export const voiceAgents = pgTable(
   "voice_agents",
   {
@@ -69,6 +89,9 @@ export const phoneNumbers = pgTable(
     vapiPhoneNumberId: text("vapi_phone_number_id").notNull(),
     source: text("source").$type<"managed" | "byo">().notNull(),
     connectionId: text("connection_id").references(() => connections.id, { onDelete: "set null" }),
+    byoTwilioCredId: text("byo_twilio_cred_id").references(() => voiceTwilioCreds.id, {
+      onDelete: "set null",
+    }),
     voiceAgentId: text("voice_agent_id").references(() => voiceAgents.id, { onDelete: "set null" }),
     status: text("status").$type<PhoneNumberStatus>().notNull().default("provisioning"),
     capabilities: jsonb("capabilities")

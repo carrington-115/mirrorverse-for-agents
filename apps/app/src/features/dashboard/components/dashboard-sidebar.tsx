@@ -2,13 +2,16 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Loader2,
+  Megaphone,
   MessageCirclePlus,
+  Phone,
   Shapes,
   Workflow as WorkflowIcon,
-  Megaphone,
 } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import type { UserMetadata } from "@supabase/supabase-js";
 import {
   Sidebar,
@@ -24,6 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { generateSessionId } from "@/features/chat/actions/generate-session-id";
@@ -54,9 +58,6 @@ export function DashboardSidebar() {
     <Sidebar className={cn("border-none bg-transparent!", isCollapsed && "items-center")}>
       <SidebarHeader>
         <SidebarHeaderComponent />
-      </SidebarHeader>
-
-      <SidebarContent className={cn(isCollapsed && "ml-[.5rem] w-full")}>
         <SidebarGroup className={cn(isCollapsed && "p-0")}>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -67,9 +68,13 @@ export function DashboardSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+      </SidebarHeader>
 
-        {!isCollapsed && <ConversationsSection />}
-      </SidebarContent>
+      {!isCollapsed && (
+        <SidebarContent className="overflow-y-auto">
+          <ConversationsSection />
+        </SidebarContent>
+      )}
 
       <SidebarFooter>
         <SidebarGroup className="group-data-[collapsible=icon]:p-0">
@@ -139,16 +144,39 @@ function NewChatButton() {
 }
 
 function ChannelsItem() {
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
   return (
-    <SidebarActivityButton
-      href="/deploy/phone"
-      name="Channels"
-      icon={Megaphone}
-      sub={[
-        { name: "Phone", url: "/deploy/phone" },
-        { name: "WhatsApp", url: "/deploy/whatsapp" },
-      ]}
-    />
+    <HoverCard openDelay={120} closeDelay={120}>
+      <SidebarMenuItem>
+        <HoverCardTrigger asChild>
+          <SidebarMenuButton
+            className={cn(isCollapsed && "flex items-center justify-center")}
+            tooltip={isCollapsed ? "Channels" : undefined}
+          >
+            <Megaphone className="size-4" />
+            {!isCollapsed && <span>Channels</span>}
+          </SidebarMenuButton>
+        </HoverCardTrigger>
+      </SidebarMenuItem>
+      <HoverCardContent side="right" align="start" className="w-48 p-1">
+        <Link
+          href="/deploy/phone"
+          className="gap-2 px-2 py-1.5 text-sm flex items-center rounded-md hover:bg-accent hover:text-accent-foreground"
+        >
+          <Phone className="size-4" />
+          <span>Phone</span>
+        </Link>
+        <Link
+          href="/deploy/whatsapp"
+          className="gap-2 px-2 py-1.5 text-sm flex items-center rounded-md hover:bg-accent hover:text-accent-foreground"
+        >
+          <SiWhatsapp className="size-4" />
+          <span>WhatsApp</span>
+        </Link>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -190,7 +218,7 @@ function ConversationsSection() {
         <SidebarGroup>
           <SidebarGroupLabel>Pinned chats</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1.5">
+            <SidebarMenu className="gap-px">
               {pinned.map((c) => (
                 <SidebarMenuItem key={c.id}>
                   <ConversationSidebarItem chatId={c.id} title={titleFor(c)} isPinned={true} />
@@ -206,7 +234,7 @@ function ConversationsSection() {
           <p className="px-2 text-xs text-muted-foreground">No unpinned chats.</p>
         ) : (
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1.5">
+            <SidebarMenu className="gap-px">
               {unpinned.map((c) => (
                 <SidebarMenuItem key={c.id}>
                   <ConversationSidebarItem chatId={c.id} title={titleFor(c)} isPinned={false} />

@@ -4,7 +4,7 @@ import { IntegrationsPage } from "@/features/integrations/pages/integrations-pag
 
 export const metadata: Metadata = buildMetadata({
   title: "Integrations",
-  description: "Connect Mirroverse to the apps, tools, and services your agents use.",
+  description: "Connect Mirrorverse to the apps, tools, and services your agents use.",
   noIndex: true,
 });
 

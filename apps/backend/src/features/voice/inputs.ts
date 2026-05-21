@@ -38,6 +38,11 @@ export const listVoiceCallsInput = z.object({
   limit: z.number().int().min(1).max(100).default(50),
 });
 
+export const listCallsByPhoneInput = z.object({
+  phoneNumberId: z.string(),
+  limit: z.number().int().min(1).max(100).default(50),
+});
+
 export type SearchNumbersInput = z.infer<typeof searchNumbersInput>;
 export type BuyNumberInput = z.infer<typeof buyNumberInput>;
 export type ReleaseNumberInput = z.infer<typeof releaseNumberInput>;
@@ -45,3 +50,4 @@ export type ActivateVoiceInput = z.infer<typeof activateVoiceInput>;
 export type DeactivateVoiceInput = z.infer<typeof deactivateVoiceInput>;
 export type GetVoiceAgentInput = z.infer<typeof getVoiceAgentInput>;
 export type ListVoiceCallsInput = z.infer<typeof listVoiceCallsInput>;
+export type ListCallsByPhoneInput = z.infer<typeof listCallsByPhoneInput>;

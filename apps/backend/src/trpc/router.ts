@@ -12,6 +12,7 @@ import { skillsRouter } from "../features/skills/router";
 import { tenancyRouter } from "../features/tenancy/router";
 import { toolsRouter } from "../features/tools/router";
 import { voiceRouter } from "../features/voice/router";
+import { webhooksRouter } from "../features/webhooks/router";
 import { workflowsRouter } from "../features/workflows/router";
 
 export const appRouter = router({
@@ -27,6 +28,7 @@ export const appRouter = router({
   tenancy: tenancyRouter,
   tools: toolsRouter,
   voice: voiceRouter,
+  webhooks: webhooksRouter,
   workflows: workflowsRouter,
 });
 

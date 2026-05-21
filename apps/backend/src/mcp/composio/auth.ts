@@ -4,7 +4,7 @@ import { eq, schema, type Database } from "@mirrorverse/db";
 export interface CreateConnectionRequestArgs {
   readonly id?: string;
   readonly workspaceId: string;
-  readonly chatId: string;
+  readonly chatId?: string;
   readonly mcpServerId: string;
   readonly appSlug: string;
   readonly redirectUrl: string;

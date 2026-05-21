@@ -6,6 +6,7 @@ import {
   buyNumberInput,
   deactivateVoiceInput,
   getVoiceAgentInput,
+  listCallsByPhoneInput,
   listVoiceCallsInput,
   releaseNumberInput,
   searchNumbersInput,
@@ -91,6 +92,15 @@ export const voiceRouter = router({
     .input(listVoiceCallsInput)
     .query(({ ctx, input }) =>
       voiceService.listCalls(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
+
+  listCallsByPhone: workspaceProc
+    .input(listCallsByPhoneInput)
+    .query(({ ctx, input }) =>
+      voiceService.listCallsByPhone(
         { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),

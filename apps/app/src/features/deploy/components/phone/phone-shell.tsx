@@ -7,7 +7,6 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import type { PhoneNumber } from "@/lib/types";
 import { ChannelSearchBar } from "@/features/deploy/components/channel-search-bar";
 import { ChannelEmptyState } from "@/features/deploy/components/channel-empty-state";
 import {
@@ -16,11 +15,12 @@ import {
   type ChannelColumn,
   type ChannelAction,
 } from "@/features/deploy/components/channel-table";
+import { useListNumbersQuery } from "@/features/deploy/api/queries";
+import { useReleaseNumberMutation } from "@/features/deploy/api/mutations";
 import { AddPhoneChoiceDialog } from "./add-phone-choice-dialog";
 import { AddPhoneSheet } from "./add-phone-sheet";
 import { PhoneNumbersListSheet } from "./phone-numbers-list-sheet";
-
-const phoneNumbers: PhoneNumber[] = [];
+import type { PhoneNumber } from "@/lib/types";
 
 export function PhoneShell() {
   const router = useRouter();
@@ -29,6 +29,9 @@ export function PhoneShell() {
   const [choiceOpen, setChoiceOpen] = useState(false);
   const [twilioOpen, setTwilioOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
+
+  const { data: phoneNumbers = [], isLoading } = useListNumbersQuery();
+  const { mutate: releaseNumber } = useReleaseNumberMutation();
 
   const filtered = phoneNumbers.filter((n) => {
     const q = search.toLowerCase();
@@ -114,7 +117,7 @@ export function PhoneShell() {
     { label: "Edit", onClick: () => toast.info("Edit coming soon") },
     {
       label: "Delete",
-      onClick: () => toast.info("Delete coming soon"),
+      onClick: (row) => releaseNumber({ phoneNumberId: row.id }),
       destructive: true,
     },
   ];
@@ -147,7 +150,11 @@ export function PhoneShell() {
       />
       <Separator />
 
-      {filtered.length === 0 && search === "" ? (
+      {isLoading ? (
+        <div className="py-16 text-sm flex items-center justify-center text-muted-foreground">
+          Loading phone numbers...
+        </div>
+      ) : filtered.length === 0 && search === "" ? (
         <div className="flex w-full items-center justify-center">
           <ChannelEmptyState
             title="No added phone numbers yet"

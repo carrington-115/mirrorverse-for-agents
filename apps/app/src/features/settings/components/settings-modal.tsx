@@ -6,14 +6,12 @@ import {
   BarChart3,
   Megaphone,
   Receipt,
-  ScrollText,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   User,
   Zap,
 } from "lucide-react";
-import { AuditLogsShell } from "@/features/audit-log/components/audit-logs-shell";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -39,7 +37,6 @@ const WORKSPACE_ITEMS: NavItem[] = [
   { id: "billing", label: "Billing", icon: Receipt },
   { id: "usage", label: "Usage", icon: BarChart3 },
   { id: "security", label: "Security", icon: ShieldCheck },
-  { id: "audit-logs", label: "Audit Logs", icon: ScrollText },
   { id: "apps", label: "Apps", icon: AppWindow },
   { id: "channels", label: "Channels", icon: Megaphone },
 ];
@@ -52,7 +49,6 @@ const PAGE_CONTENT: Record<SettingsPage, React.ComponentType> = {
   billing: BillingSettingsShell,
   usage: UsageSettingsShell,
   security: SecuritySettingsShell,
-  "audit-logs": AuditLogsShell,
   apps: AppsSettingsShell,
   channels: ChannelsSettingsShell,
   profile: ProfileSettingsShell,

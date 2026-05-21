@@ -17,8 +17,10 @@ import {
   loadTwilioCreds,
   searchAvailableNumbers,
   purchaseNumber,
+  fetchAndConfigureExistingNumber,
   releaseNumber as releaseTwilioNumber,
   TwilioNumberRaceError,
+  type TwilioCreds,
 } from "./providers/twilio";
 import * as repo from "./repo";
 import type {
@@ -29,6 +31,7 @@ import type {
   DeactivateVoiceInput,
   GetVoiceAgentInput,
   ListVoiceCallsInput,
+  ListCallsByPhoneInput,
 } from "./inputs";
 
 interface WorkspaceCtx {
@@ -108,6 +111,7 @@ export const voiceService = {
       ctx.db,
       num.source as "managed" | "byo",
       num.connectionId,
+      num.byoTwilioCredId,
     );
     await unbindAssistantFromNumber(num.vapiPhoneNumberId);
     await deleteVapiPhoneNumber(num.vapiPhoneNumberId);
@@ -273,4 +277,56 @@ export const voiceService = {
       input.limit,
     );
   },
+
+  async listCallsByPhone(ctx: WorkspaceCtx, input: ListCallsByPhoneInput) {
+    return repo.listVoiceCallsByPhone(
+      ctx.db,
+      ctx.workspaceId,
+      input.phoneNumberId,
+      input.limit,
+    );
+  },
 };
+
+export async function connectByoTwilio(
+  ctx: WorkspaceCtx,
+  input: { accountSid: string; authToken: string; phoneNumber: string },
+) {
+  const creds: TwilioCreds = {
+    accountSid: input.accountSid,
+    authToken: input.authToken,
+  };
+  const webhookBaseUrl = env.BACKEND_URL;
+
+  const twilioResult = await fetchAndConfigureExistingNumber(
+    creds,
+    input.phoneNumber,
+    webhookBaseUrl,
+  );
+
+  const vapiNumber = await importTwilioNumber(twilioResult.e164, creds);
+
+  const [credRow] = await ctx.db
+    .insert(schema.voiceTwilioCreds)
+    .values({
+      workspaceId: ctx.workspaceId,
+      credentialEncrypted: JSON.stringify({
+        accountSid: input.accountSid,
+        authToken: input.authToken,
+      }),
+    })
+    .returning();
+
+  return repo.insertPhoneNumber(ctx.db, {
+    workspaceId: ctx.workspaceId,
+    e164: twilioResult.e164,
+    twilioSid: twilioResult.twilioSid,
+    vapiPhoneNumberId: vapiNumber.id,
+    source: "byo",
+    connectionId: null,
+    byoTwilioCredId: credRow!.id,
+    status: "active",
+    capabilities: twilioResult.capabilities,
+    monthlyCostCents: 0,
+  });
+}

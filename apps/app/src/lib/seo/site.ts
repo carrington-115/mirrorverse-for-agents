@@ -5,8 +5,8 @@ import { env } from "@mirrorverse/env/app";
 const FALLBACK_SITE_URL = "http://localhost:3000";
 
 export const siteConfig = {
-  name: "Mirroverse",
-  shortName: "Mirroverse",
+  name: "Mirrorverse",
+  shortName: "Mirrorverse",
   description: "The platform to broaden collaboration between humans and agents.",
   url: env.NEXT_PUBLIC_SITE_URL ?? FALLBACK_SITE_URL,
   twitterHandle: "@mirroverse",

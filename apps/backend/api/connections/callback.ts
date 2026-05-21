@@ -84,7 +84,7 @@ export async function GET(req: Request): Promise<Response> {
     await resolveConnectionRequest(db, requestId, connection.id);
 
     // Fire Inngest resume event so a future Inngest-based chat can continue
-    if (env.INNGEST_EVENT_KEY) {
+    if (env.INNGEST_EVENT_KEY && connectionRequest.chatId) {
       await inngest.send({
         name: connectionRequest.resumeEventName as "connection.completed",
         data: {

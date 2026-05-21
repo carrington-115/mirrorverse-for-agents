@@ -8,7 +8,10 @@ export function useDeleteChatMutation() {
   const qc = useQueryClient();
   return useMutation({
     ...trpc.chats.delete.mutationOptions(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+    },
   });
 }
 

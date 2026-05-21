@@ -132,6 +132,25 @@ export async function listVoiceCalls(
     .limit(limit);
 }
 
+export async function listVoiceCallsByPhone(
+  db: Database,
+  workspaceId: string,
+  phoneNumberId: string,
+  limit: number,
+) {
+  return db
+    .select()
+    .from(voiceCalls)
+    .where(
+      and(
+        eq(voiceCalls.workspaceId, workspaceId),
+        eq(voiceCalls.phoneNumberId, phoneNumberId),
+      ),
+    )
+    .orderBy(desc(voiceCalls.startedAt))
+    .limit(limit);
+}
+
 export async function insertVoiceCall(
   db: Database,
   values: typeof voiceCalls.$inferInsert,

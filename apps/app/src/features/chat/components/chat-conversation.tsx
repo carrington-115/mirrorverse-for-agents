@@ -16,6 +16,7 @@ interface ChatConversationProps {
   onEditUserMessage: (messageId: string, newText: string) => void;
   onRetryAssistant: () => void;
   onWorkflowSelect?: (workflowId: string) => void;
+  onPhoneSelect?: (phoneNumber: string) => void;
 }
 
 export function ChatConversation({
@@ -25,6 +26,7 @@ export function ChatConversation({
   onEditUserMessage,
   onRetryAssistant,
   onWorkflowSelect,
+  onPhoneSelect,
 }: ChatConversationProps) {
   const lastAssistantIndex = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -47,6 +49,7 @@ export function ChatConversation({
               onEdit={(text) => onEditUserMessage(message.id, text)}
               onRetry={onRetryAssistant}
               onWorkflowSelect={onWorkflowSelect}
+              onPhoneSelect={onPhoneSelect}
             />
           ))}
           {showThinking ? <ThinkingRow /> : null}

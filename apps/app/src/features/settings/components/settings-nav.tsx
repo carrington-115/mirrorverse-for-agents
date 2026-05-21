@@ -7,7 +7,6 @@ import {
   BarChart3,
   Megaphone,
   Receipt,
-  ScrollText,
   ShieldCheck,
   SlidersHorizontal,
   User,
@@ -22,7 +21,6 @@ const WORKSPACE_ITEMS = [
   { label: "Billing", href: "/settings/billing", icon: Receipt },
   { label: "Usage", href: "/settings/usage", icon: BarChart3 },
   { label: "Security", href: "/settings/security", icon: ShieldCheck },
-  { label: "Audit Logs", href: "/settings/audit-logs", icon: ScrollText },
   { label: "Apps", href: "/settings/apps", icon: AppWindow },
   { label: "Channels", href: "/settings/channels", icon: Megaphone },
 ] as const;

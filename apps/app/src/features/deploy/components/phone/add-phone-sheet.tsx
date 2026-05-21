@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SiTwilio } from "react-icons/si";
 import { Phone } from "lucide-react";
+import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
@@ -66,7 +67,9 @@ export function AddPhoneSheet({ open, onOpenChange }: AddPhoneSheetProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    handleClose();
+    toast.error(
+      'BYO Twilio setup is coming soon. Use "Browse available numbers" to add a managed number.',
+    );
   }
 
   return (

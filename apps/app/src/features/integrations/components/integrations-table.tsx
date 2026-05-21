@@ -9,7 +9,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowUpDown, GripVertical, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, GripVertical, MoreHorizontal, RefreshCw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -58,11 +59,15 @@ function SortableIntegrationRow({
   selected,
   onToggle,
   onRemove,
+  onReset,
+  onViewDetails,
 }: {
   integration: ConnectedIntegration;
   selected: boolean;
   onToggle: () => void;
   onRemove?: () => void;
+  onReset?: () => void;
+  onViewDetails?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: integration.id,
@@ -134,12 +139,14 @@ function SortableIntegrationRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>View details</DropdownMenuItem>
+            <DropdownMenuItem onClick={onViewDetails}>View details</DropdownMenuItem>
+            <DropdownMenuItem onClick={onReset}>Reset</DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={onRemove}
             >
-              Remove
+              Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -151,10 +158,18 @@ function SortableIntegrationRow({
 interface IntegrationsTableProps {
   integrations: ConnectedIntegration[];
   onRemove?: (id: string) => void;
+  onReset?: (id: string) => void;
+  onViewDetails?: (id: string) => void;
   onReorder?: (integrations: ConnectedIntegration[]) => void;
 }
 
-export function IntegrationsTable({ integrations, onRemove, onReorder }: IntegrationsTableProps) {
+export function IntegrationsTable({
+  integrations,
+  onRemove,
+  onReset,
+  onViewDetails,
+  onReorder,
+}: IntegrationsTableProps) {
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -201,67 +216,130 @@ export function IntegrationsTable({ integrations, onRemove, onReorder }: Integra
     onReorder?.(arrayMove(displayed, oldIndex, newIndex));
   }
 
+  function handleBulkDelete() {
+    for (const id of selected) onRemove?.(id);
+    setSelected(new Set());
+  }
+
+  function handleBulkReset() {
+    for (const id of selected) onReset?.(id);
+    setSelected(new Set());
+  }
+
+  const selectedCount = selected.size;
+  const singleSelected = selectedCount === 1 ? [...selected][0] : null;
+
   return (
-    <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <Table>
-          <TableHeader>
-            <TableRow className="h-9 border-b border-border bg-(--accent-0,#fafafa) hover:bg-(--accent-0,#fafafa)">
-              <TableHead className="w-10 px-2" />
-              <TableHead className="w-9 px-2">
-                <Checkbox
-                  className="size-[14px]"
-                  checked={allSelected}
-                  onCheckedChange={toggleAll}
-                  aria-label="Select all"
-                />
-              </TableHead>
-              <TableHead className="px-2">
-                <button
-                  type="button"
-                  onClick={() => handleSort("name")}
-                  className="gap-1.5 text-sm font-medium flex cursor-pointer items-center text-foreground hover:text-foreground/80"
-                >
-                  Name
-                  <ArrowUpDown className="size-3.5 opacity-50" />
-                </button>
-              </TableHead>
-              <TableHead className="px-2">
-                <button
-                  type="button"
-                  onClick={() => handleSort("type")}
-                  className="gap-1.5 text-sm font-medium flex cursor-pointer items-center text-foreground hover:text-foreground/80"
-                >
-                  Type
-                  <ArrowUpDown className="size-3.5 opacity-50" />
-                </button>
-              </TableHead>
-              <TableHead className="px-2 text-sm font-medium text-foreground">Status</TableHead>
-              <TableHead className="px-2 text-sm font-medium text-foreground">
-                Date created
-              </TableHead>
-              <TableHead className="px-2 text-sm font-medium text-foreground">Last used</TableHead>
-              <TableHead className="px-2 text-sm font-medium text-foreground">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <SortableContext
-              items={displayed.map((i) => i.id)}
-              strategy={verticalListSortingStrategy}
+    <div className="gap-2 flex flex-col">
+      {selectedCount > 0 && (
+        <div className="gap-2 px-3 py-2 flex items-center rounded-md border border-border bg-muted/40">
+          <span className="text-sm shrink-0 text-muted-foreground">{selectedCount} selected</span>
+          <div className="gap-1 ml-auto flex items-center">
+            {singleSelected && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => onViewDetails?.(singleSelected)}
+              >
+                View details
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              onClick={handleBulkReset}
             >
-              {displayed.map((integration) => (
-                <SortableIntegrationRow
-                  key={integration.id}
-                  integration={integration}
-                  selected={selected.has(integration.id)}
-                  onToggle={() => toggleOne(integration.id)}
-                  onRemove={() => onRemove?.(integration.id)}
-                />
-              ))}
-            </SortableContext>
-          </TableBody>
-        </Table>
-      </DndContext>
+              <RefreshCw className="size-3" />
+              Reset
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="size-3" />
+              Delete
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={() => setSelected(new Set())}
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
+        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <Table>
+            <TableHeader>
+              <TableRow className="h-9 border-b border-border bg-(--accent-0,#fafafa) hover:bg-(--accent-0,#fafafa)">
+                <TableHead className="w-10 px-2" />
+                <TableHead className="w-9 px-2">
+                  <Checkbox
+                    className="size-[14px]"
+                    checked={allSelected}
+                    onCheckedChange={toggleAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+                <TableHead className="px-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("name")}
+                    className="gap-1.5 text-sm font-medium flex cursor-pointer items-center text-foreground hover:text-foreground/80"
+                  >
+                    Name
+                    <ArrowUpDown className="size-3.5 opacity-50" />
+                  </button>
+                </TableHead>
+                <TableHead className="px-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("type")}
+                    className="gap-1.5 text-sm font-medium flex cursor-pointer items-center text-foreground hover:text-foreground/80"
+                  >
+                    Type
+                    <ArrowUpDown className="size-3.5 opacity-50" />
+                  </button>
+                </TableHead>
+                <TableHead className="px-2 text-sm font-medium text-foreground">Status</TableHead>
+                <TableHead className="px-2 text-sm font-medium text-foreground">
+                  Date created
+                </TableHead>
+                <TableHead className="px-2 text-sm font-medium text-foreground">
+                  Last used
+                </TableHead>
+                <TableHead className="px-2 text-sm font-medium text-foreground">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <SortableContext
+                items={displayed.map((i) => i.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {displayed.map((integration) => (
+                  <SortableIntegrationRow
+                    key={integration.id}
+                    integration={integration}
+                    selected={selected.has(integration.id)}
+                    onToggle={() => toggleOne(integration.id)}
+                    onRemove={() => onRemove?.(integration.id)}
+                    onReset={() => onReset?.(integration.id)}
+                    onViewDetails={() => onViewDetails?.(integration.id)}
+                  />
+                ))}
+              </SortableContext>
+            </TableBody>
+          </Table>
+        </DndContext>
+      </div>
     </div>
   );
 }

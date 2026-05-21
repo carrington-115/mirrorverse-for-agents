@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Shapes, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useDirectoryListQuery } from "@/features/mcp-directory/api/queries";
+import {
+  useDirectoryListQuery,
+  useDirectoryEntryQuery,
+} from "@/features/mcp-directory/api/queries";
 import { DirectoryGrid } from "@/features/mcp-directory/components/directory-grid";
 import type { DirectoryEntry } from "@/features/mcp-directory/api/types";
 import {
@@ -12,7 +15,7 @@ import {
   IntegrationsEmpty,
   ManageIntegrationsDialog,
 } from "@/features/integrations/components/integration";
-import { AddWebhookDialog } from "@/features/integrations/components/add-mcp-dialog";
+import { AddWebhookSheet } from "@/features/webhooks/components/add-webhook-sheet";
 import {
   IntegrationsTable,
   type ConnectedIntegration,
@@ -47,12 +50,14 @@ export function IntegrationsPage() {
   const { data: connectionsData } = useConnectionsQuery();
   const revokeConnection = useRevokeConnectionMutation();
   const liveIntegrations: ConnectedIntegration[] = useMemo(
-    () => (connectionsData ?? []).map(connectionToRow),
+    () => (connectionsData ?? []).filter((c) => c.status === "active").map(connectionToRow),
     [connectionsData],
   );
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
+  const [slugToView, setSlugToView] = useState<string | null>(null);
+  const { data: entryToView } = useDirectoryEntryQuery(slugToView);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [webhookOpen, setWebhookOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,7 +65,14 @@ export function IntegrationsPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const { data, isLoading } = useDirectoryListQuery({ limit: 24 });
-  const entries = useMemo(() => data?.items ?? [], [data]);
+  const connectedSlugs = useMemo(
+    () => new Set((connectionsData ?? []).map((c) => c.appSlug)),
+    [connectionsData],
+  );
+  const entries = useMemo(
+    () => (data?.items ?? []).filter((e) => !connectedSlugs.has(e.slug)).slice(0, 8),
+    [data, connectedSlugs],
+  );
 
   const filteredIntegrations = useMemo(() => {
     return liveIntegrations.filter((i) => {
@@ -94,6 +106,23 @@ export function IntegrationsPage() {
 
   function handleRemove(id: string) {
     revokeConnection.mutate({ connectionId: id });
+  }
+
+  function handleReset(id: string) {
+    revokeConnection.mutate({ connectionId: id });
+  }
+
+  useEffect(() => {
+    if (entryToView) {
+      setSelectedEntry(entryToView);
+      setSheetOpen(true);
+      setSlugToView(null);
+    }
+  }, [entryToView]);
+
+  function handleViewDetails(id: string) {
+    const connection = (connectionsData ?? []).find((c) => c.id === id);
+    if (connection) setSlugToView(connection.appSlug);
   }
 
   function handleReorder(_reordered: ConnectedIntegration[]) {
@@ -138,6 +167,8 @@ export function IntegrationsPage() {
           <IntegrationsTable
             integrations={filteredIntegrations}
             onRemove={handleRemove}
+            onReset={handleReset}
+            onViewDetails={handleViewDetails}
             onReorder={handleReorder}
           />
         </>
@@ -156,17 +187,12 @@ export function IntegrationsPage() {
       {/* Suggested apps — always visible */}
       <div className="gap-4 flex w-full flex-col">
         <h2 className="text-sm font-medium text-muted-foreground">Suggested</h2>
-        <DirectoryGrid
-          entries={entries}
-          loading={isLoading}
-          onAdd={handleSelect}
-          onViewDetails={handleSelect}
-        />
+        <DirectoryGrid entries={entries} loading={isLoading} onViewDetails={handleSelect} />
       </div>
 
       <AddIntegrationSheet open={sheetOpen} onOpenChange={setSheetOpen} entry={selectedEntry} />
       <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
-      <AddWebhookDialog open={webhookOpen} onOpenChange={setWebhookOpen} />
+      <AddWebhookSheet open={webhookOpen} onOpenChange={setWebhookOpen} />
     </div>
   );
 }
