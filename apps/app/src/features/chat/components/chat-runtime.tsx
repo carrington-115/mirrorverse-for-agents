@@ -92,6 +92,30 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
     [sendMessage, model],
   );
 
+  const handlePhoneNumberForVoiceAgent = useCallback(
+    (phoneNumberId: string) => {
+      setStreamFinished(false);
+      sendMessage(
+        { text: `Use phone number ${phoneNumberId} for this voice agent` },
+        { body: { model } },
+      );
+    },
+    [sendMessage, model],
+  );
+
+  const handleGetManagedNumber = useCallback(() => {
+    setStreamFinished(false);
+    sendMessage(
+      { text: "I don't have a phone number yet. Help me get a Mirrorverse-managed phone number." },
+      { body: { model } },
+    );
+  }, [sendMessage, model]);
+
+  const handleByoTwilio = useCallback(() => {
+    setStreamFinished(false);
+    sendMessage({ text: "I want to use my own Twilio phone number instead." }, { body: { model } });
+  }, [sendMessage, model]);
+
   const handleEditUserMessage = useCallback(
     async (messageId: string, newText: string) => {
       const trimmed = newText.trim();
@@ -234,6 +258,9 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
         onRetryAssistant={handleRetryAssistant}
         onWorkflowSelect={onWorkflowSelect}
         onPhoneSelect={handlePhoneSelect}
+        onPhoneNumberForVoiceAgent={handlePhoneNumberForVoiceAgent}
+        onGetManagedNumber={handleGetManagedNumber}
+        onByoTwilio={handleByoTwilio}
       />
       {credentialsInterrupt && !credentialsDismissed && (
         <AppConnectPanel

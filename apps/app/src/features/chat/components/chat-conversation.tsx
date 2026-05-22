@@ -17,6 +17,9 @@ interface ChatConversationProps {
   onRetryAssistant: () => void;
   onWorkflowSelect?: (workflowId: string) => void;
   onPhoneSelect?: (phoneNumber: string) => void;
+  onPhoneNumberForVoiceAgent?: (phoneNumberId: string) => void;
+  onGetManagedNumber?: () => void;
+  onByoTwilio?: () => void;
 }
 
 export function ChatConversation({
@@ -27,6 +30,9 @@ export function ChatConversation({
   onRetryAssistant,
   onWorkflowSelect,
   onPhoneSelect,
+  onPhoneNumberForVoiceAgent,
+  onGetManagedNumber,
+  onByoTwilio,
 }: ChatConversationProps) {
   const lastAssistantIndex = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -50,6 +56,9 @@ export function ChatConversation({
               onRetry={onRetryAssistant}
               onWorkflowSelect={onWorkflowSelect}
               onPhoneSelect={onPhoneSelect}
+              onPhoneNumberForVoiceAgent={onPhoneNumberForVoiceAgent}
+              onGetManagedNumber={onGetManagedNumber}
+              onByoTwilio={onByoTwilio}
             />
           ))}
           {showThinking ? <ThinkingRow /> : null}

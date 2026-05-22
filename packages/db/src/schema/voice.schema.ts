@@ -9,7 +9,12 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { PhoneNumberStatus, VoiceCallDirection, VoiceCallStatus } from "@mirrorverse/types";
+import type {
+  PhoneNumberStatus,
+  VoiceAgentNode,
+  VoiceCallDirection,
+  VoiceCallStatus,
+} from "@mirrorverse/types";
 import { connections } from "./tools.schema";
 import { workspaces } from "./tenancy.schema";
 import { workflows, workflowVersions } from "./workflows.schema";
@@ -49,7 +54,7 @@ export const voiceAgents = pgTable(
     workflowVersionId: text("workflow_version_id")
       .notNull()
       .references(() => workflowVersions.id),
-    provider: text("provider").$type<"vapi" | "retell">().notNull().default("vapi"),
+    provider: text("provider").$type<"vapi">().notNull().default("vapi"),
     direction: text("direction").$type<"inbound" | "outbound">().notNull(),
     externalAssistantId: text("external_assistant_id").notNull(),
     voiceId: text("voice_id").notNull(),
@@ -62,6 +67,7 @@ export const voiceAgents = pgTable(
       .default(sql`'{}'::text[]`),
     maxDurationSec: integer("max_duration_sec").notNull().default(600),
     enabled: boolean("enabled").notNull().default(true),
+    voiceConfig: jsonb("voice_config").$type<VoiceAgentNode | null>().default(null),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

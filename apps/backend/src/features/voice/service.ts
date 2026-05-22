@@ -23,6 +23,8 @@ import {
   type TwilioCreds,
 } from "./providers/twilio";
 import * as repo from "./repo";
+import type { VoiceAgentNode } from "@mirrorverse/types";
+
 import type {
   SearchNumbersInput,
   BuyNumberInput,
@@ -163,15 +165,19 @@ export const voiceService = {
       .where(eq(schema.workflowVersions.id, workflow.currentVersionId))
       .limit(1);
 
-    if (!version?.compiledAgent) {
-      throw appError(ErrCode.BadInput, "Workflow has no compiled agent");
+    if (!version) {
+      throw appError(ErrCode.NotFound, "Workflow version not found");
     }
-    if (!version.compiledAgent.voice) {
-      throw appError(ErrCode.BadInput, "Compiled agent has no voice config");
+
+    const voiceNode = version.document.nodes.find(
+      (n): n is VoiceAgentNode => n.kind === "ai.voice_agent",
+    );
+    if (!voiceNode) {
+      throw appError(ErrCode.BadInput, "Workflow has no voice agent node");
     }
 
     const webhookUrl = `${env.BACKEND_URL}/api/voice/webhook`;
-    const payload = compileToVapiAssistant(version.compiledAgent, webhookUrl);
+    const payload = compileToVapiAssistant(voiceNode, webhookUrl);
     const assistant = await createAssistant(payload);
 
     await bindAssistantToNumber(phoneNum.vapiPhoneNumberId, assistant.id);
@@ -181,15 +187,16 @@ export const voiceService = {
       workflowId: input.workflowId,
       workflowVersionId: version.id,
       provider: "vapi",
-      direction: version.compiledAgent.voice.direction ?? "inbound",
+      direction: voiceNode.direction,
       externalAssistantId: assistant.id,
-      voiceId: version.compiledAgent.voice.voiceId,
-      model: version.compiledAgent.model,
-      systemPrompt: version.compiledAgent.system,
-      firstMessage: version.compiledAgent.voice.firstMessage,
-      endCallPhrases: version.compiledAgent.voice.endCallPhrases as string[],
-      maxDurationSec: version.compiledAgent.voice.maxDurationSec,
+      voiceId: voiceNode.voiceEntry.voiceId,
+      model: voiceNode.modelConnection.model,
+      systemPrompt: voiceNode.modelConnection.systemPrompt,
+      firstMessage: voiceNode.firstMessage,
+      endCallPhrases: voiceNode.endCallPhrases as string[],
+      maxDurationSec: voiceNode.maxDurationSec,
       enabled: true,
+      voiceConfig: voiceNode,
     });
 
     await repo.updatePhoneNumber(ctx.db, input.phoneNumberId, {
