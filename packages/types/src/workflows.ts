@@ -16,6 +16,13 @@ import type { DeployedAgent } from "./agent-definition";
 export type WorkflowKind = "automation" | "voice-agent" | "chat-agent" | "code";
 export type WorkflowStatus = "draft" | "active" | "paused" | "archived";
 
+export type ElevenLabsVoiceMode =
+  | "conversational"
+  | "narrative"
+  | "emotional"
+  | "advertisement"
+  | "entertainment";
+
 /**
  * A workflow the user owns. The current `WorkflowVersion` holds the actual
  * canvas/document; `Workflow` is the stable identity across versions.
@@ -37,7 +44,7 @@ export interface Workflow extends Timestamps, Tenanted {
  * - `document` is the source-of-truth canvas the user edits.
  * - `compiledAgent` is the flat declarative artifact derived from the canvas
  *   for `chat-agent` / `voice-agent` kinds — what the runtime (Anthropic /
- *   Vapi / Retell) actually consumes.
+ *   Vapi) actually consumes.
  */
 export interface WorkflowVersion extends Timestamps, Tenanted {
   readonly id: WorkflowVersionId;
@@ -186,6 +193,8 @@ export type WorkflowNode =
   | TransformNode
   | HumanReviewNode
   | SkillCallNode
+  | VoiceAgentNode
+  | TextAgentNode
   | StickyNoteNode;
 
 interface NodeBase {
@@ -471,6 +480,63 @@ export interface SkillCallNode extends NodeBase {
   readonly skillSlug: string;
   readonly skillVersionNumber: number | null;
   readonly inputs: ParameterMap;
+}
+
+export interface VoiceToolRef {
+  readonly mcpServerName: string;
+  readonly toolName: string;
+}
+
+export interface VoiceAgentNode extends NodeBase {
+  readonly kind: "ai.voice_agent";
+  readonly direction: "inbound" | "outbound";
+  readonly firstMessage: string;
+  readonly endCallPhrases: readonly string[];
+  readonly maxDurationSec: number;
+  readonly silenceTimeoutSec?: number;
+  readonly responseDelayMs?: number;
+  readonly interruptionEnabled?: boolean;
+  readonly recordingEnabled?: boolean;
+  readonly voiceEntry: {
+    readonly provider: "elevenlabs";
+    readonly voiceId: string;
+    readonly model: string;
+    readonly voiceMode?: ElevenLabsVoiceMode;
+    readonly stability?: number;
+    readonly similarityBoost?: number;
+    readonly style?: number;
+  };
+  readonly modelConnection: {
+    readonly provider: "anthropic" | "openai" | "google";
+    readonly model: string;
+    readonly temperature?: number;
+    readonly maxTokens?: number;
+    readonly systemPrompt: string;
+  };
+  readonly toolsEndpoint: {
+    readonly tools: readonly VoiceToolRef[];
+    readonly serverUrl: string;
+  };
+  readonly transcriber?: {
+    readonly provider: "deepgram" | "assembly_ai" | "whisper";
+    readonly model: string;
+    readonly language: string;
+  };
+}
+
+export interface TextAgentNode extends NodeBase {
+  readonly kind: "ai.text_agent";
+  readonly modelConnection: {
+    readonly provider: "anthropic" | "openai" | "google";
+    readonly model: string;
+    readonly temperature?: number;
+    readonly maxTokens?: number;
+    readonly systemPrompt: string;
+  };
+  readonly toolsEndpoint: {
+    readonly tools: readonly VoiceToolRef[];
+    readonly serverUrl: string;
+  };
 }
 
 export interface StickyNoteNode extends NodeBase {

@@ -216,6 +216,69 @@ const retrieverNode = z.object({
   minScore: z.number().min(0).max(1).nullable(),
 });
 
+const voiceToolRef = z.object({
+  mcpServerName: z.string(),
+  toolName: z.string(),
+});
+
+const voiceAgentNode = z.object({
+  ...nodeBase,
+  kind: z.literal("ai.voice_agent"),
+  direction: z.enum(["inbound", "outbound"]),
+  firstMessage: z.string(),
+  endCallPhrases: z.array(z.string()),
+  maxDurationSec: z.number().int().min(1),
+  silenceTimeoutSec: z.number().int().min(1).optional(),
+  responseDelayMs: z.number().int().min(0).optional(),
+  interruptionEnabled: z.boolean().optional(),
+  recordingEnabled: z.boolean().optional(),
+  voiceEntry: z.object({
+    provider: z.literal("elevenlabs"),
+    voiceId: z.string(),
+    model: z.string(),
+    voiceMode: z
+      .enum(["conversational", "narrative", "emotional", "advertisement", "entertainment"])
+      .optional(),
+    stability: z.number().min(0).max(1).optional(),
+    similarityBoost: z.number().min(0).max(1).optional(),
+    style: z.number().min(0).max(1).optional(),
+  }),
+  modelConnection: z.object({
+    provider: z.enum(["anthropic", "openai", "google"]),
+    model: z.string(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxTokens: z.number().int().min(1).optional(),
+    systemPrompt: z.string(),
+  }),
+  toolsEndpoint: z.object({
+    tools: z.array(voiceToolRef),
+    serverUrl: z.string().url(),
+  }),
+  transcriber: z
+    .object({
+      provider: z.enum(["deepgram", "assembly_ai", "whisper"]),
+      model: z.string(),
+      language: z.string(),
+    })
+    .optional(),
+});
+
+const textAgentNode = z.object({
+  ...nodeBase,
+  kind: z.literal("ai.text_agent"),
+  modelConnection: z.object({
+    provider: z.enum(["anthropic", "openai", "google"]),
+    model: z.string(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxTokens: z.number().int().min(1).optional(),
+    systemPrompt: z.string(),
+  }),
+  toolsEndpoint: z.object({
+    tools: z.array(voiceToolRef),
+    serverUrl: z.string().url(),
+  }),
+});
+
 const ifNode = z.object({
   ...nodeBase,
   kind: z.literal("flow.if"),
@@ -340,6 +403,8 @@ export const workflowNode = z.discriminatedUnion("kind", [
   transformNode,
   humanReviewNode,
   skillCallNode,
+  voiceAgentNode,
+  textAgentNode,
   stickyNoteNode,
 ]);
 

@@ -1,0 +1,1 @@
+ALTER TABLE "voice_agents" ADD COLUMN "voice_config" jsonb DEFAULT 'null'::jsonb;

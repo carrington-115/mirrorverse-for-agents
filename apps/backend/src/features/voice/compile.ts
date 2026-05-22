@@ -1,4 +1,4 @@
-import type { DeployedAgent } from "@mirrorverse/types";
+import type { ElevenLabsVoiceMode, VoiceAgentNode } from "@mirrorverse/types";
 import type { Vapi } from "@vapi-ai/server-sdk";
 
 const DIRECTION_PREAMBLE: Record<"inbound" | "outbound", string> = {
@@ -8,75 +8,97 @@ const DIRECTION_PREAMBLE: Record<"inbound" | "outbound", string> = {
     "You are an outbound calling agent. You are initiating this call on behalf of the business. ",
 };
 
-function inferModelProvider(modelId: string): string {
-  if (modelId.startsWith("claude")) return "anthropic";
-  if (modelId.startsWith("gemini")) return "google";
-  return "openai";
+interface ElevenLabsVoiceSettings {
+  stability: number;
+  similarityBoost: number;
+  style: number;
+}
+
+const VOICE_MODE_SETTINGS: Record<
+  ElevenLabsVoiceMode,
+  ElevenLabsVoiceSettings
+> = {
+  conversational: { stability: 0.5, similarityBoost: 0.75, style: 0.0 },
+  narrative: { stability: 0.65, similarityBoost: 0.8, style: 0.3 },
+  emotional: { stability: 0.3, similarityBoost: 0.75, style: 0.7 },
+  advertisement: { stability: 0.6, similarityBoost: 0.85, style: 0.45 },
+  entertainment: { stability: 0.35, similarityBoost: 0.7, style: 0.6 },
+};
+
+export function mapTtsProvider(provider: string): string {
+  switch (provider) {
+    case "elevenlabs":
+      return "11labs";
+    default:
+      return provider;
+  }
 }
 
 export function compileToVapiAssistant(
-  agent: DeployedAgent,
+  node: VoiceAgentNode,
   webhookUrl: string,
 ): Vapi.CreateAssistantDto {
-  const voice = agent.voice!;
-  const direction = voice.direction ?? "inbound";
-  const systemPrompt = DIRECTION_PREAMBLE[direction] + agent.system;
+  const systemPrompt =
+    DIRECTION_PREAMBLE[node.direction] + node.modelConnection.systemPrompt;
 
-  const ttsProvider = voice.tts?.provider ?? "elevenlabs";
-  const ttsModel = voice.tts?.model ?? "eleven_turbo_v2";
-  const voiceId = voice.voiceId;
-
-  const transcriberProvider = voice.transcriber?.provider ?? "deepgram";
-  const transcriberModel = voice.transcriber?.model ?? "nova-2";
-  const transcriberLanguage = voice.transcriber?.language ?? "en";
-
-  const tools: Vapi.AnthropicModelToolsItem[] = agent.tools.flatMap((t) => {
-    if (t.type === "single_mcp_tool") {
-      return [
-        {
-          type: "function",
-          function: {
-            name: t.toolName,
-            description: `MCP tool: ${t.toolName} (server: ${t.mcpServerName})`,
-            parameters: {
-              type: "object",
-              properties: {},
-            },
-          },
-          server: { url: webhookUrl },
-        } as Vapi.AnthropicModelToolsItem,
-      ];
-    }
-    return [];
-  });
+  const tools: Vapi.AnthropicModelToolsItem[] = node.toolsEndpoint.tools.map(
+    (t) => ({
+      type: "function",
+      function: {
+        name: t.toolName,
+        description: `MCP tool: ${t.toolName} (server: ${t.mcpServerName})`,
+        parameters: {
+          type: "object",
+          properties: {},
+        },
+      },
+      server: { url: node.toolsEndpoint.serverUrl },
+    }),
+  );
 
   const modelPayload = {
-    provider: inferModelProvider(agent.model),
-    model: agent.model,
+    provider: node.modelConnection.provider,
+    model: node.modelConnection.model,
     messages: [{ role: "system" as const, content: systemPrompt }],
     ...(tools.length > 0 ? { tools } : {}),
   } as Vapi.CreateAssistantDtoModel;
 
+  const modeSettings =
+    VOICE_MODE_SETTINGS[node.voiceEntry.voiceMode ?? "conversational"];
+
   const voicePayload = {
-    provider: ttsProvider === "elevenlabs" ? "11labs" : ttsProvider,
-    voiceId,
-    model: ttsModel,
+    provider: mapTtsProvider(node.voiceEntry.provider),
+    voiceId: node.voiceEntry.voiceId,
+    model: node.voiceEntry.model,
+    stability: node.voiceEntry.stability ?? modeSettings.stability,
+    similarityBoost:
+      node.voiceEntry.similarityBoost ?? modeSettings.similarityBoost,
+    style: node.voiceEntry.style ?? modeSettings.style,
   } as Vapi.CreateAssistantDtoVoice;
 
-  const transcriberPayload = {
-    provider: transcriberProvider as "deepgram",
-    model: transcriberModel,
-    language: transcriberLanguage,
-  } as Vapi.CreateAssistantDtoTranscriber;
+  let transcriberPayload: Vapi.CreateAssistantDtoTranscriber;
+  if (node.transcriber) {
+    transcriberPayload = {
+      provider: node.transcriber.provider as "deepgram",
+      model: node.transcriber.model,
+      language: node.transcriber.language,
+    } as Vapi.CreateAssistantDtoTranscriber;
+  } else {
+    transcriberPayload = {
+      provider: "deepgram",
+      model: "nova-2",
+      language: "en",
+    } as Vapi.CreateAssistantDtoTranscriber;
+  }
 
   return {
-    name: agent.name,
+    name: node.name,
     model: modelPayload,
     voice: voicePayload,
     transcriber: transcriberPayload,
-    firstMessage: voice.firstMessage,
-    endCallPhrases: voice.endCallPhrases as string[],
-    maxDurationSeconds: voice.maxDurationSec,
+    firstMessage: node.firstMessage,
+    endCallPhrases: node.endCallPhrases as string[],
+    maxDurationSeconds: node.maxDurationSec,
     server: { url: webhookUrl },
   };
 }

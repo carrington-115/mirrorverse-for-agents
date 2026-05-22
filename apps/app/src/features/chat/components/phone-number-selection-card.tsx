@@ -36,7 +36,7 @@ function CapabilityBadge({ label, active }: { label: string; active: boolean }) 
   );
 }
 
-function NumberRow({ number, onSelect }: { number: AvailablePhoneNumber; onSelect: () => void }) {
+function NumberRow({ number, onSelect }: { number: AvailablePhoneNumber; onSelect?: () => void }) {
   const location = [number.locality, number.region].filter(Boolean).join(", ");
   return (
     <div className="gap-3 px-3 py-2.5 flex items-center justify-between rounded-lg transition-colors hover:bg-muted/50">
@@ -55,9 +55,11 @@ function NumberRow({ number, onSelect }: { number: AvailablePhoneNumber; onSelec
           <div className="mt-0.5 text-xs truncate text-muted-foreground">{location}</div>
         ) : null}
       </div>
-      <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={onSelect}>
-        Select
-      </Button>
+      {onSelect ? (
+        <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={onSelect}>
+          Select
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -111,7 +113,7 @@ export function PhoneNumberSelectionCard({ part, onPhoneSelect }: PhoneNumberSel
                 <NumberRow
                   key={num.phoneNumber}
                   number={num}
-                  onSelect={() => onPhoneSelect?.(num.phoneNumber)}
+                  onSelect={onPhoneSelect ? () => onPhoneSelect(num.phoneNumber) : undefined}
                 />
               ))
             : null}

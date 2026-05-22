@@ -16,14 +16,20 @@ import { MessageActions } from "./message-actions";
 import { WorkflowCommitCard } from "./workflow-commit-card";
 import { PhoneNumberSelectionCard } from "./phone-number-selection-card";
 import { PhoneNumberProvisionCard } from "./phone-number-provision-card";
+import { UnassignedPhoneNumbersCard } from "./unassigned-phone-numbers-card";
+import { VoiceAgentActivateCard } from "./voice-agent-activate-card";
 import { isWorkflowCommitPart } from "@/features/chat/lib/workflow-commit-tool";
 import {
   isPhoneSearchPart,
   isPhoneProvisionPart,
   isByoTwilioPart,
+  isUnassignedNumbersPart,
+  isVoiceActivatePart,
   type PhoneSearchToolPart,
   type PhoneProvisionToolPart,
   type ByoTwilioToolPart,
+  type UnassignedNumbersToolPart,
+  type VoiceActivateToolPart,
 } from "@/features/chat/lib/phone-tools";
 
 interface MessageRowProps {
@@ -35,6 +41,9 @@ interface MessageRowProps {
   onRetry: () => void;
   onWorkflowSelect?: (workflowId: string) => void;
   onPhoneSelect?: (phoneNumber: string) => void;
+  onPhoneNumberForVoiceAgent?: (phoneNumberId: string) => void;
+  onGetManagedNumber?: () => void;
+  onByoTwilio?: () => void;
 }
 
 function extractCopyText(message: UIMessage): string {
@@ -54,6 +63,9 @@ export function MessageRow({
   onRetry,
   onWorkflowSelect,
   onPhoneSelect,
+  onPhoneNumberForVoiceAgent,
+  onGetManagedNumber,
+  onByoTwilio,
 }: MessageRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const initialText = extractCopyText(message);
@@ -150,7 +162,7 @@ export function MessageRow({
                 <PhoneNumberSelectionCard
                   key={key}
                   part={part as PhoneSearchToolPart}
-                  onPhoneSelect={onPhoneSelect}
+                  onPhoneSelect={isLast && !isStreaming ? onPhoneSelect : undefined}
                 />
               );
             }
@@ -161,6 +173,20 @@ export function MessageRow({
                   part={part as PhoneProvisionToolPart | ByoTwilioToolPart}
                 />
               );
+            }
+            if (isToolUIPart(part) && isUnassignedNumbersPart(part)) {
+              return (
+                <UnassignedPhoneNumbersCard
+                  key={key}
+                  part={part as UnassignedNumbersToolPart}
+                  onSelect={isLast && !isStreaming ? onPhoneNumberForVoiceAgent : undefined}
+                  onGetManagedNumber={isLast && !isStreaming ? onGetManagedNumber : undefined}
+                  onByoTwilio={isLast && !isStreaming ? onByoTwilio : undefined}
+                />
+              );
+            }
+            if (isToolUIPart(part) && isVoiceActivatePart(part)) {
+              return <VoiceAgentActivateCard key={key} part={part as VoiceActivateToolPart} />;
             }
             return null;
           })

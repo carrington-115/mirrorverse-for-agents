@@ -8,11 +8,11 @@ import type {
   WorkflowId,
 } from "./common";
 
-/** Local mirror of a Vapi/Retell assistant. The provider holds the runtime. */
+/** Local mirror of a Vapi assistant. Vapi handles orchestration; ElevenLabs provides the voice. */
 export interface VoiceAgent extends Timestamps, Tenanted {
   readonly id: VoiceAgentId;
   readonly workflowId: WorkflowId;
-  readonly provider: "vapi" | "retell" | "elevenlabs";
+  readonly provider: "vapi";
   readonly direction: "inbound" | "outbound";
   readonly externalAssistantId: string;
   readonly voiceId: string;

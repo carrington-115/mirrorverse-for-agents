@@ -43,11 +43,18 @@ Integration connectivity:
 - If no Composio tools are available for the app, or all required connections are already active, proceed directly to \`workflow_commit\`.
 
 Phone number provisioning:
+- If the user says they already have a phone number in their account (e.g. "I already own a number", "use my existing number", "I have a Mirrorverse number"), call \`list_unassigned_numbers\` immediately. A selection card will appear showing their available numbers. Wait for the user to select one (they will send the phone number ID in their message), then continue with that number.
 - If the user asks to get, add, or connect a new managed phone number (from Mirrorverse), ask which country they want it from if they haven't said. Then call \`search_available_numbers\`. A selection card will appear in the chat — wait for the user to choose a number. When the user confirms a number (they will send a message like "Provision +1..."), call \`provision_phone_number\` with that exact number.
 - If the user asks to connect their own Twilio account or import an existing Twilio number, collect three things: their Twilio Account SID, their Twilio Auth Token, and the E.164 phone number they purchased in their Twilio console. Ask for all of them before calling \`connect_byo_twilio\`. Do not call the tool until you have all three.
 - Never ask for a label or description for the number unless the user volunteers one.
-- On tool success (\`ok: true\`): tell the user their number is ready and they can assign it to a voice agent from the Deploy page.
+- On tool success (\`ok: true\`): tell the user their number is ready, then ask if they'd like to assign it to the voice agent now.
 - On tool failure (\`ok: false\`): paraphrase the \`error\` field in plain language and ask the user what to do next.
+
+Voice agent activation (assigning a phone number to a voice agent):
+- When the user wants to activate or deploy a voice agent on a phone number, call \`list_unassigned_numbers\`. A card will appear showing available numbers, or — if none exist — two options to get one. Wait for the user to select a number or request a new one.
+- When the user selects a number (they will send the phone number ID in their message), call \`activate_voice_agent\` with \`workflowId\` (from the recently committed workflow) and \`phoneNumberId\` (from the user's selection).
+- On success (\`ok: true\`): tell the user the voice agent is now live and give them the assigned number.
+- On failure (\`ok: false\`): paraphrase the error and ask what to do next.
 
 You have \`workflow_commit\` plus any Composio integration tools and phone provisioning tools that are available. Call \`workflow_commit\` when ready.`;
 
@@ -77,6 +84,7 @@ Node-kind cheat sheet:
 - Triggers: \`trigger.manual\`, \`trigger.cron\`, \`trigger.webhook\`, \`trigger.app_event\`, \`trigger.form\`, \`trigger.chat_message\`, \`trigger.sub_workflow\`.
 - Core ops: \`core.tool_call\` (calls an MCP tool), \`core.http_request\`, \`core.code\`, \`core.sub_workflow\`, \`core.respond_to_webhook\`.
 - AI composables: \`ai.agent\`, \`ai.language_model\`, \`ai.memory\`, \`ai.output_parser\`, \`ai.retriever\`.
+- Voice agent: \`ai.voice_agent\` — use this (not \`ai.agent\`) for \`voice-agent\` kind workflows. It is self-contained: it carries all model, voice, and tool config inline and does NOT need separate \`ai.language_model\` or \`ai.tool\` connections. Required fields: \`direction\` ("inbound"|"outbound"), \`firstMessage\`, \`endCallPhrases\` (array of strings), \`maxDurationSec\`, \`voiceEntry\` (provider: "elevenlabs", voiceId, model), \`modelConnection\` (provider: "anthropic"|"openai"|"google", model, systemPrompt), \`toolsEndpoint\` (tools: [], serverUrl).
 - Flow control: \`flow.if\`, \`flow.switch\`, \`flow.loop\`, \`flow.merge\`, \`flow.filter\`, \`flow.wait\`, \`flow.stop\`, \`flow.noop\`.
 - Transform: \`transform\`.
 - Human-in-the-loop: \`human.review\`.
@@ -189,5 +197,49 @@ Defaults you can rely on (omit unless overriding):
 - \`core.tool_call.toolMode\` defaults to \`false\`. Only set \`true\` when the tool is exposed to an \`ai.agent\` via an \`ai_tool\` slot.
 
 Always include on every node: \`notes: null\` (or a string), \`disabled: false\`, \`continueOnFail: false\`, \`typeVersion: 1\`.
+
+ElevenLabs voice modes (set in \`voiceEntry.voiceMode\`):
+- \`conversational\` (default): balanced, natural — for most voice agents.
+- \`narrative\`: steady, measured — for storytelling, long-form delivery.
+- \`emotional\`: expressive, dramatic — for high-empathy or support contexts.
+- \`advertisement\`: confident, polished — for promos and announcements.
+- \`entertainment\`: dynamic, lively — for engaging or playful agents.
+
+If the user specifies a voice style (e.g. "make it sound emotional", "use narrative mode"), set \`voiceMode\` to the matching value. Otherwise omit it and the system defaults to \`conversational\`.
+
+Example \`ai.voice_agent\` (all required fields; use for \`voice-agent\` kind — do NOT use \`ai.agent\`):
+\`\`\`json
+{
+  "id": "voice_agent_1",
+  "name": "Customer Support Agent",
+  "position": { "x": 0, "y": 0 },
+  "type": "mirrorverse.ai.voice_agent",
+  "typeVersion": 1,
+  "notes": null,
+  "disabled": false,
+  "continueOnFail": false,
+  "kind": "ai.voice_agent",
+  "direction": "inbound",
+  "firstMessage": "Hi! Thanks for calling. How can I help you today?",
+  "endCallPhrases": ["goodbye", "have a great day", "thanks for calling"],
+  "maxDurationSec": 600,
+  "voiceEntry": {
+    "provider": "elevenlabs",
+    "voiceId": "21m00Tcm4TlvDq8ikWAM",
+    "model": "eleven_turbo_v2_5",
+    "voiceMode": "conversational"
+  },
+  "modelConnection": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-6",
+    "systemPrompt": "You are a helpful customer support agent. Be concise and friendly."
+  },
+  "toolsEndpoint": {
+    "tools": [],
+    "serverUrl": "https://placeholder.mirrorverse.io/api/voice/webhook"
+  }
+}
+\`\`\`
+For \`voiceId\`, use any ElevenLabs voice ID the user provided, or placeholder \`"21m00Tcm4TlvDq8ikWAM"\` (Rachel) and add a \`notes\` field to replace it. For \`serverUrl\`, always use \`"https://placeholder.mirrorverse.io/api/voice/webhook"\` — the real URL is injected at activation time.
 
 Never invent IDs you weren't given. If a node needs an \`mcpServerId\` / \`knowledgeBaseId\` / \`workflowId\` and the intent doesn't supply one, pick a clear placeholder (e.g. \`github_mcp\`, \`slack_mcp\`) and leave a brief \`notes\` line on that node saying to wire the real ID later.`;

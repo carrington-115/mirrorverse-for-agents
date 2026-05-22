@@ -4,7 +4,7 @@ import type { JsonObject } from "./common";
  * Flat declarative artifact a `WorkflowDocument` compiles to when its kind
  * is `chat-agent` or `voice-agent`. Mirrors Anthropic's Agent JSON shape
  * so it can be handed straight to the Anthropic API; the `voice` overlay
- * carries the extra fields Vapi/Retell need.
+ * carries the extra fields Vapi needs.
  *
  * The canvas/graph form lives in `workflows.ts`. The compiler walks the
  * graph, collapses memory/model/tool/parser slots, and emits one of these.
@@ -89,7 +89,7 @@ export interface PermissionRule {
 /** Voice-runtime overlay. Present only on voice-agent kind. */
 export interface VoiceConfig {
   readonly direction: "inbound" | "outbound";
-  readonly provider: "vapi" | "retell" | "elevenlabs";
+  readonly provider: "vapi";
   readonly voiceId: string;
   readonly firstMessage: string;
   readonly endCallPhrases: readonly string[];
