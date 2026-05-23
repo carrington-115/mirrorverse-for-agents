@@ -8,6 +8,7 @@ import type {
   RunStepLog,
   RunStepStatus,
 } from "@mirrorverse/types";
+import { tenantPolicy } from "./rls";
 import { workspaces } from "./tenancy.schema";
 import { workflowVersions, workflows } from "./workflows.schema";
 
@@ -50,6 +51,7 @@ export const workflowRuns = pgTable(
     index("workflow_runs_active_idx")
       .on(t.status, t.startedAt)
       .where(sql`status in ('queued', 'running', 'waiting_for_input')`),
+    tenantPolicy("workflow_runs"),
   ],
 );
 
@@ -90,5 +92,6 @@ export const workflowRunSteps = pgTable(
   (t) => [
     index("workflow_run_steps_run_idx").on(t.runId),
     index("workflow_run_steps_run_started_idx").on(t.runId, t.startedAt),
+    tenantPolicy("workflow_run_steps"),
   ],
 );

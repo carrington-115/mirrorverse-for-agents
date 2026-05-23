@@ -8,6 +8,7 @@ import type {
   McpTransport,
 } from "@mirrorverse/types";
 import { mcpDirectoryEntries } from "./mcp-directory.schema";
+import { tenantOrGlobalPolicy, tenantPolicy } from "./rls";
 import { workspaces } from "./tenancy.schema";
 
 /**
@@ -51,6 +52,9 @@ export const mcpServers = pgTable(
     uniqueIndex("mcp_servers_global_slug_idx")
       .on(t.slug)
       .where(sql`workspace_id is null`),
+    // Global (workspace_id IS NULL) rows readable by every tenant; writes
+    // must target the active workspace.
+    tenantOrGlobalPolicy("mcp_servers"),
   ],
 );
 
@@ -96,6 +100,7 @@ export const connections = pgTable(
     index("connections_workspace_app_idx").on(t.workspaceId, t.appSlug),
     index("connections_workspace_server_idx").on(t.workspaceId, t.mcpServerId),
     index("connections_status_idx").on(t.status),
+    tenantPolicy("connections"),
   ],
 );
 
@@ -138,5 +143,6 @@ export const connectionRequests = pgTable(
     index("connection_requests_expiry_idx")
       .on(t.expiresAt)
       .where(sql`status = 'pending'`),
+    tenantPolicy("connection_requests"),
   ],
 );

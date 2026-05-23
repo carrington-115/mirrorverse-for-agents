@@ -6,6 +6,7 @@ import type {
   WorkflowKind,
   WorkflowStatus,
 } from "@mirrorverse/types";
+import { tenantPolicy } from "./rls";
 import { workspaces } from "./tenancy.schema";
 
 /**
@@ -43,6 +44,7 @@ export const workflows = pgTable(
     index("workflows_workspace_status_idx").on(t.workspaceId, t.status),
     index("workflows_workspace_kind_idx").on(t.workspaceId, t.kind),
     index("workflows_workspace_created_idx").on(t.workspaceId, t.createdAt),
+    tenantPolicy("workflows"),
   ],
 );
 
@@ -79,5 +81,6 @@ export const workflowVersions = pgTable(
   (t) => [
     uniqueIndex("workflow_versions_workflow_version_idx").on(t.workflowId, t.versionNumber),
     index("workflow_versions_chat_idx").on(t.generatedByChatId),
+    tenantPolicy("workflow_versions"),
   ],
 );

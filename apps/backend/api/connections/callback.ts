@@ -1,4 +1,4 @@
-import { eq, getDb, schema } from "@mirrorverse/db";
+import { eq, getDb, schema, withTenantContext } from "@mirrorverse/db";
 import { env } from "@mirrorverse/env/backend";
 import {
   getComposioInstance,
@@ -24,19 +24,26 @@ export async function GET(req: Request): Promise<Response> {
   if (!requestId) return jsonError(400, "Missing requestId");
   if (!isComposioConfigured()) return jsonError(503, "Composio not configured");
 
-  const db = getDb();
-  const connectionRequest = await findPendingConnectionRequest(db, requestId);
+  // The pending request is keyed by the random requestId, before any tenant
+  // context exists — look it up on the privileged connection (bypasses RLS).
+  const connectionRequest = await findPendingConnectionRequest(
+    getDb(),
+    requestId,
+  );
 
   if (!connectionRequest) return jsonError(404, "Connection request not found");
   if (connectionRequest.status !== "pending") {
     return redirectToApp(connectionRequest.workspaceId, "already_resolved");
   }
+  const { workspaceId } = connectionRequest;
   if (new Date() > connectionRequest.expiresAt) {
-    await db
-      .update(schema.connectionRequests)
-      .set({ status: "expired" })
-      .where(eq(schema.connectionRequests.id, requestId));
-    return redirectToApp(connectionRequest.workspaceId, "expired");
+    await withTenantContext(workspaceId, (db) =>
+      db
+        .update(schema.connectionRequests)
+        .set({ status: "expired" })
+        .where(eq(schema.connectionRequests.id, requestId)),
+    );
+    return redirectToApp(workspaceId, "expired");
   }
 
   const composio = getComposioInstance();
@@ -61,28 +68,31 @@ export async function GET(req: Request): Promise<Response> {
   );
 
   if (!account) {
-    return redirectToApp(connectionRequest.workspaceId, "pending");
+    return redirectToApp(workspaceId, "pending");
   }
 
-  // Write the connection row
-  const [connection] = await db
-    .insert(schema.connections)
-    .values({
-      workspaceId: connectionRequest.workspaceId,
-      mcpServerId: connectionRequest.mcpServerId,
-      appSlug: connectionRequest.appSlug,
-      displayName: connectionRequest.appSlug,
-      status: "active",
-      credentialKind: "oauth2",
-      externalAccountId: account.id,
-      createdBy: connectionRequest.workspaceId,
-    })
-    .onConflictDoNothing()
-    .returning();
+  // Persist the connection and resolve the request inside the tenant
+  // transaction so RLS scopes the writes to this workspace.
+  const connection = await withTenantContext(workspaceId, async (db) => {
+    const [row] = await db
+      .insert(schema.connections)
+      .values({
+        workspaceId,
+        mcpServerId: connectionRequest.mcpServerId,
+        appSlug: connectionRequest.appSlug,
+        displayName: connectionRequest.appSlug,
+        status: "active",
+        credentialKind: "oauth2",
+        externalAccountId: account.id,
+        createdBy: workspaceId,
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (row) await resolveConnectionRequest(db, requestId, row.id);
+    return row ?? null;
+  });
 
   if (connection) {
-    await resolveConnectionRequest(db, requestId, connection.id);
-
     // Fire Inngest resume event so a future Inngest-based chat can continue
     if (env.INNGEST_EVENT_KEY && connectionRequest.chatId) {
       await inngest.send({

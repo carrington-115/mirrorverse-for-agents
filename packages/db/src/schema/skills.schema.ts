@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { JsonObject, SkillAttachmentScope, SkillVisibility } from "@mirrorverse/types";
+import { activeWorkspaceSql, tenantOrGlobalPolicy, transitivePolicy } from "./rls";
 import { workspaces } from "./tenancy.schema";
 
 /**
@@ -43,6 +44,8 @@ export const agentSkills = pgTable(
       .where(sql`workspace_id is null`),
     // Per-workspace skills get unique slugs scoped to the workspace.
     uniqueIndex("agent_skills_workspace_slug_idx").on(t.workspaceId, t.slug),
+    // Global (workspace_id IS NULL) starter skills readable by every tenant.
+    tenantOrGlobalPolicy("agent_skills"),
   ],
 );
 
@@ -76,7 +79,17 @@ export const agentSkillVersions = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [uniqueIndex("agent_skill_versions_skill_version_idx").on(t.skillId, t.versionNumber)],
+  (t) => [
+    uniqueIndex("agent_skill_versions_skill_version_idx").on(t.skillId, t.versionNumber),
+    // Scoped through the parent skill. Versions of a global skill are readable
+    // by every tenant, but a tenant connection cannot author versions under a
+    // global parent (writes require a matching, non-null workspace).
+    transitivePolicy(
+      "agent_skill_versions",
+      sql`exists (select 1 from agent_skills where agent_skills.id = agent_skill_versions.skill_id and (agent_skills.workspace_id = ${activeWorkspaceSql} or agent_skills.workspace_id is null))`,
+      sql`exists (select 1 from agent_skills where agent_skills.id = agent_skill_versions.skill_id and agent_skills.workspace_id = ${activeWorkspaceSql})`,
+    ),
+  ],
 );
 
 /**
@@ -100,5 +113,14 @@ export const agentSkillAttachments = pgTable(
     attachedBy: text("attached_by"),
     attachedAt: timestamp("attached_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("agent_skill_attachments_skill_idx").on(t.skillId)],
+  (t) => [
+    index("agent_skill_attachments_skill_idx").on(t.skillId),
+    // Scoped through the parent skill (read allows global skills; writes
+    // require a matching, non-null workspace).
+    transitivePolicy(
+      "agent_skill_attachments",
+      sql`exists (select 1 from agent_skills where agent_skills.id = agent_skill_attachments.skill_id and (agent_skills.workspace_id = ${activeWorkspaceSql} or agent_skills.workspace_id is null))`,
+      sql`exists (select 1 from agent_skills where agent_skills.id = agent_skill_attachments.skill_id and agent_skills.workspace_id = ${activeWorkspaceSql})`,
+    ),
+  ],
 );

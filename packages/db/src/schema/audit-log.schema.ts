@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+import { tenantPolicy } from "./rls";
 import { workspaces } from "./tenancy.schema";
 
 export const auditLog = pgTable(
@@ -25,5 +26,8 @@ export const auditLog = pgTable(
   (t) => [
     index("audit_log_workspace_ts_idx").on(t.workspaceId, t.ts),
     index("audit_log_user_idx").on(t.userId),
+    // Workspace-scoped reads. Cross-tenant/global rows (workspace_id NULL,
+    // written by withServiceRole on the bypass connection) stay admin-only.
+    tenantPolicy("audit_log"),
   ],
 );

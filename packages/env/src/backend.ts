@@ -8,6 +8,10 @@ export const env = createEnv({
     API_VERSION: z.string().default("v1"),
 
     DATABASE_URL: z.string().url(),
+    // Runtime connection for the non-privileged `app_user` role that RLS
+    // policies are enforced against. Falls back to DATABASE_URL when unset
+    // (e.g. local dev before the role is provisioned) — RLS is then inert.
+    RUNTIME_DATABASE_URL: z.string().url().optional(),
 
     SUPABASE_URL: z.string().url(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
