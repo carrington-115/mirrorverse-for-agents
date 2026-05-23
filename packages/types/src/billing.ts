@@ -76,6 +76,7 @@ export type UsageKind =
   | "llm_input_cache_write"
   | "llm_input_cache_read"
   | "llm_output"
+  | "embedding"
   | "voice_minute"
   | "sandbox_second"
   | "composio_action"
