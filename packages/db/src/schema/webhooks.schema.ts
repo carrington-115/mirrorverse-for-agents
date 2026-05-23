@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { tenantPolicy } from "./rls";
 import { workspaces } from "./tenancy.schema";
 
 export type WebhookAuthType = "none" | "bearer" | "basic" | "custom_header";
@@ -55,5 +56,5 @@ export const webhooks = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [index("webhooks_workspace_idx").on(t.workspaceId)],
+  (t) => [index("webhooks_workspace_idx").on(t.workspaceId), tenantPolicy("webhooks")],
 );

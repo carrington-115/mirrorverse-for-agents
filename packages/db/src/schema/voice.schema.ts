@@ -15,6 +15,7 @@ import type {
   VoiceCallDirection,
   VoiceCallStatus,
 } from "@mirrorverse/types";
+import { tenantPolicy } from "./rls";
 import { connections } from "./tools.schema";
 import { workspaces } from "./tenancy.schema";
 import { workflows, workflowVersions } from "./workflows.schema";
@@ -36,7 +37,10 @@ export const voiceTwilioCreds = pgTable(
     credentialEncrypted: text("credential_encrypted").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("voice_twilio_creds_workspace_idx").on(t.workspaceId)],
+  (t) => [
+    index("voice_twilio_creds_workspace_idx").on(t.workspaceId),
+    tenantPolicy("voice_twilio_creds"),
+  ],
 );
 
 export const voiceAgents = pgTable(
@@ -78,6 +82,7 @@ export const voiceAgents = pgTable(
     index("voice_agents_workspace_idx").on(t.workspaceId),
     uniqueIndex("voice_agents_workflow_idx").on(t.workflowId),
     uniqueIndex("voice_agents_external_id_idx").on(t.externalAssistantId),
+    tenantPolicy("voice_agents"),
   ],
 );
 
@@ -116,6 +121,7 @@ export const phoneNumbers = pgTable(
     index("phone_numbers_workspace_idx").on(t.workspaceId),
     uniqueIndex("phone_numbers_e164_workspace_idx").on(t.e164, t.workspaceId),
     uniqueIndex("phone_numbers_twilio_sid_idx").on(t.twilioSid),
+    tenantPolicy("phone_numbers"),
   ],
 );
 
@@ -156,5 +162,6 @@ export const voiceCalls = pgTable(
   (t) => [
     index("voice_calls_workspace_agent_idx").on(t.workspaceId, t.voiceAgentId),
     uniqueIndex("voice_calls_external_id_idx").on(t.externalCallId),
+    tenantPolicy("voice_calls"),
   ],
 );

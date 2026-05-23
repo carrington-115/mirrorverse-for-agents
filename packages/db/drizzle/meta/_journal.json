@@ -36,6 +36,27 @@
       "when": 1779417845771,
       "tag": "0004_graceful_shiver_man",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779438985178,
+      "tag": "0005_early_hairball",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779443470312,
+      "tag": "0006_aberrant_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779840000000,
+      "tag": "0007_knowledge_hnsw",
+      "breakpoints": true
     }
   ]
 }

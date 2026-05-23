@@ -24,6 +24,11 @@ import type { UIMessage } from "ai";
 
 import { authenticateRequest } from "../src/lib/auth";
 import { buildPhoneTools } from "../src/features/voice/chat-tools";
+import { buildKnowledgeTools } from "../src/features/knowledge/chat-tools";
+import {
+  resolveSelectedDocumentKbs,
+  type ResolvedSelectedDocument,
+} from "../src/features/knowledge/repo";
 import { ensureUserWorkspace } from "../src/features/tenancy/repo";
 import { listWorkspaceWebhooks } from "../src/features/webhooks/repo";
 import { recordChatUsage } from "../src/features/billing/repo";
@@ -183,6 +188,40 @@ interface ChatRequestBody {
   readonly model?: string;
   readonly builderModel?: string;
   readonly skipUserInsert?: boolean;
+  // Document ids the user picked in the chat document UI to scope RAG to.
+  readonly ragDocumentIds?: string[];
+}
+
+function resolveRagDocumentIds(body: ChatRequestBody): string[] {
+  if (!Array.isArray(body.ragDocumentIds)) return [];
+  return body.ragDocumentIds.filter(
+    (id): id is string => typeof id === "string",
+  );
+}
+
+// When the user has picked existing documents in the chat, tell Mirropilot the
+// REAL knowledge base id(s) those documents already live in, so it reuses them
+// for any agent/workflow it builds instead of creating a new KB and re-ingesting
+// (which wastes embedding cost and time).
+function buildKnowledgeSelectionContext(
+  docs: readonly ResolvedSelectedDocument[],
+): string | undefined {
+  if (docs.length === 0) return undefined;
+  const kbIds = [...new Set(docs.map((d) => d.kbId))];
+  const docIds = docs.map((d) => d.documentId);
+  const docLines = docs.map((d) => {
+    const label = d.fileName ?? d.sourceUrl ?? "document";
+    return `- "${label}" — document id: ${d.documentId}, in knowledge base "${d.kbName}" (id: ${d.kbId})`;
+  });
+  return [
+    "Selected knowledge base documents:",
+    "The user has selected specific existing documents to use. They are already ingested and embedded — do NOT call create_knowledge_base or re-ingest them; that wastes cost and time.",
+    ...docLines,
+    "When you build or edit an agent or workflow that should answer from these documents, copy BOTH of these lines into the intent verbatim:",
+    `- knowledgeBaseIds: [${kbIds.join(", ")}]`,
+    `- knowledgeDocumentIds: [${docIds.join(", ")}]`,
+    "knowledgeBaseIds binds the knowledge base(s); knowledgeDocumentIds scopes the agent to exactly these documents so it ignores other documents in the same knowledge base(s).",
+  ].join("\n");
 }
 
 function jsonError(status: number, message: string): Response {
@@ -234,6 +273,10 @@ export async function POST(req: Request): Promise<Response> {
       `messages=${body.messages.length} model=${requestedModel ?? "<default>"}`,
   );
 
+  // Privileged connection by design: this route streams the agent response over
+  // a long-lived request, so it can't run inside a single request-scoped tenant
+  // transaction (which RLS via withTenantContext requires). It pre-resolves the
+  // workspace and filters every query by it explicitly. See packages/db/README.
   const db = getDb();
   const workspaceId = await ensureUserWorkspace(db, user.id);
   const chat = await ensureChat(db, { chatId, workspaceId, userId: user.id });
@@ -305,29 +348,53 @@ export async function POST(req: Request): Promise<Response> {
   const builderModel = requestedBuilderModel ?? modelForRun;
   let stepIndex = 0;
 
-  const [composioTools, workspaceWebhooks] = await Promise.all([
-    buildComposioTools(db, workspaceId, chat.id).catch((err) => {
-      if (env.NODE_ENV === "development") {
-        console.error("[chat] failed to build composio tools:", err);
-      }
-      return {} as Record<string, Tool>;
-    }),
-    listWorkspaceWebhooks(db, workspaceId).catch(() => []),
-  ]);
+  const ragDocumentIds = resolveRagDocumentIds(body);
+
+  const [composioTools, workspaceWebhooks, selectedDocumentKbs] =
+    await Promise.all([
+      buildComposioTools(db, workspaceId, chat.id).catch((err) => {
+        if (env.NODE_ENV === "development") {
+          console.error("[chat] failed to build composio tools:", err);
+        }
+        return {} as Record<string, Tool>;
+      }),
+      listWorkspaceWebhooks(db, workspaceId).catch(() => []),
+      resolveSelectedDocumentKbs(db, workspaceId, ragDocumentIds).catch(
+        () => [] as ResolvedSelectedDocument[],
+      ),
+    ]);
 
   const phoneTools = buildPhoneTools({ db, workspaceId, userId: user.id });
+  const knowledgeTools = buildKnowledgeTools({
+    db,
+    workspaceId,
+    userId: user.id,
+    chatId: chat.id,
+    ragDocumentIds,
+  });
 
-  const additionalTools = { ...composioTools, ...phoneTools };
+  const additionalTools = {
+    ...composioTools,
+    ...phoneTools,
+    ...knowledgeTools,
+  };
 
   const webhookContextLines = workspaceWebhooks.map((w) => {
     let line = `- ${w.name}: ${w.url}`;
     if (w.description) line += ` — ${w.description}`;
     return line;
   });
+  const contextBlocks: string[] = [];
+  if (webhookContextLines.length > 0) {
+    contextBlocks.push(
+      `Workspace webhooks:\n${webhookContextLines.join("\n")}\nWhen the user asks to call back to their system, trigger an event, or send data to an external endpoint, reference these webhook URLs.`,
+    );
+  }
+  const knowledgeSelectionContext =
+    buildKnowledgeSelectionContext(selectedDocumentKbs);
+  if (knowledgeSelectionContext) contextBlocks.push(knowledgeSelectionContext);
   const systemPromptSuffix =
-    webhookContextLines.length > 0
-      ? `Workspace webhooks:\n${webhookContextLines.join("\n")}\nWhen the user asks to call back to their system, trigger an event, or send data to an external endpoint, reference these webhook URLs.`
-      : undefined;
+    contextBlocks.length > 0 ? contextBlocks.join("\n\n") : undefined;
 
   // Pre-flight: detect external app slugs in the user message and check
   // whether they're connected. If a connection is missing, emit an interrupt

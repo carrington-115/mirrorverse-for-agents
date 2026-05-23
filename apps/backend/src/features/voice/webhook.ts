@@ -1,13 +1,104 @@
 import { timingSafeEqual } from "node:crypto";
 
-import { getDb, schema } from "@mirrorverse/db";
+import {
+  getDb,
+  schema,
+  withTenantContext,
+  type Database,
+} from "@mirrorverse/db";
 import { env } from "@mirrorverse/env/backend";
 
 import {
   invokeComposioTool,
   NeedsAuthError,
 } from "../../mcp/composio/dispatcher";
+import * as knowledgeRepo from "../knowledge/repo";
+import {
+  searchAcrossKnowledgeBases,
+  type CrossKbSearchResult,
+} from "../knowledge/search";
+import { KNOWLEDGE_SEARCH_TOOL_NAME } from "./compile";
 import * as repo from "./repo";
+
+type VoiceAgentRow = NonNullable<
+  Awaited<ReturnType<typeof repo.getVoiceAgentByExternalAssistantId>>
+>;
+
+const MAX_SPEECH_CHARS = 1200;
+
+// Renders retrieved chunks as compact plain text the model can read aloud —
+// no JSON, no scores, source-attributed, and length-capped so TTS doesn't read
+// pages of text back to the caller.
+function formatHitsForSpeech(hits: CrossKbSearchResult[]): string {
+  if (hits.length === 0) {
+    return "I couldn't find anything about that in our records.";
+  }
+  const parts: string[] = [];
+  let total = 0;
+  for (const h of hits) {
+    const source = h.fileName ?? h.sourceUrl ?? "document";
+    const excerpt = h.content.replace(/\s+/g, " ").trim();
+    const line = `${excerpt} (from ${source})`;
+    if (parts.length > 0 && total + line.length > MAX_SPEECH_CHARS) break;
+    parts.push(line);
+    total += line.length;
+  }
+  return parts.join("\n\n");
+}
+
+// First-party RAG handler. Re-validates the agent's configured KB ids against
+// its workspace every call (never trusts ids baked into the workflow doc), then
+// runs the cross-KB pgvector search.
+async function runKnowledgeSearch(
+  db: Database,
+  agent: VoiceAgentRow,
+  args: Record<string, unknown>,
+): Promise<string> {
+  const cfg = agent.voiceConfig;
+  const kbIds = cfg?.knowledgeBaseIds ?? [];
+  if (kbIds.length === 0) return "No knowledge base is configured.";
+
+  const ownedKbIds = await knowledgeRepo.filterKbIdsByWorkspace(
+    db,
+    [...kbIds],
+    agent.workspaceId,
+  );
+  if (ownedKbIds.length === 0) return "No knowledge base is configured.";
+
+  // Optional document-level scoping: when the agent was deployed to answer from
+  // specific documents, restrict retrieval to those (re-validated against the
+  // workspace). Strict by design — if none survive (e.g. the documents were
+  // deleted), we say we found nothing rather than silently widening the search
+  // to the rest of the knowledge base.
+  const docIds = cfg?.knowledgeDocumentIds ?? [];
+  let ownedDocIds: string[] | undefined;
+  if (docIds.length > 0) {
+    ownedDocIds = await knowledgeRepo.filterDocumentIdsByWorkspace(
+      db,
+      [...docIds],
+      agent.workspaceId,
+    );
+    if (ownedDocIds.length === 0) return formatHitsForSpeech([]);
+  }
+
+  const query = typeof args.query === "string" ? args.query.trim() : "";
+  if (!query) return "No search query was provided.";
+
+  const topK =
+    typeof args.topK === "number" && Number.isFinite(args.topK)
+      ? Math.min(Math.max(Math.trunc(args.topK), 1), 20)
+      : (cfg?.retrieval?.topK ?? 6);
+
+  const hits = await searchAcrossKnowledgeBases(
+    db,
+    ownedKbIds,
+    query,
+    topK,
+    cfg?.retrieval?.minScore,
+    ownedDocIds,
+  );
+  return formatHitsForSpeech(hits);
+}
 
 interface VapiToolCallMessage {
   type: "tool-calls";
@@ -119,6 +210,24 @@ async function handleToolCalls(
         // ignore malformed args
       }
 
+      // First-party RAG tool routes here (its server.url is this webhook), not
+      // to Composio.
+      if (tc.function.name === KNOWLEDGE_SEARCH_TOOL_NAME) {
+        try {
+          return {
+            toolCallId: tc.id,
+            result: await withTenantContext(agent.workspaceId, (tdb) =>
+              runKnowledgeSearch(tdb, agent, args),
+            ),
+          };
+        } catch {
+          return {
+            toolCallId: tc.id,
+            result: "I had trouble searching our records just now.",
+          };
+        }
+      }
+
       try {
         const result = await invokeComposioTool(
           tc.function.name,
@@ -181,40 +290,45 @@ async function handleEndOfCall(
     : new Date();
   const costCents = message.cost ? Math.round(message.cost * 100) : 0;
 
-  await repo.insertVoiceCall(db, {
-    workspaceId: agent.workspaceId,
-    voiceAgentId: agent.id,
-    phoneNumberId: null,
-    externalCallId: message.call.id,
-    direction: isOutbound ? "outbound" : "inbound",
-    fromNumber,
-    toNumber,
-    status: "completed",
-    startedAt,
-    endedAt,
-    durationSec,
-    transcriptUrl: null,
-    recordingUrl: message.recordingUrl ?? null,
-    summary: message.summary ?? null,
-    costCents,
-    endedReason: message.call.endedReason ?? null,
-  });
+  // Persist the call + usage inside the tenant transaction (RLS-scoped to the
+  // agent's workspace). The agent lookup above runs on the privileged
+  // connection because it's keyed by the external assistant id, not workspace.
+  await withTenantContext(agent.workspaceId, async (tdb) => {
+    await repo.insertVoiceCall(tdb, {
+      workspaceId: agent.workspaceId,
+      voiceAgentId: agent.id,
+      phoneNumberId: null,
+      externalCallId: message.call.id,
+      direction: isOutbound ? "outbound" : "inbound",
+      fromNumber,
+      toNumber,
+      status: "completed",
+      startedAt,
+      endedAt,
+      durationSec,
+      transcriptUrl: null,
+      recordingUrl: message.recordingUrl ?? null,
+      summary: message.summary ?? null,
+      costCents,
+      endedReason: message.call.endedReason ?? null,
+    });
 
-  if (durationSec && durationSec > 0) {
-    const voiceMinutes = Math.ceil(durationSec / 60);
-    await db
-      .insert(schema.usageEvents)
-      .values({
-        workspaceId: agent.workspaceId,
-        kind: "voice_minute",
-        quantity: voiceMinutes,
-        unit: "minute",
-        costCents: Math.round(voiceMinutes * 5),
-        billable: true,
-        idempotencyKey: `voice_call:${message.call.id}:minutes`,
-      })
-      .onConflictDoNothing();
-  }
+    if (durationSec && durationSec > 0) {
+      const voiceMinutes = Math.ceil(durationSec / 60);
+      await tdb
+        .insert(schema.usageEvents)
+        .values({
+          workspaceId: agent.workspaceId,
+          kind: "voice_minute",
+          quantity: voiceMinutes,
+          unit: "minute",
+          costCents: Math.round(voiceMinutes * 5),
+          billable: true,
+          idempotencyKey: `voice_call:${message.call.id}:minutes`,
+        })
+        .onConflictDoNothing();
+    }
+  });
 
   return new Response(JSON.stringify({ received: true }), {
     headers: { "content-type": "application/json" },

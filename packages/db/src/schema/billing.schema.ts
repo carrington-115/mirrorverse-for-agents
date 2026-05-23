@@ -13,6 +13,7 @@ import {
 import type { UsageKind } from "@mirrorverse/types";
 
 import { chats } from "./chats.schema";
+import { tenantPolicy } from "./rls";
 import { workflowRuns } from "./runs.schema";
 import { workspaces } from "./tenancy.schema";
 
@@ -46,5 +47,6 @@ export const usageEvents = pgTable(
     index("usage_events_workspace_occurred_idx").on(t.workspaceId, t.occurredAt),
     index("usage_events_chat_idx").on(t.chatId),
     index("usage_events_run_idx").on(t.runId),
+    tenantPolicy("usage_events"),
   ],
 );

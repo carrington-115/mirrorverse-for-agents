@@ -102,6 +102,54 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
   };
 }
 
+function parseIdList(captured: string): string[] {
+  return captured
+    .split(",")
+    .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+    .filter((s) => s.length > 0);
+}
+
+// The builder model is told to write knowledge base ids into the intent as
+// `knowledgeBaseIds: [<id>]`. Pull them back out deterministically so retrieval
+// doesn't depend on the model remembering to copy them onto the voice node.
+export function extractKnowledgeBaseIds(intent: string): string[] {
+  const m = intent.match(/knowledge[_\s]*base[_\s]*ids?\s*[:=]\s*\[([^\]]*)\]/i);
+  return m?.[1] ? parseIdList(m[1]) : [];
+}
+
+// Optional per-document scoping, written as `knowledgeDocumentIds: [<id>]`. The
+// `document` token keeps this disjoint from the `base` token above, so the two
+// markers can never capture each other.
+export function extractKnowledgeDocumentIds(intent: string): string[] {
+  const m = intent.match(/knowledge[_\s]*document[_\s]*ids?\s*[:=]\s*\[([^\]]*)\]/i);
+  return m?.[1] ? parseIdList(m[1]) : [];
+}
+
+function sameIds(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
+// Reconciliation: if the intent supplied knowledge base id(s) but the builder
+// didn't put them (or put different ones) on the voice agent node, set them
+// from the intent so the deployed agent searches the right KBs. The optional
+// document-scoping ids are reconciled the same way, but only alongside KB ids
+// (document scoping is meaningless without a bound knowledge base, and the
+// compiler's RAG gate keys off knowledgeBaseIds).
+function reconcileVoiceKnowledgeBases(intent: string, state: BuilderState): void {
+  const kbIds = extractKnowledgeBaseIds(intent);
+  if (kbIds.length === 0) return;
+  const docIds = extractKnowledgeDocumentIds(intent);
+  for (const node of state.nodes) {
+    if (node.kind !== "ai.voice_agent") continue;
+    if (!sameIds(node.knowledgeBaseIds ?? [], kbIds)) {
+      node.knowledgeBaseIds = kbIds;
+    }
+    if (!sameIds(node.knowledgeDocumentIds ?? [], docIds)) {
+      node.knowledgeDocumentIds = docIds;
+    }
+  }
+}
+
 function assembleDocument(state: BuilderState) {
   if (!state.meta) return null;
   return {
@@ -179,6 +227,8 @@ export async function buildWorkflowDocument(
       priorErrors = lastError.message;
       continue;
     }
+
+    reconcileVoiceKnowledgeBases(intent, state);
 
     const assembled = assembleDocument(state);
     const result = workflowDocumentSchema.safeParse(assembled);

@@ -517,6 +517,18 @@ export interface VoiceAgentNode extends NodeBase {
     readonly tools: readonly VoiceToolRef[];
     readonly serverUrl: string;
   };
+  // Knowledge bases this agent retrieves from at call time. When non-empty the
+  // compiler adds a first-party `knowledge_search` tool the agent can call to
+  // ground its answers (RAG). Empty/absent = no retrieval.
+  readonly knowledgeBaseIds?: readonly string[];
+  // Optional retrieval scoping: when non-empty, the deployed agent only searches
+  // these specific documents (which must belong to the bound knowledgeBaseIds)
+  // rather than every document in those KBs. Empty/absent = search the whole KB.
+  readonly knowledgeDocumentIds?: readonly string[];
+  readonly retrieval?: {
+    readonly topK: number;
+    readonly minScore?: number;
+  };
   readonly transcriber?: {
     readonly provider: "deepgram" | "assembly_ai" | "whisper";
     readonly model: string;

@@ -254,6 +254,18 @@ const voiceAgentNode = z.object({
     tools: z.array(voiceToolRef),
     serverUrl: z.string().url(),
   }),
+  // RAG: knowledge bases this agent retrieves from at call time. When present
+  // the compiler emits a first-party `knowledge_search` tool.
+  knowledgeBaseIds: z.array(z.string()).optional(),
+  // Optional: scope retrieval to specific documents within those knowledge
+  // bases. Empty/absent = search the whole KB.
+  knowledgeDocumentIds: z.array(z.string()).optional(),
+  retrieval: z
+    .object({
+      topK: z.number().int().min(1).max(20).default(6),
+      minScore: z.number().min(0).max(1).optional(),
+    })
+    .optional(),
   transcriber: z
     .object({
       provider: z.enum(["deepgram", "assembly_ai", "whisper"]),

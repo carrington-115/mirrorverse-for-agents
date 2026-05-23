@@ -8,6 +8,8 @@ import type {
   WorkspaceStatus,
 } from "@mirrorverse/types";
 
+import { tenantPolicy } from "./rls";
+
 /**
  * Top-level tenant. Every other domain table carries `workspace_id` and
  * cascades on delete from here. Stripe customer and billing email live at
@@ -104,6 +106,7 @@ export const workspaceMembers = pgTable(
   (t) => [
     uniqueIndex("workspace_members_unique_idx").on(t.workspaceId, t.userId),
     index("workspace_members_user_idx").on(t.userId),
+    tenantPolicy("workspace_members"),
   ],
 );
 
@@ -133,6 +136,7 @@ export const apiKeys = pgTable(
   (t) => [
     uniqueIndex("api_keys_hashed_idx").on(t.hashedKey),
     index("api_keys_workspace_idx").on(t.workspaceId),
+    tenantPolicy("api_keys"),
   ],
 );
 
@@ -161,5 +165,6 @@ export const invitations = pgTable(
   (t) => [
     uniqueIndex("invitations_token_idx").on(t.token),
     index("invitations_workspace_status_idx").on(t.workspaceId, t.status),
+    tenantPolicy("invitations"),
   ],
 );

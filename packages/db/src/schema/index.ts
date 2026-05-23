@@ -9,3 +9,4 @@ export * from "./billing.schema";
 export * from "./audit-log.schema";
 export * from "./voice.schema";
 export * from "./webhooks.schema";
+export * from "./knowledge.schema";

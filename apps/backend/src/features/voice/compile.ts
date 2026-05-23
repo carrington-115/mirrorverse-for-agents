@@ -1,6 +1,10 @@
 import type { ElevenLabsVoiceMode, VoiceAgentNode } from "@mirrorverse/types";
 import type { Vapi } from "@vapi-ai/server-sdk";
 
+// Name of the first-party RAG tool. The compiler emits it with this name and
+// the voice webhook dispatches it by this name, so the two must agree.
+export const KNOWLEDGE_SEARCH_TOOL_NAME = "knowledge_search";
+
 const DIRECTION_PREAMBLE: Record<"inbound" | "outbound", string> = {
   inbound:
     "You are an inbound voice agent. You will receive calls from customers and help them with their requests. ",
@@ -38,8 +42,20 @@ export function compileToVapiAssistant(
   node: VoiceAgentNode,
   webhookUrl: string,
 ): Vapi.CreateAssistantDto {
+  const hasKnowledge = (node.knowledgeBaseIds?.length ?? 0) > 0;
+
+  // When the agent has knowledge bases, tell it (in-prompt) to use the tool and
+  // ground answers in the excerpts it returns.
+  const knowledgePreamble = hasKnowledge
+    ? " You have a knowledge_search tool connected to the business's knowledge base. " +
+      "When the caller asks something the business's documents, policies, pricing, hours, or FAQs might answer, " +
+      "call knowledge_search first and base your answer on the returned excerpts. If it returns nothing relevant, say you don't have that information."
+    : "";
+
   const systemPrompt =
-    DIRECTION_PREAMBLE[node.direction] + node.modelConnection.systemPrompt;
+    DIRECTION_PREAMBLE[node.direction] +
+    node.modelConnection.systemPrompt +
+    knowledgePreamble;
 
   const tools: Vapi.AnthropicModelToolsItem[] = node.toolsEndpoint.tools.map(
     (t) => ({
@@ -55,6 +71,37 @@ export function compileToVapiAssistant(
       server: { url: node.toolsEndpoint.serverUrl },
     }),
   );
+
+  // First-party RAG tool. Unlike MCP tools (which route to the agent's MCP
+  // server URL), this one must route to the voice webhook so handleToolCalls
+  // can run the pgvector search directly. Per-tool server.url overrides the
+  // assistant-level one in Vapi.
+  if (hasKnowledge) {
+    tools.push({
+      type: "function",
+      function: {
+        name: KNOWLEDGE_SEARCH_TOOL_NAME,
+        description:
+          "Search the business's knowledge base to answer the caller's question. Call this before answering anything the company's documents, policies, pricing, hours, or FAQs might cover, then base your answer on the returned excerpts.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "What to look up, in the caller's own words.",
+            },
+            topK: {
+              type: "number",
+              description:
+                "How many excerpts to retrieve (optional, default 6).",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      server: { url: webhookUrl },
+    });
+  }
 
   const modelPayload = {
     provider: node.modelConnection.provider,

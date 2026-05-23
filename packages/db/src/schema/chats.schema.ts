@@ -20,6 +20,7 @@ import type {
   StopReason,
   Usage,
 } from "@mirrorverse/types";
+import { activeWorkspaceSql, tenantPolicy, transitivePolicy } from "./rls";
 import { workspaces } from "./tenancy.schema";
 import { workflows } from "./workflows.schema";
 
@@ -66,6 +67,7 @@ export const chats = pgTable(
     index("chats_waiting_idx")
       .on(t.updatedAt)
       .where(sql`status = 'waiting_for_input'`),
+    tenantPolicy("chats"),
   ],
 );
 
@@ -91,7 +93,14 @@ export const messages = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [index("messages_chat_created_idx").on(t.chatId, t.createdAt)],
+  (t) => [
+    index("messages_chat_created_idx").on(t.chatId, t.createdAt),
+    // No workspace_id of its own — scoped through the parent chat.
+    transitivePolicy(
+      "messages",
+      sql`exists (select 1 from chats where chats.id = messages.chat_id and chats.workspace_id = ${activeWorkspaceSql})`,
+    ),
+  ],
 );
 
 /**
@@ -113,5 +122,12 @@ export const chatEvents = pgTable(
     sequence: bigint("sequence", { mode: "number" }).notNull(),
     ts: timestamp("ts", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("chat_events_chat_sequence_idx").on(t.chatId, t.sequence)],
+  (t) => [
+    uniqueIndex("chat_events_chat_sequence_idx").on(t.chatId, t.sequence),
+    // No workspace_id of its own — scoped through the parent chat.
+    transitivePolicy(
+      "chat_events",
+      sql`exists (select 1 from chats where chats.id = chat_events.chat_id and chats.workspace_id = ${activeWorkspaceSql})`,
+    ),
+  ],
 );
