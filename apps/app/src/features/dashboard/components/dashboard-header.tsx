@@ -1,38 +1,36 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   BarChart3Icon,
-  BellIcon,
-  CalculatorIcon,
-  CalendarIcon,
+  BookOpen,
   Check,
-  ClipboardPasteIcon,
-  CodeIcon,
-  CopyIcon,
   CreditCardIcon,
-  FileTextIcon,
-  FolderIcon,
-  FolderPlusIcon,
   HelpCircleIcon,
-  HomeIcon,
-  ImageIcon,
-  InboxIcon,
   LayoutGridIcon,
-  ListIcon,
   Loader2,
+  LogOutIcon,
   MegaphoneIcon,
+  MessageCircleIcon,
+  MessageCirclePlus,
+  MonitorIcon,
+  MoonIcon,
+  PhoneIcon,
+  PlugIcon,
   PlusIcon,
-  ScissorsIcon,
   Search,
   SettingsIcon,
+  Shapes,
+  ShieldIcon,
+  Sparkles,
+  SunIcon,
   SunMoon,
-  TrashIcon,
+  UploadIcon,
   UserIcon,
+  WorkflowIcon,
   ZapIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -63,6 +61,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { signOutAction } from "@/features/auth/actions/sign-out";
 import { useSettingsModal } from "@/features/settings/hooks/use-settings-modal";
+import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 
 interface DashboardHeaderProps {
   title: string;
@@ -299,6 +298,10 @@ function AppearanceSubmenu() {
 
 function HeaderCommand() {
   const [open, setOpen] = React.useState(false);
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const { openSettings } = useSettingsModal();
+  const [isPending, startTransition] = React.useTransition();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -310,6 +313,31 @@ function HeaderCommand() {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
+
+  const runCommand = React.useCallback((command: () => void) => {
+    setOpen(false);
+    command();
+  }, []);
+
+  const handleNewChat = () => {
+    setOpen(false);
+    startTransition(async () => {
+      const sessionId = await generateSessionId();
+      router.push(`/mirropilot/${sessionId}`);
+    });
+  };
+
+  const handleSignOut = () => {
+    setOpen(false);
+    startTransition(async () => {
+      try {
+        await signOutAction();
+      } catch (error) {
+        if (error instanceof Error && error.message === "NEXT_REDIRECT") throw error;
+        toast.error(error instanceof Error ? error.message : "Failed to sign out");
+      }
+    });
+  };
 
   return (
     <>
@@ -342,124 +370,132 @@ function HeaderCommand() {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Navigation">
-              <CommandItem>
-                <HomeIcon />
-                <span>Home</span>
-                <CommandShortcut>⌘H</CommandShortcut>
+              <CommandItem onSelect={() => runCommand(() => router.push("/mirropilot"))}>
+                <Sparkles />
+                <span>Mirropilot</span>
               </CommandItem>
-              <CommandItem>
-                <InboxIcon />
-                <span>Inbox</span>
-                <CommandShortcut>⌘I</CommandShortcut>
+              <CommandItem onSelect={() => runCommand(() => router.push("/workflows"))}>
+                <WorkflowIcon />
+                <span>Workflows</span>
               </CommandItem>
-              <CommandItem>
-                <FileTextIcon />
-                <span>Documents</span>
-                <CommandShortcut>⌘D</CommandShortcut>
+              <CommandItem onSelect={() => runCommand(() => router.push("/knowledge"))}>
+                <BookOpen />
+                <span>Knowledge</span>
               </CommandItem>
-              <CommandItem>
-                <FolderIcon />
-                <span>Folders</span>
-                <CommandShortcut>⌘F</CommandShortcut>
+              <CommandItem onSelect={() => runCommand(() => router.push("/integrations"))}>
+                <Shapes />
+                <span>Integrations</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push("/deploy/phone"))}>
+                <PhoneIcon />
+                <span>Phone agents</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push("/deploy/whatsapp"))}>
+                <MessageCircleIcon />
+                <span>WhatsApp agents</span>
               </CommandItem>
             </CommandGroup>
             <CommandSeparator />
-            <CommandGroup heading="Actions">
-              <CommandItem>
-                <PlusIcon />
-                <span>New File</span>
+            <CommandGroup heading="Create">
+              <CommandItem onSelect={handleNewChat}>
+                <MessageCirclePlus />
+                <span>New chat</span>
                 <CommandShortcut>⌘N</CommandShortcut>
               </CommandItem>
-              <CommandItem>
-                <FolderPlusIcon />
-                <span>New Folder</span>
-                <CommandShortcut>⇧⌘N</CommandShortcut>
+              <CommandItem onSelect={() => runCommand(() => router.push("/workflows"))}>
+                <PlusIcon />
+                <span>New workflow</span>
               </CommandItem>
-              <CommandItem>
-                <CopyIcon />
-                <span>Copy</span>
-                <CommandShortcut>⌘C</CommandShortcut>
+              <CommandItem onSelect={() => runCommand(() => router.push("/knowledge"))}>
+                <UploadIcon />
+                <span>Upload to knowledge base</span>
               </CommandItem>
-              <CommandItem>
-                <ScissorsIcon />
-                <span>Cut</span>
-                <CommandShortcut>⌘X</CommandShortcut>
-              </CommandItem>
-              <CommandItem>
-                <ClipboardPasteIcon />
-                <span>Paste</span>
-                <CommandShortcut>⌘V</CommandShortcut>
-              </CommandItem>
-              <CommandItem>
-                <TrashIcon />
-                <span>Delete</span>
-                <CommandShortcut>⌫</CommandShortcut>
+              <CommandItem onSelect={() => runCommand(() => router.push("/integrations"))}>
+                <PlugIcon />
+                <span>Connect an integration</span>
               </CommandItem>
             </CommandGroup>
             <CommandSeparator />
-            <CommandGroup heading="View">
-              <CommandItem>
-                <LayoutGridIcon />
-                <span>Grid View</span>
-              </CommandItem>
-              <CommandItem>
-                <ListIcon />
-                <span>List View</span>
-              </CommandItem>
-              <CommandItem>
-                <ZoomInIcon />
-                <span>Zoom In</span>
-                <CommandShortcut>⌘+</CommandShortcut>
-              </CommandItem>
-              <CommandItem>
-                <ZoomOutIcon />
-                <span>Zoom Out</span>
-                <CommandShortcut>⌘-</CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="Account">
-              <CommandItem>
+            <CommandGroup heading="Account & Settings">
+              <CommandItem onSelect={() => runCommand(() => openSettings("profile"))}>
                 <UserIcon />
                 <span>Profile</span>
                 <CommandShortcut>⌘P</CommandShortcut>
               </CommandItem>
-              <CommandItem>
+              <CommandItem onSelect={() => runCommand(() => openSettings("billing"))}>
                 <CreditCardIcon />
                 <span>Billing</span>
                 <CommandShortcut>⌘B</CommandShortcut>
               </CommandItem>
-              <CommandItem>
+              <CommandItem onSelect={() => runCommand(() => openSettings("usage"))}>
+                <BarChart3Icon />
+                <span>Usage</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => openSettings("security"))}>
+                <ShieldIcon />
+                <span>Security</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => openSettings("apps"))}>
+                <LayoutGridIcon />
+                <span>Connected apps</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => openSettings("channels"))}>
+                <MegaphoneIcon />
+                <span>Channels</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => openSettings("pricing"))}>
+                <ZapIcon />
+                <span>Upgrade plan</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => openSettings("general"))}>
                 <SettingsIcon />
                 <span>Settings</span>
-                <CommandShortcut>⌘S</CommandShortcut>
-              </CommandItem>
-              <CommandItem>
-                <BellIcon />
-                <span>Notifications</span>
-              </CommandItem>
-              <CommandItem>
-                <HelpCircleIcon />
-                <span>Help &amp; Support</span>
+                <CommandShortcut>⌘,</CommandShortcut>
               </CommandItem>
             </CommandGroup>
             <CommandSeparator />
-            <CommandGroup heading="Tools">
-              <CommandItem>
-                <CalculatorIcon />
-                <span>Calculator</span>
+            <CommandGroup heading="Appearance">
+              <CommandItem
+                data-checked={theme === "light" ? "true" : "false"}
+                onSelect={() => runCommand(() => setTheme("light"))}
+              >
+                <SunIcon />
+                <span>Light</span>
               </CommandItem>
-              <CommandItem>
-                <CalendarIcon />
-                <span>Calendar</span>
+              <CommandItem
+                data-checked={theme === "dark" ? "true" : "false"}
+                onSelect={() => runCommand(() => setTheme("dark"))}
+              >
+                <MoonIcon />
+                <span>Dark</span>
               </CommandItem>
-              <CommandItem>
-                <ImageIcon />
-                <span>Image Editor</span>
+              <CommandItem
+                data-checked={theme === "system" ? "true" : "false"}
+                onSelect={() => runCommand(() => setTheme("system"))}
+              >
+                <MonitorIcon />
+                <span>System</span>
               </CommandItem>
-              <CommandItem>
-                <CodeIcon />
-                <span>Code Editor</span>
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="Help">
+              <CommandItem
+                onSelect={() =>
+                  runCommand(() => {
+                    window.location.href = "mailto:support@mirrorverse.ai";
+                  })
+                }
+              >
+                <HelpCircleIcon />
+                <span>Contact support</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={handleSignOut}
+                disabled={isPending}
+                className="text-destructive data-selected:text-destructive"
+              >
+                {isPending ? <Loader2 className="animate-spin" /> : <LogOutIcon />}
+                <span>Log out</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>
