@@ -8,7 +8,7 @@ export function SettingsShellLayout({ children }: { children: ReactNode }) {
       <div className="top-0 sticky z-10 bg-background">
         <DashboardHeader title="Settings" />
       </div>
-      <div className="gap-8 px-6 py-6 flex flex-row">
+      <div className="gap-4 px-4 py-4 md:gap-8 md:px-6 md:py-6 md:flex-row flex flex-col">
         <SettingsNav />
         <div className="min-w-0 flex-1">{children}</div>
       </div>

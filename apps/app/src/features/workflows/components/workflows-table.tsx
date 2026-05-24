@@ -380,149 +380,153 @@ export function WorkflowsTable({
 
   return (
     <div className="flex w-full flex-col gap-(--md,16px)">
-      <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
-        {/* Header row */}
-        <div className="h-9 flex w-full items-center border-b border-border bg-(--accent-0,#fafafa)">
-          <div className="w-[38px] shrink-0" />
-          <div className="flex w-[33px] shrink-0 items-center px-(--xs,8px) py-[10px]">
-            <Checkbox
-              className="size-[14px]"
-              checked={allPageSelected}
-              onCheckedChange={toggleAll}
-              aria-label="Select all on page"
-            />
-          </div>
-          <button
-            type="button"
-            className="min-w-0 flex flex-1 items-center gap-(--xs,8px) px-(--xs,8px) py-[8px] text-left"
-            onClick={onSortToggle}
-          >
-            <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
-              Workflow
-            </span>
-            <SortIcon className="size-4 shrink-0 opacity-50" />
-          </button>
-          <div className="flex w-[214px] shrink-0 items-center px-(--xs,8px) py-[8px]">
-            <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
-              Status
-            </span>
-          </div>
-          <div className="flex w-[187px] shrink-0 items-center px-(--xs,8px) py-[8px]">
-            <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
-              Type
-            </span>
-          </div>
-          <div className="flex w-[200px] shrink-0 items-center px-(--xs,8px) py-[8px]">
-            <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
-              Last updated
-            </span>
-          </div>
-          <div className="w-[187px] shrink-0" />
-        </div>
-
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-(--xs,8px) border-b border-border bg-muted/20 px-(--xs,8px) py-[6px]">
-            <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
-            <div className="mx-1 h-4 w-px bg-border" />
+      <div className="w-full overflow-x-auto rounded-(--radius,10px) border border-border bg-background">
+        <div className="min-w-[1024px]">
+          {/* Header row */}
+          <div className="h-9 flex w-full items-center border-b border-border bg-(--accent-0,#fafafa)">
+            <div className="w-[38px] shrink-0" />
+            <div className="flex w-[33px] shrink-0 items-center px-(--xs,8px) py-[10px]">
+              <Checkbox
+                className="size-[14px]"
+                checked={allPageSelected}
+                onCheckedChange={toggleAll}
+                aria-label="Select all on page"
+              />
+            </div>
             <button
               type="button"
-              className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-              onClick={() => toast.info("Restart selected coming soon")}
+              className="min-w-0 flex flex-1 items-center gap-(--xs,8px) px-(--xs,8px) py-[8px] text-left"
+              onClick={onSortToggle}
             >
-              <RefreshCw className="size-3.5" />
-              Restart
+              <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
+                Workflow
+              </span>
+              <SortIcon className="size-4 shrink-0 opacity-50" />
             </button>
-            <button
-              type="button"
-              className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-              onClick={() => toast.info("Share selected coming soon")}
-            >
-              <Share2 className="size-3.5" />
-              Share
-            </button>
-            <button
-              type="button"
-              className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-destructive transition-colors hover:bg-destructive/10"
-              onClick={() => {
-                selectedIds.forEach((id) => onDelete(id));
-                setSelectedIds(new Set());
-              }}
-            >
-              <Trash2 className="size-3.5" />
-              Delete
-            </button>
-            <button
-              type="button"
-              className="ml-auto flex items-center rounded-md p-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-              onClick={() => setSelectedIds(new Set())}
-              title="Clear selection"
-            >
-              <X className="size-3.5" />
-            </button>
+            <div className="flex w-[214px] shrink-0 items-center px-(--xs,8px) py-[8px]">
+              <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
+                Status
+              </span>
+            </div>
+            <div className="flex w-[187px] shrink-0 items-center px-(--xs,8px) py-[8px]">
+              <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
+                Type
+              </span>
+            </div>
+            <div className="flex w-[200px] shrink-0 items-center px-(--xs,8px) py-[8px]">
+              <span className="text-sm font-medium leading-5 whitespace-nowrap text-foreground">
+                Last updated
+              </span>
+            </div>
+            <div className="w-[187px] shrink-0" />
           </div>
-        )}
 
-        {isLoading && (
-          <div>
-            {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-              <WorkflowSkeletonRow key={`workflow-skeleton-${i}`} />
-            ))}
-          </div>
-        )}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-(--xs,8px) border-b border-border bg-muted/20 px-(--xs,8px) py-[6px]">
+              <span className="text-sm font-medium text-foreground">
+                {selectedIds.size} selected
+              </span>
+              <div className="mx-1 h-4 w-px bg-border" />
+              <button
+                type="button"
+                className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                onClick={() => toast.info("Restart selected coming soon")}
+              >
+                <RefreshCw className="size-3.5" />
+                Restart
+              </button>
+              <button
+                type="button"
+                className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                onClick={() => toast.info("Share selected coming soon")}
+              >
+                <Share2 className="size-3.5" />
+                Share
+              </button>
+              <button
+                type="button"
+                className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-destructive transition-colors hover:bg-destructive/10"
+                onClick={() => {
+                  selectedIds.forEach((id) => onDelete(id));
+                  setSelectedIds(new Set());
+                }}
+              >
+                <Trash2 className="size-3.5" />
+                Delete
+              </button>
+              <button
+                type="button"
+                className="ml-auto flex items-center rounded-md p-[4px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                onClick={() => setSelectedIds(new Set())}
+                title="Clear selection"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          )}
 
-        {isEmpty && (
-          <div className="py-16 px-4 flex items-center justify-center">
-            <Empty className="max-w-[448px] rounded-xl border border-solid border-border">
-              <EmptyHeader>
-                <EmptyTitle className="text-base font-medium text-foreground">
-                  No Workflows Created Yet
-                </EmptyTitle>
-                <EmptyDescription>
-                  Start automating your business processes — create your first workflow
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <div className="flex flex-wrap items-center justify-center gap-(--xs,8px)">
-                  <Button className="gap-(--xs,8px)" onClick={handleNewSession}>
-                    {pending ? <Loader2 className="animate-spin" /> : <Plus className="size-4" />}
-                    Create workflow
-                  </Button>
-                  <Button variant="outline" onClick={() => toast.info("Examples coming soon")}>
-                    See examples
-                  </Button>
-                </div>
-              </EmptyContent>
-            </Empty>
-          </div>
-        )}
-
-        {noResults && (
-          <div className="py-16 flex flex-col items-center justify-center gap-(--sm,12px)">
-            <p className="text-sm font-medium text-foreground">No workflows match your search</p>
-            <p className="text-sm text-muted-foreground">
-              Try adjusting your search or filter to find what you&apos;re looking for
-            </p>
-          </div>
-        )}
-
-        {!isLoading && !isEmpty && !noResults && (
-          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={pageSlice.map((w) => w.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {pageSlice.map((w) => (
-                <SortableWorkflowRow
-                  key={w.id}
-                  w={w}
-                  selected={selectedIds.has(w.id)}
-                  onToggle={() => toggleOne(w.id)}
-                  onDelete={() => onDelete(w.id)}
-                />
+          {isLoading && (
+            <div>
+              {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                <WorkflowSkeletonRow key={`workflow-skeleton-${i}`} />
               ))}
-            </SortableContext>
-          </DndContext>
-        )}
+            </div>
+          )}
+
+          {isEmpty && (
+            <div className="py-16 px-4 flex items-center justify-center">
+              <Empty className="max-w-[448px] rounded-xl border border-solid border-border">
+                <EmptyHeader>
+                  <EmptyTitle className="text-base font-medium text-foreground">
+                    No Workflows Created Yet
+                  </EmptyTitle>
+                  <EmptyDescription>
+                    Start automating your business processes — create your first workflow
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <div className="flex flex-wrap items-center justify-center gap-(--xs,8px)">
+                    <Button className="gap-(--xs,8px)" onClick={handleNewSession}>
+                      {pending ? <Loader2 className="animate-spin" /> : <Plus className="size-4" />}
+                      Create workflow
+                    </Button>
+                    <Button variant="outline" onClick={() => toast.info("Examples coming soon")}>
+                      See examples
+                    </Button>
+                  </div>
+                </EmptyContent>
+              </Empty>
+            </div>
+          )}
+
+          {noResults && (
+            <div className="py-16 flex flex-col items-center justify-center gap-(--sm,12px)">
+              <p className="text-sm font-medium text-foreground">No workflows match your search</p>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search or filter to find what you&apos;re looking for
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !isEmpty && !noResults && (
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext
+                items={pageSlice.map((w) => w.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {pageSlice.map((w) => (
+                  <SortableWorkflowRow
+                    key={w.id}
+                    w={w}
+                    selected={selectedIds.has(w.id)}
+                    onToggle={() => toggleOne(w.id)}
+                    onDelete={() => onDelete(w.id)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
       </div>
 
       {!isLoading && !isEmpty && (

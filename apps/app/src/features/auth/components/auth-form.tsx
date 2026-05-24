@@ -88,11 +88,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="flex w-full flex-col items-center gap-(--xl)">
+    <div className="px-6 flex w-full flex-col items-center gap-(--xl)">
       <form
         onSubmit={handleSubmit(onSubmit)}
         noValidate
-        className="flex w-[350px] flex-col gap-[24px]"
+        className="flex w-full max-w-[350px] flex-col gap-[24px]"
       >
         <div className="flex flex-col items-center">
           <h2 className="font-semibold text-[24px] leading-(--heading-3-line-height) text-foreground">

@@ -123,13 +123,13 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
         },
       });
 
-      // We deliberately do NOT forward native model reasoning. Different
-      // providers (notably OpenAI o-series, gpt-5-nano) emit reasoning parts
-      // even for trivial answers like a one-line clarifying question, which
-      // surfaces as a lonely entry in the chain-of-thought panel. Only our
-      // builder narration (written directly to the writer above) belongs in
-      // chain-of-thought; the model's own answers belong in regular text.
-      writer.merge(result.toUIMessageStream<UIMessage>({ sendReasoning: false }));
+      // Forward native model reasoning so the chain-of-thought timeline shows
+      // the model's real thinking interleaved with our builder narration and
+      // the acting (tool) steps. Providers that emit a reasoning part even for
+      // a trivial one-line answer no longer look out of place: the client
+      // co-locates reasoning with acting steps and auto-collapses the panel to
+      // a "Thought process" summary once the turn finishes.
+      writer.merge(result.toUIMessageStream<UIMessage>({ sendReasoning: true }));
     },
     onError: (error) => {
       console.error(`${LOG_PREFIX} stream response error:`, error);

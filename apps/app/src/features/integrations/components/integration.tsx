@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useDirectoryListQuery } from "@/features/mcp-directory/api/queries";
 import { useConnectionsQuery } from "@/features/integrations/api/queries";
 import { useDebouncedValue } from "@/features/mcp-directory/lib/use-debounced-value";
@@ -190,6 +191,7 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
   const [searchQuery, setSearchQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
+  const isMobile = useIsMobile();
 
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
   const { data, isLoading } = useDirectoryListQuery({
@@ -235,36 +237,80 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="p-0 gap-0 w-[80vw]! max-w-[95vw]! overflow-hidden">
-          <div className="flex h-[640px]">
-            <aside className="w-44 p-4 shrink-0 overflow-y-auto border-r border-border">
-              <CategorySidebar
-                categories={categories}
-                selected={selectedCategory}
-                onSelect={setSelectedCategory}
-              />
-            </aside>
+      {isMobile ? (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent side="right" className="gap-0 p-0 flex w-full! max-w-none! flex-col">
+            <SheetHeader className="gap-3 px-4 py-4 shrink-0 border-b border-border">
+              <SheetTitle>Browse apps</SheetTitle>
+              <InputGroup>
+                <InputGroupAddon>
+                  <Search />
+                </InputGroupAddon>
+                <InputGroupInput
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or category"
+                />
+              </InputGroup>
+              <div className="gap-2 pb-1 flex overflow-x-auto">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium shrink-0 cursor-pointer rounded-full border whitespace-nowrap transition-colors",
+                      selectedCategory === cat
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-background text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </SheetHeader>
+            <div className="px-4 py-4 flex-1 overflow-y-auto">
+              <DirectoryGrid entries={entries} loading={isLoading} onViewDetails={handleSelect} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="p-0 gap-0 w-[80vw]! max-w-[95vw]! overflow-hidden">
+            <div className="flex h-[640px]">
+              <aside className="w-44 p-4 shrink-0 overflow-y-auto border-r border-border">
+                <CategorySidebar
+                  categories={categories}
+                  selected={selectedCategory}
+                  onSelect={setSelectedCategory}
+                />
+              </aside>
 
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="px-5 py-4 flex items-center justify-between border-b border-border">
-                <h2 className="text-base font-semibold text-foreground">{categoryLabel}</h2>
-                <div className="gap-3 flex items-center">
-                  <IntegrationSearchBar
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder="Search by name or category"
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <div className="px-5 py-4 flex items-center justify-between border-b border-border">
+                  <h2 className="text-base font-semibold text-foreground">{categoryLabel}</h2>
+                  <div className="gap-3 flex items-center">
+                    <IntegrationSearchBar
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder="Search by name or category"
+                    />
+                  </div>
+                </div>
+
+                <div className="px-5 py-4 flex-1 overflow-y-auto">
+                  <DirectoryGrid
+                    entries={entries}
+                    loading={isLoading}
+                    onViewDetails={handleSelect}
                   />
                 </div>
               </div>
-
-              <div className="px-5 py-4 flex-1 overflow-y-auto">
-                <DirectoryGrid entries={entries} loading={isLoading} onViewDetails={handleSelect} />
-              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <AddIntegrationSheet open={sheetOpen} onOpenChange={setSheetOpen} entry={selectedEntry} />
     </>

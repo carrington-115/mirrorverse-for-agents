@@ -10,6 +10,7 @@ import { extractIconHints, type NodeIconHints } from "@/features/workflows/lib/n
 interface ChatWorkflowSidePanelProps {
   workflowId: string;
   onClose: () => void;
+  showControls?: boolean;
 }
 
 interface WorkflowDocumentShape {
@@ -28,7 +29,11 @@ interface WorkflowDocumentShape {
   }>;
 }
 
-export function ChatWorkflowSidePanel({ workflowId, onClose }: ChatWorkflowSidePanelProps) {
+export function ChatWorkflowSidePanel({
+  workflowId,
+  onClose,
+  showControls = true,
+}: ChatWorkflowSidePanelProps) {
   const { data, isLoading } = useWorkflowQuery(workflowId);
 
   const doc = useMemo<WorkflowDocumentShape | null>(() => {
@@ -76,7 +81,11 @@ export function ChatWorkflowSidePanel({ workflowId, onClose }: ChatWorkflowSideP
         </button>
       </div>
       <div className="min-h-0 flex-1">
-        <DocumentCanvas nodes={doc.nodes} connections={doc.connections} />
+        <DocumentCanvas
+          nodes={doc.nodes}
+          connections={doc.connections}
+          showControls={showControls}
+        />
       </div>
     </div>
   );

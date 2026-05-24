@@ -1,5 +1,8 @@
 import { router } from "../../trpc/init";
-import { protectedProc, workspaceProc } from "../../trpc/middleware";
+// Every chat op runs under workspaceProc so it executes inside the tenant
+// transaction (RLS-scoped). Queries still filter by userId; the workspace GUC
+// is a defense-in-depth backstop.
+import { workspaceProc } from "../../trpc/middleware";
 
 import {
   appendUserMessageInput,
@@ -16,13 +19,13 @@ import {
 import { chatsService } from "./service";
 
 export const chatsRouter = router({
-  list: protectedProc
+  list: workspaceProc
     .input(listChatsInput)
     .query(({ ctx, input }) =>
       chatsService.list({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 
-  get: protectedProc
+  get: workspaceProc
     .input(getChatInput)
     .query(({ ctx, input }) =>
       chatsService.getChat({ db: ctx.db, userId: ctx.user.id }, input),
@@ -37,7 +40,7 @@ export const chatsRouter = router({
       ),
     ),
 
-  appendUserMessage: protectedProc
+  appendUserMessage: workspaceProc
     .input(appendUserMessageInput)
     .mutation(({ ctx, input }) =>
       chatsService.appendUserMessage(
@@ -46,19 +49,19 @@ export const chatsRouter = router({
       ),
     ),
 
-  editUserMessage: protectedProc
+  editUserMessage: workspaceProc
     .input(editUserMessageInput)
     .mutation(({ ctx, input }) =>
       chatsService.editUserMessage({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 
-  editAndTruncate: protectedProc
+  editAndTruncate: workspaceProc
     .input(editAndTruncateInput)
     .mutation(({ ctx, input }) =>
       chatsService.editAndTruncate({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 
-  deleteLastAssistant: protectedProc
+  deleteLastAssistant: workspaceProc
     .input(deleteLastAssistantInput)
     .mutation(({ ctx, input }) =>
       chatsService.deleteLastAssistant(
@@ -67,19 +70,19 @@ export const chatsRouter = router({
       ),
     ),
 
-  delete: protectedProc
+  delete: workspaceProc
     .input(deleteChatInput)
     .mutation(({ ctx, input }) =>
       chatsService.deleteChat({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 
-  pin: protectedProc
+  pin: workspaceProc
     .input(pinChatInput)
     .mutation(({ ctx, input }) =>
       chatsService.pinChat({ db: ctx.db, userId: ctx.user.id }, input),
     ),
 
-  pendingInterrupt: protectedProc
+  pendingInterrupt: workspaceProc
     .input(getPendingInterruptInput)
     .query(({ ctx, input }) =>
       chatsService.getPendingInterrupt(

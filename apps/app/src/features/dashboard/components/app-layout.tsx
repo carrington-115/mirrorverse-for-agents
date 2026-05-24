@@ -12,7 +12,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <TooltipProvider>
           <SettingsModalProvider>
             <DashboardSidebar />
-            <main className="container bg-(--unofficial-body-background)">{children}</main>
+            <main className="min-w-0 container bg-(--unofficial-body-background)">{children}</main>
             <SettingsModal />
           </SettingsModalProvider>
         </TooltipProvider>

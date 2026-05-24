@@ -384,7 +384,7 @@ export function ConversationsTable({ data }: ConversationsTableProps) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
         {isEmpty ? (
           <div className="flex min-h-[480px] items-center justify-center">
             <div className="p-8 gap-3 flex w-[448px] flex-col items-center rounded-xl border text-center">

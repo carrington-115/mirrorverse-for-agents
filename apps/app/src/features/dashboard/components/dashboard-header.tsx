@@ -315,9 +315,18 @@ function HeaderCommand() {
     <>
       <Button
         onClick={() => setOpen(true)}
+        variant="ghost"
+        size="icon-sm"
+        className="md:hidden cursor-pointer text-muted-foreground"
+        aria-label="Search workspace"
+      >
+        <Search className="size-4" />
+      </Button>
+      <Button
+        onClick={() => setOpen(true)}
         variant="outline"
         size="sm"
-        className="h-8 gap-2 text-xs w-[180px] cursor-pointer justify-between text-muted-foreground"
+        className="h-8 gap-2 text-xs md:flex hidden w-[180px] cursor-pointer justify-between text-muted-foreground"
       >
         <span className="gap-1.5 flex items-center">
           <Search className="size-3.5" />

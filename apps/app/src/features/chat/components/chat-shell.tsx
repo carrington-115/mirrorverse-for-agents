@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useChatQuery } from "@/features/chat/api/queries";
 import { contentBlocksToUIMessage } from "@/features/chat/lib/content-blocks";
 
@@ -19,6 +21,7 @@ interface ChatShellProps {
 
 export function ChatShell({ sessionId }: ChatShellProps) {
   const { data, isLoading } = useChatQuery(sessionId);
+  const isMobile = useIsMobile();
   const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_VW);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
@@ -86,22 +89,45 @@ export function ChatShell({ sessionId }: ChatShellProps) {
           onWorkflowSelect={handleWorkflowSelect}
         />
       </div>
-      {showPanel && (
+      {showPanel && !isMobile && (
         <>
           <div
-            className="lg:flex w-1 group hidden shrink-0 cursor-col-resize items-stretch select-none"
+            className="md:flex w-1 group hidden shrink-0 cursor-col-resize items-stretch select-none"
             onMouseDown={handleMouseDown}
           >
             <div className="mx-auto w-px bg-border transition-colors duration-150 group-hover:bg-primary/50" />
           </div>
           <div
             ref={panelRef}
-            className="lg:flex hidden h-full shrink-0 flex-col"
+            className="md:flex hidden h-full shrink-0 flex-col"
             style={{ width: `${panelWidth}vw` }}
           >
             <ChatWorkflowSidePanel workflowId={effectiveWorkflowId} onClose={handlePanelClose} />
           </div>
         </>
+      )}
+      {isMobile && (
+        <Drawer
+          open={showPanel}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) handlePanelClose();
+          }}
+        >
+          <DrawerContent className="h-[85vh]">
+            <DrawerHeader className="sr-only">
+              <DrawerTitle>Workflow details</DrawerTitle>
+            </DrawerHeader>
+            <div className="min-h-0 flex-1">
+              {effectiveWorkflowId && (
+                <ChatWorkflowSidePanel
+                  workflowId={effectiveWorkflowId}
+                  onClose={handlePanelClose}
+                  showControls={false}
+                />
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
       )}
     </div>
   );

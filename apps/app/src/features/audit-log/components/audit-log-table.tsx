@@ -64,7 +64,7 @@ export function AuditLogTable({ workspaceId }: AuditLogTableProps) {
         )}
       </div>
 
-      <div className="rounded-md border">
+      <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
         <Table>
           <TableHeader>
             <TableRow>

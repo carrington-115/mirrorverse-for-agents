@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  BookOpen,
   Loader2,
   Megaphone,
   MessageCirclePlus,
@@ -63,6 +64,7 @@ export function DashboardSidebar() {
             <SidebarMenu>
               <NewChatButton />
               <SidebarActivityButton href="/workflows" name="Workflows" icon={WorkflowIcon} />
+              <SidebarActivityButton href="/knowledge" name="Knowledge" icon={BookOpen} />
               <SidebarActivityButton href="/integrations" name="Integrations" icon={Shapes} />
               <ChannelsItem />
             </SidebarMenu>
@@ -70,7 +72,9 @@ export function DashboardSidebar() {
         </SidebarGroup>
       </SidebarHeader>
 
-      {!isCollapsed && (
+      {isCollapsed ? (
+        <div className="flex-1" />
+      ) : (
         <SidebarContent className="overflow-y-auto">
           <ConversationsSection />
         </SidebarContent>

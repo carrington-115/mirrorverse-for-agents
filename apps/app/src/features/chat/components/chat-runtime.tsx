@@ -15,6 +15,7 @@ import {
   useEditAndTruncateMutation,
 } from "@/features/chat/api/mutations";
 
+import { useMirropilotFileUpload } from "@/features/knowledge/hooks/use-mirropilot-file-upload";
 import { ManageIntegrationsDialog } from "@/features/integrations/components/integration";
 import { AddWebhookSheet } from "@/features/webhooks/components/add-webhook-sheet";
 
@@ -41,6 +42,11 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
   const [webhookOpen, setWebhookOpen] = useState(false);
 
   const transport = useMemo(() => buildChatTransport(sessionId), [sessionId]);
+  const { upload: uploadFiles, isUploading } = useMirropilotFileUpload(sessionId);
+
+  // Documents the user picked in a knowledge-base card to scope RAG to. Held in
+  // a ref so every subsequent request carries it without re-creating handlers.
+  const ragDocumentIdsRef = useRef<string[]>([]);
 
   const onFinish = useCallback(() => {
     qc.invalidateQueries({ queryKey: trpc.chats.list.queryKey() });
@@ -67,19 +73,46 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
   const deleteLastAssistant = useDeleteLastAssistantMutation();
 
   const handleSubmit = useCallback(
-    (message: PromptInputMessage) => {
+    async (message: PromptInputMessage) => {
       const text = message.text.trim();
-      if (!text) return;
+      const files = message.files ?? [];
+      if (!text && files.length === 0) return;
+
       setStreamFinished(false);
-      sendMessage({ text }, { body: { model } });
+
+      const imageFiles = files.filter((f) => f.mediaType.startsWith("image/"));
+
+      let fullText = text;
+
+      if (files.length > 0) {
+        const uploaded = await uploadFiles(files);
+        if (uploaded.length > 0) {
+          const names = uploaded.map((f) => f.filename).join(", ");
+          const suffix = `\n\n[Added to knowledge base: ${names}]`;
+          fullText = text
+            ? text + suffix
+            : `I uploaded ${uploaded.length} file(s) to the knowledge base: ${names}`;
+        } else if (!text) {
+          // Uploads failed but the user still attached something — send anyway.
+          fullText = "I attached some files.";
+        }
+      }
+
+      // Images are also forwarded to the model as vision input so the agent can
+      // see them in the conversation. Documents are surfaced later via RAG.
+      const body = { model, ragDocumentIds: ragDocumentIdsRef.current };
+      sendMessage(
+        imageFiles.length > 0 ? { text: fullText, files: imageFiles } : { text: fullText },
+        { body },
+      );
     },
-    [sendMessage, model],
+    [sendMessage, model, uploadFiles],
   );
 
   const handleStarter = useCallback(
     (prompt: string) => {
       setStreamFinished(false);
-      sendMessage({ text: prompt }, { body: { model } });
+      sendMessage({ text: prompt }, { body: { model, ragDocumentIds: ragDocumentIdsRef.current } });
     },
     [sendMessage, model],
   );
@@ -87,7 +120,10 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
   const handlePhoneSelect = useCallback(
     (phoneNumber: string) => {
       setStreamFinished(false);
-      sendMessage({ text: `Provision ${phoneNumber}` }, { body: { model } });
+      sendMessage(
+        { text: `Provision ${phoneNumber}` },
+        { body: { model, ragDocumentIds: ragDocumentIdsRef.current } },
+      );
     },
     [sendMessage, model],
   );
@@ -97,7 +133,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
       setStreamFinished(false);
       sendMessage(
         { text: `Use phone number ${phoneNumberId} for this voice agent` },
-        { body: { model } },
+        { body: { model, ragDocumentIds: ragDocumentIdsRef.current } },
       );
     },
     [sendMessage, model],
@@ -107,14 +143,30 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
     setStreamFinished(false);
     sendMessage(
       { text: "I don't have a phone number yet. Help me get a Mirrorverse-managed phone number." },
-      { body: { model } },
+      { body: { model, ragDocumentIds: ragDocumentIdsRef.current } },
     );
   }, [sendMessage, model]);
 
   const handleByoTwilio = useCallback(() => {
     setStreamFinished(false);
-    sendMessage({ text: "I want to use my own Twilio phone number instead." }, { body: { model } });
+    sendMessage(
+      { text: "I want to use my own Twilio phone number instead." },
+      { body: { model, ragDocumentIds: ragDocumentIdsRef.current } },
+    );
   }, [sendMessage, model]);
+
+  const handleConfirmDocuments = useCallback(
+    (documentIds: string[], labels: string[]) => {
+      ragDocumentIdsRef.current = documentIds;
+      setStreamFinished(false);
+      const text =
+        labels.length > 0
+          ? `Use only these documents to answer my questions from now on: ${labels.join(", ")}.`
+          : "Use all of my documents to answer my questions.";
+      sendMessage({ text }, { body: { model, ragDocumentIds: documentIds } });
+    },
+    [sendMessage, model],
+  );
 
   const handleEditUserMessage = useCallback(
     async (messageId: string, newText: string) => {
@@ -138,7 +190,9 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
         };
         return [...current.slice(0, idx), edited];
       });
-      regenerate({ body: { model, skipUserInsert: true } });
+      regenerate({
+        body: { model, skipUserInsert: true, ragDocumentIds: ragDocumentIdsRef.current },
+      });
     },
     [editMutation, setMessages, regenerate, model],
   );
@@ -161,7 +215,9 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
       if (cutoff === -1) return current;
       return current.slice(0, cutoff);
     });
-    regenerate({ body: { model, skipUserInsert: true } });
+    regenerate({
+      body: { model, skipUserInsert: true, ragDocumentIds: ragDocumentIdsRef.current },
+    });
   }, [deleteLastAssistant, sessionId, setMessages, regenerate, model]);
 
   const isEmpty = messages.length === 0;
@@ -171,7 +227,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
   const inputBlock = (
     <ChatPromptInput
       onSubmit={handleSubmit}
-      status={status}
+      status={isUploading ? "submitted" : status}
       onStop={stop}
       model={model}
       onModelChange={setModel}
@@ -209,7 +265,9 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
     if (autoResumeRef.current && !credentialsInterrupt && !credentialsDismissed && streamFinished) {
       autoResumeRef.current = false;
       setStreamFinished(false);
-      regenerate({ body: { model, skipUserInsert: true } });
+      regenerate({
+        body: { model, skipUserInsert: true, ragDocumentIds: ragDocumentIdsRef.current },
+      });
     }
   }, [credentialsInterrupt, credentialsDismissed, streamFinished, regenerate, model]);
 
@@ -261,6 +319,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
         onPhoneNumberForVoiceAgent={handlePhoneNumberForVoiceAgent}
         onGetManagedNumber={handleGetManagedNumber}
         onByoTwilio={handleByoTwilio}
+        onConfirmDocuments={handleConfirmDocuments}
       />
       {credentialsInterrupt && !credentialsDismissed && (
         <AppConnectPanel

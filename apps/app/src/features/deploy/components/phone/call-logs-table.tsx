@@ -247,7 +247,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (

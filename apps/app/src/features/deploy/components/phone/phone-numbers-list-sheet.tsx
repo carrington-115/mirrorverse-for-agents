@@ -79,7 +79,7 @@ export function PhoneNumbersListSheet({ open, onOpenChange }: PhoneNumbersListSh
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent className="gap-0 p-0 flex max-w-full min-w-[600px] flex-col">
+      <SheetContent className="gap-0 p-0 sm:min-w-[600px] flex max-w-full flex-col">
         <SheetHeader className="px-6 py-5 border-b border-border">
           <div className="gap-2 flex items-center">
             <Phone className="size-5 text-muted-foreground" />

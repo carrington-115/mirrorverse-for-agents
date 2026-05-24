@@ -19,7 +19,7 @@ export function IntegrationsListLayout({ children }: { children: React.ReactNode
             actions={
               <Button
                 variant="secondary"
-                className="cursor-pointer"
+                className="md:inline-flex hidden cursor-pointer"
                 onClick={() => setBrowseOpen(true)}
               >
                 <Shapes className="size-4" />
@@ -29,7 +29,9 @@ export function IntegrationsListLayout({ children }: { children: React.ReactNode
           />
         }
       >
-        <div className="flex w-[90%] flex-col items-center gap-(--xl) p-(--lg)">{children}</div>
+        <div className="md:w-[90%] flex w-[95%] flex-col items-center gap-(--xl) p-(--lg)">
+          {children}
+        </div>
       </DashboardLayout>
 
       <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />

@@ -46,6 +46,7 @@ interface DocumentCanvasProps {
   readonly nodes: readonly DocumentNodeShape[];
   readonly connections: readonly DocumentConnectionShape[];
   readonly editable?: boolean;
+  readonly showControls?: boolean;
   readonly onNodePositionChange?: (change: CanvasNodeChange) => void;
   readonly onNodeRemoved?: (id: string) => void;
   readonly onConnectionRemoved?: (id: string) => void;
@@ -82,6 +83,7 @@ export function DocumentCanvas({
   nodes,
   connections,
   editable = false,
+  showControls = true,
   onNodePositionChange,
   onNodeRemoved,
   onConnectionRemoved,
@@ -182,7 +184,7 @@ export function DocumentCanvas({
       onEdgesChange={editable ? handleEdgesChange : undefined}
       onConnect={editable ? handleConnect : undefined}
     >
-      <Controls />
+      {showControls && <Controls />}
     </Canvas>
   );
 }

@@ -13,6 +13,7 @@ import { ArrowUpDown, GripVertical, MoreHorizontal, RefreshCw, Trash2, X } from 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -155,8 +156,46 @@ function SortableIntegrationRow({
   );
 }
 
+function SkeletonRow() {
+  return (
+    <TableRow className="border-b border-border last:border-b-0">
+      <TableCell className="w-10 px-2">
+        <Skeleton className="size-4" />
+      </TableCell>
+      <TableCell className="w-9 px-2">
+        <Skeleton className="size-[14px]" />
+      </TableCell>
+      <TableCell className="px-2">
+        <Skeleton className="h-4 w-32" />
+      </TableCell>
+      <TableCell className="px-2">
+        <Skeleton className="h-4 w-14" />
+      </TableCell>
+      <TableCell className="px-2">
+        <Skeleton className="h-5 w-20 rounded-full" />
+      </TableCell>
+      <TableCell className="px-2">
+        <div className="gap-1 flex flex-col">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-3 w-14" />
+        </div>
+      </TableCell>
+      <TableCell className="px-2">
+        <div className="gap-1 flex flex-col">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-3 w-14" />
+        </div>
+      </TableCell>
+      <TableCell className="px-2">
+        <Skeleton className="h-7 w-16" />
+      </TableCell>
+    </TableRow>
+  );
+}
+
 interface IntegrationsTableProps {
   integrations: ConnectedIntegration[];
+  isLoading?: boolean;
   onRemove?: (id: string) => void;
   onReset?: (id: string) => void;
   onViewDetails?: (id: string) => void;
@@ -165,6 +204,7 @@ interface IntegrationsTableProps {
 
 export function IntegrationsTable({
   integrations,
+  isLoading = false,
   onRemove,
   onReset,
   onViewDetails,
@@ -320,22 +360,26 @@ export function IntegrationsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              <SortableContext
-                items={displayed.map((i) => i.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {displayed.map((integration) => (
-                  <SortableIntegrationRow
-                    key={integration.id}
-                    integration={integration}
-                    selected={selected.has(integration.id)}
-                    onToggle={() => toggleOne(integration.id)}
-                    onRemove={() => onRemove?.(integration.id)}
-                    onReset={() => onReset?.(integration.id)}
-                    onViewDetails={() => onViewDetails?.(integration.id)}
-                  />
-                ))}
-              </SortableContext>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+              ) : (
+                <SortableContext
+                  items={displayed.map((i) => i.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {displayed.map((integration) => (
+                    <SortableIntegrationRow
+                      key={integration.id}
+                      integration={integration}
+                      selected={selected.has(integration.id)}
+                      onToggle={() => toggleOne(integration.id)}
+                      onRemove={() => onRemove?.(integration.id)}
+                      onReset={() => onReset?.(integration.id)}
+                      onViewDetails={() => onViewDetails?.(integration.id)}
+                    />
+                  ))}
+                </SortableContext>
+              )}
             </TableBody>
           </Table>
         </DndContext>

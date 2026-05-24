@@ -97,7 +97,11 @@ export async function listRecentChatsForUser(
     .where(eq(chats.userId, userId))
     .orderBy(
       desc(chats.isPinned),
-      desc(chats.lastMessageAt),
+      // A brand-new chat has no lastMessageAt until its first assistant
+      // response completes, but the sidebar refetches the instant the stream
+      // finishes. Fall back to createdAt so the newest chat sorts to the top
+      // immediately rather than on a null key.
+      desc(sql`coalesce(${chats.lastMessageAt}, ${chats.createdAt})`),
       desc(chats.updatedAt),
     )
     .limit(limit);

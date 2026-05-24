@@ -1,11 +1,13 @@
 "use client";
 
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -55,7 +57,7 @@ export function IntegrationsTableToolbar({
       : (TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label ?? "Filter by type");
 
   return (
-    <div className="gap-4 flex items-center justify-between">
+    <div className="gap-2 md:gap-4 flex items-center justify-between">
       {/* Search input */}
       <div className="max-w-xl relative flex-1">
         <Search className="left-3 size-4 pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -63,12 +65,12 @@ export function IntegrationsTableToolbar({
           placeholder="Search integrations"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-10 pl-9 shadow-xs"
+          className="h-10 pl-9 text-sm shadow-xs md:text-sm"
         />
       </div>
 
-      {/* Filter pills */}
-      <div className="gap-2 flex items-center">
+      {/* Filter pills — desktop */}
+      <div className="gap-2 md:flex hidden items-center">
         <FilterPill
           label={dateLabel}
           active={dateFilter !== "all"}
@@ -84,6 +86,48 @@ export function IntegrationsTableToolbar({
           onSelect={(v) => onTypeFilterChange(v as TypeFilter)}
         />
       </div>
+
+      {/* Filter menu — mobile */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Filters"
+            className="h-10 w-10 shadow-xs md:hidden inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <MoreHorizontal className="size-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[180px]">
+          <DropdownMenuLabel className="text-xs text-muted-foreground">
+            Filter by date
+          </DropdownMenuLabel>
+          {DATE_OPTIONS.map((opt) => (
+            <DropdownMenuItem
+              key={opt.value}
+              onClick={() => onDateFilterChange(opt.value)}
+              className={cn("justify-between", opt.value === dateFilter && "font-medium")}
+            >
+              {opt.label}
+              {opt.value === dateFilter && <span className="text-foreground">✓</span>}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs text-muted-foreground">
+            Filter by type
+          </DropdownMenuLabel>
+          {TYPE_OPTIONS.map((opt) => (
+            <DropdownMenuItem
+              key={opt.value}
+              onClick={() => onTypeFilterChange(opt.value)}
+              className={cn("justify-between", opt.value === typeFilter && "font-medium")}
+            >
+              {opt.label}
+              {opt.value === typeFilter && <span className="text-foreground">✓</span>}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
