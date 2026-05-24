@@ -6,7 +6,7 @@ import workflowUI from "@/assets/workflow.svg";
 
 export function AuthDetail() {
   return (
-    <div className="relative flex h-screen w-1/2 flex-col overflow-y-hidden bg-secondary">
+    <div className="lg:flex relative hidden h-screen w-1/2 flex-col overflow-y-hidden bg-secondary">
       <div className="flex flex-col gap-[80px] pt-[26px] pl-[17px]">
         <div className="flex w-[95%] items-center justify-between">
           <Link href="https://mirrro-ai-website.vercel.app/">

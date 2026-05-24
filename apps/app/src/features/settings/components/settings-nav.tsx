@@ -34,7 +34,7 @@ function NavLink({ label, href, icon: Icon, isActive }: NavItem & { isActive: bo
     <Link
       href={href}
       className={cn(
-        "gap-2 px-3 py-2 text-sm flex items-center rounded-md transition-colors",
+        "gap-2 px-3 py-2 text-sm flex shrink-0 items-center rounded-md whitespace-nowrap transition-colors",
         isActive
           ? "font-medium bg-accent text-foreground"
           : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -50,7 +50,7 @@ export function SettingsNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="gap-0.5 top-6 sticky flex w-[180px] shrink-0 flex-col self-start">
+    <nav className="gap-1 md:sticky md:top-6 md:w-[180px] md:flex-col md:gap-0.5 md:overflow-visible flex w-full shrink-0 self-start overflow-x-auto">
       {WORKSPACE_ITEMS.map(({ label, href, icon }) => (
         <NavLink
           key={href}
@@ -61,11 +61,11 @@ export function SettingsNav() {
         />
       ))}
 
-      <div className="py-2">
+      <div className="py-2 md:block hidden">
         <Separator />
       </div>
 
-      <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">Account</p>
+      <p className="px-3 pb-1 text-xs font-medium md:block hidden text-muted-foreground">Account</p>
 
       {ACCOUNT_ITEMS.map(({ label, href, icon }) => (
         <NavLink

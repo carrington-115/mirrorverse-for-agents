@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { isReasoningUIPart, isTextUIPart, isToolUIPart, type UIMessage } from "ai";
+import { useEffect, useRef, useState } from "react";
+import { isTextUIPart, isToolUIPart, type UIMessage } from "ai";
 
 import {
   ChainOfThought,
@@ -18,7 +18,10 @@ import { PhoneNumberSelectionCard } from "./phone-number-selection-card";
 import { PhoneNumberProvisionCard } from "./phone-number-provision-card";
 import { UnassignedPhoneNumbersCard } from "./unassigned-phone-numbers-card";
 import { VoiceAgentActivateCard } from "./voice-agent-activate-card";
+import { KnowledgeBaseCard } from "./knowledge-base-card";
 import { isWorkflowCommitPart } from "@/features/chat/lib/workflow-commit-tool";
+import { buildCotTimeline, deriveCotPhase } from "@/features/chat/lib/cot-timeline";
+import { isKbViewPart, type KbViewToolPart } from "@/features/chat/lib/knowledge-tools";
 import {
   isPhoneSearchPart,
   isPhoneProvisionPart,
@@ -44,6 +47,7 @@ interface MessageRowProps {
   onPhoneNumberForVoiceAgent?: (phoneNumberId: string) => void;
   onGetManagedNumber?: () => void;
   onByoTwilio?: () => void;
+  onConfirmDocuments?: (documentIds: string[], labels: string[]) => void;
 }
 
 function extractCopyText(message: UIMessage): string {
@@ -66,15 +70,38 @@ export function MessageRow({
   onPhoneNumberForVoiceAgent,
   onGetManagedNumber,
   onByoTwilio,
+  onConfirmDocuments,
 }: MessageRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const initialText = extractCopyText(message);
   const [draft, setDraft] = useState(initialText);
 
-  const reasoningParts = message.parts.filter(isReasoningUIPart);
-  const lastPart = message.parts.at(-1);
-  const isReasoningStreaming =
-    isLast && isStreaming && lastPart ? isReasoningUIPart(lastPart) : false;
+  const isLive = isLast && isStreaming;
+  const { steps, hasAny } = buildCotTimeline(message);
+  const phase = deriveCotPhase(message, isLive);
+  const headerLabel =
+    phase === "thinking" ? "Thinking…" : phase === "working" ? "Working…" : "Thought process";
+
+  // Open while the assistant works, collapse when the turn finishes — but stop
+  // driving the panel once the user has manually toggled it this turn. The
+  // override resets when the message stops being live, so the next live turn
+  // auto-opens again; historical messages stay collapsed (never live).
+  const [cotOpen, setCotOpen] = useState(false);
+  const userTouchedRef = useRef(false);
+
+  useEffect(() => {
+    if (userTouchedRef.current) return;
+    setCotOpen(isLive);
+  }, [isLive]);
+
+  useEffect(() => {
+    if (!isLive) userTouchedRef.current = false;
+  }, [isLive]);
+
+  const handleCotOpenChange = (next: boolean) => {
+    userTouchedRef.current = true;
+    setCotOpen(next);
+  };
 
   const handleCopy = () => {
     const text = extractCopyText(message);
@@ -101,20 +128,30 @@ export function MessageRow({
 
   const body = (
     <Message from={message.role}>
-      <MessageContent className="text-[14.6px]">
-        {reasoningParts.length > 0 ? (
-          <ChainOfThought defaultOpen={false}>
-            <ChainOfThoughtHeader>
-              {isReasoningStreaming ? "Thinking…" : "Thought process"}
-            </ChainOfThoughtHeader>
+      <MessageContent className="sm:text-[14.6px] text-[13px]">
+        {hasAny ? (
+          <ChainOfThought open={cotOpen} onOpenChange={handleCotOpenChange}>
+            <ChainOfThoughtHeader>{headerLabel}</ChainOfThoughtHeader>
             <ChainOfThoughtContent>
-              {reasoningParts.map((p, i) => {
-                const isLastReasoningStep = i === reasoningParts.length - 1;
+              {steps.map((step, i) => {
+                const isLastStep = i === steps.length - 1;
+                if (step.kind === "reasoning") {
+                  return (
+                    <ChainOfThoughtStep
+                      key={step.key}
+                      icon={step.icon}
+                      label={step.text}
+                      status={isLive && isLastStep ? "active" : "complete"}
+                    />
+                  );
+                }
                 return (
                   <ChainOfThoughtStep
-                    key={`${message.id}-r-${i}`}
-                    label={p.text}
-                    status={isReasoningStreaming && isLastReasoningStep ? "active" : "complete"}
+                    key={step.key}
+                    icon={step.icon}
+                    label={step.label}
+                    status={step.status === "error" ? "complete" : step.status}
+                    className={step.status === "error" ? "text-destructive" : undefined}
                   />
                 );
               })}
@@ -187,6 +224,15 @@ export function MessageRow({
             }
             if (isToolUIPart(part) && isVoiceActivatePart(part)) {
               return <VoiceAgentActivateCard key={key} part={part as VoiceActivateToolPart} />;
+            }
+            if (isToolUIPart(part) && isKbViewPart(part)) {
+              return (
+                <KnowledgeBaseCard
+                  key={key}
+                  part={part as KbViewToolPart}
+                  onConfirmDocuments={isLast && !isStreaming ? onConfirmDocuments : undefined}
+                />
+              );
             }
             return null;
           })

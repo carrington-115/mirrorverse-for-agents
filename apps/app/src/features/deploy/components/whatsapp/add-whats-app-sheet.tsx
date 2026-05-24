@@ -98,7 +98,7 @@ export function AddWhatsAppSheet({ open, onOpenChange }: AddWhatsAppSheetProps) 
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent className="gap-0 p-0 flex max-w-full min-w-[600px] flex-col">
+      <SheetContent className="gap-0 p-0 sm:min-w-[600px] flex max-w-full flex-col">
         <SheetHeader className="px-6 py-5 border-b border-border">
           <div className="gap-2 flex items-center">
             <SiWhatsapp className="size-5 text-[#25D366]" />

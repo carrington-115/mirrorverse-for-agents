@@ -126,11 +126,11 @@ export function PhoneShell() {
     <div className="flex w-full flex-col gap-(--md,16px)">
       <div className="flex items-center justify-between">
         <div className="gap-2 flex items-center">
-          <h2 className="font-semibold text-[30px] leading-[30px] tracking-[-1px] text-foreground">
+          <h2 className="font-semibold text-xl md:text-[30px] md:leading-[30px] tracking-[-1px] text-foreground">
             Phone numbers
           </h2>
           {activeCount > 0 && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-foreground text-background">
+            <span className="text-xs font-semibold px-2 py-0.5 md:inline hidden rounded-full bg-foreground text-background">
               {activeCount} Active
             </span>
           )}

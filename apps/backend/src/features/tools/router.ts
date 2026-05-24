@@ -1,5 +1,5 @@
 import { router } from "../../trpc/init";
-import { protectedProc, workspaceProc } from "../../trpc/middleware";
+import { workspaceProc } from "../../trpc/middleware";
 
 import { createMcpServerInput, revokeConnectionInput } from "./inputs";
 import { toolsService } from "./service";
@@ -14,15 +14,20 @@ export const toolsRouter = router({
       ),
     ),
 
-  listConnections: protectedProc.query(({ ctx }) =>
-    toolsService.listConnections({ db: ctx.db, userId: ctx.user.id }),
+  // workspaceProc so the query runs inside the tenant transaction (RLS-scoped).
+  listConnections: workspaceProc.query(({ ctx }) =>
+    toolsService.listConnections({
+      db: ctx.db,
+      userId: ctx.user.id,
+      workspaceId: ctx.workspaceId,
+    }),
   ),
 
-  revokeConnection: protectedProc
+  revokeConnection: workspaceProc
     .input(revokeConnectionInput)
     .mutation(({ ctx, input }) =>
       toolsService.revokeConnection(
-        { db: ctx.db, userId: ctx.user.id },
+        { db: ctx.db, userId: ctx.user.id, workspaceId: ctx.workspaceId },
         input.connectionId,
       ),
     ),

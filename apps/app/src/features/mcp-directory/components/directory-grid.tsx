@@ -18,7 +18,7 @@ export function DirectoryGrid({
 }: DirectoryGridProps) {
   if (loading && entries.length === 0) {
     return (
-      <div className="sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 grid w-full grid-cols-3">
+      <div className="gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 grid w-full grid-cols-1">
         {Array.from({ length: 8 }).map((_, i) => (
           <DirectoryCardSkeleton key={i} />
         ))}
@@ -35,7 +35,7 @@ export function DirectoryGrid({
   }
 
   return (
-    <div className="sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 grid w-full grid-cols-3">
+    <div className="gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 grid w-full grid-cols-1">
       {entries.map((entry) => (
         <DirectoryCard key={entry.id} entry={entry} onViewDetails={onViewDetails} />
       ))}

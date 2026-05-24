@@ -1,14 +1,17 @@
 "use client";
 
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import type { WorkflowKind } from "@/lib/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -24,6 +27,20 @@ const KIND_LABELS: Record<string, string> = {
   "voice-agent": "Voice agent",
   code: "Code",
 };
+
+const STATUS_OPTIONS: { label: string; value: string }[] = [
+  { label: "All", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+];
+
+const KIND_OPTIONS: { label: string; value: WorkflowKind | "all" }[] = [
+  { label: "All", value: "all" },
+  { label: "Automation", value: "automation" },
+  { label: "Chat agent", value: "chat-agent" },
+  { label: "Voice agent", value: "voice-agent" },
+  { label: "Code", value: "code" },
+];
 
 interface WorkflowsHeaderProps {
   search: string;
@@ -47,18 +64,18 @@ export function WorkflowsHeader({
 
   return (
     <div className="flex w-full flex-col gap-(--md,16px)">
-      <div className="flex items-center justify-between gap-(--md,16px)">
+      <div className="gap-2 md:gap-(--md,16px) flex items-center justify-between">
         <div className="relative max-w-[596px] flex-1">
           <Search className="left-3 size-4 pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="pl-9"
+            className="pl-9 text-sm"
             placeholder="Search workflows"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
 
-        <div className="flex items-center gap-(--md,16px)">
+        <div className="md:flex hidden items-center gap-(--md,16px)">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -111,6 +128,44 @@ export function WorkflowsHeader({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Filters — mobile */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Filters"
+              className="h-9 w-9 shadow-xs md:hidden inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <MoreHorizontal className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[180px]">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Status</DropdownMenuLabel>
+            {STATUS_OPTIONS.map((opt) => (
+              <DropdownMenuItem
+                key={opt.value}
+                onClick={() => onStatusChange(opt.value)}
+                className={cn("justify-between", opt.value === statusFilter && "font-medium")}
+              >
+                {opt.label}
+                {opt.value === statusFilter && <span className="text-foreground">✓</span>}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Type</DropdownMenuLabel>
+            {KIND_OPTIONS.map((opt) => (
+              <DropdownMenuItem
+                key={opt.value}
+                onClick={() => onKindChange(opt.value)}
+                className={cn("justify-between", opt.value === kindFilter && "font-medium")}
+              >
+                {opt.label}
+                {opt.value === kindFilter && <span className="text-foreground">✓</span>}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Separator />

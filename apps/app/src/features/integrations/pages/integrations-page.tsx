@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Shapes, Webhook } from "lucide-react";
+import { MoreVertical, Shapes, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import {
   useDirectoryListQuery,
@@ -47,7 +53,7 @@ function connectionToRow(c: {
 }
 
 export function IntegrationsPage() {
-  const { data: connectionsData } = useConnectionsQuery();
+  const { data: connectionsData, isLoading: connectionsLoading } = useConnectionsQuery();
   const revokeConnection = useRevokeConnectionMutation();
   const liveIntegrations: ConnectedIntegration[] = useMemo(
     () => (connectionsData ?? []).filter((c) => c.status === "active").map(connectionToRow),
@@ -134,27 +140,60 @@ export function IntegrationsPage() {
       {/* Inner page header */}
       <div className="gap-5 flex flex-col">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Integrations</h1>
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl text-foreground">
+            Integrations
+          </h1>
           <div className="gap-3 flex items-center">
-            <Button className="cursor-pointer" onClick={() => setBrowseOpen(true)}>
+            <Button
+              className="md:inline-flex hidden cursor-pointer"
+              onClick={() => setBrowseOpen(true)}
+            >
               <Shapes className="size-4" />
               Browse apps
             </Button>
             <Button
               variant="secondary"
-              className="cursor-pointer"
+              className="md:inline-flex hidden cursor-pointer"
               onClick={() => setWebhookOpen(true)}
             >
               <Webhook className="size-4" />
               Add webhook
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  className="md:hidden cursor-pointer"
+                  aria-label="More actions"
+                >
+                  <MoreVertical className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="whitespace-nowrap"
+                  onSelect={() => setBrowseOpen(true)}
+                >
+                  <Shapes className="size-4" />
+                  Browse apps
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="whitespace-nowrap"
+                  onSelect={() => setWebhookOpen(true)}
+                >
+                  <Webhook className="size-4" />
+                  Add webhook
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         <Separator />
       </div>
 
-      {/* Toolbar + table — shown when integrations exist */}
-      {hasIntegrations && (
+      {/* Toolbar + table — shown while loading or when integrations exist */}
+      {(connectionsLoading || hasIntegrations) && (
         <>
           <IntegrationsTableToolbar
             searchQuery={searchQuery}
@@ -166,6 +205,7 @@ export function IntegrationsPage() {
           />
           <IntegrationsTable
             integrations={filteredIntegrations}
+            isLoading={connectionsLoading}
             onRemove={handleRemove}
             onReset={handleReset}
             onViewDetails={handleViewDetails}
@@ -174,8 +214,8 @@ export function IntegrationsPage() {
         </>
       )}
 
-      {/* Empty state — shown when no integrations */}
-      {!hasIntegrations && (
+      {/* Empty state — shown when loaded with no integrations */}
+      {!connectionsLoading && !hasIntegrations && (
         <div className="flex w-full items-center justify-center">
           <IntegrationsEmpty
             onNewWebhookAction={() => setWebhookOpen(true)}

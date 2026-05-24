@@ -5,7 +5,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full">
       <AuthDetail />
-      <div className="flex w-1/2 flex-col items-center justify-center">{children}</div>
+      <div className="lg:w-1/2 flex w-full flex-col items-center justify-center">{children}</div>
     </div>
   );
 }

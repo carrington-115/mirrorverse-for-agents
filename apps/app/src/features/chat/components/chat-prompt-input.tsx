@@ -71,13 +71,18 @@ export function ChatPromptInput({
 }: ChatPromptInputProps) {
   return (
     <PromptInputProvider>
-      <PromptInput globalDrop multiple onSubmit={onSubmit}>
+      <PromptInput
+        globalDrop
+        multiple
+        onSubmit={onSubmit}
+        className="[&_[data-slot=input-group]]:rounded-2xl"
+      >
         <AttachmentsBar />
         <PromptInputBody>
           <PromptInputTextarea
             autoFocus
             placeholder="How can I help you today?"
-            className="min-h-14 pt-3 md:text-[14.6px]"
+            className="min-h-16 px-3 py-3 md:text-[14.6px]"
           />
         </PromptInputBody>
         <PromptInputFooter>
@@ -156,7 +161,7 @@ function MicButton() {
       disabled={isTranscribing}
       onClick={toggle}
       tooltip={isRecording ? "Stop recording" : "Voice input"}
-      className={cn(isRecording && "text-destructive")}
+      className={cn("rounded-full", isRecording && "text-destructive")}
     >
       {isTranscribing ? (
         <Loader2 className="size-4 animate-spin" />
@@ -355,7 +360,7 @@ function ChatModelPicker({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <PromptInputButton>
+        <PromptInputButton className="rounded-full">
           <ModelSelectorLogo provider={selected.chefSlug} />
           <ModelSelectorName>{selected.name}</ModelSelectorName>
         </PromptInputButton>
@@ -363,47 +368,51 @@ function ChatModelPicker({
       <PopoverContent
         align="start"
         sideOffset={6}
-        className="h-80 gap-0 p-0 w-[480px] flex-row overflow-hidden"
+        className="h-80 gap-0 p-0 w-[480px] max-w-[90vw] flex-row overflow-hidden"
       >
         {/* Left provider sidebar */}
-        <div className="w-36 gap-0.5 p-2 flex h-full shrink-0 flex-col border-r border-border">
-          <p className="px-2 pb-1.5 pt-1 font-semibold tracking-wider text-[10px] text-muted-foreground/60 uppercase">
+        <div className="w-12 gap-0.5 p-2 md:w-36 flex h-full shrink-0 flex-col border-r border-border">
+          <p className="px-2 pb-1.5 pt-1 font-semibold tracking-wider md:block hidden text-[10px] text-muted-foreground/60 uppercase">
             Providers
           </p>
           {/* All models section */}
           <button
             type="button"
+            aria-label="All"
+            title="All"
             onClick={() => {
               setActiveProvider(ALL_PROVIDER);
               setSearch("");
             }}
             className={cn(
-              "gap-2.5 px-2.5 py-2 text-sm flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent/60",
+              "gap-2.5 px-2.5 py-2 text-sm md:justify-start flex w-full items-center justify-center rounded-full text-left transition-colors hover:bg-accent/60",
               activeProvider === ALL_PROVIDER
                 ? "font-medium bg-accent text-foreground"
                 : "text-muted-foreground",
             )}
           >
-            <Grid2x2 className="size-4 shrink-0" />
-            All
+            <Grid2x2 className="size-5 md:size-4 shrink-0" />
+            <span className="md:inline hidden">All</span>
           </button>
           {PROVIDERS.map(({ chef, slug }) => (
             <button
               key={chef}
               type="button"
+              aria-label={chef}
+              title={chef}
               onClick={() => {
                 setActiveProvider(chef);
                 setSearch("");
               }}
               className={cn(
-                "gap-2.5 px-2.5 py-2 text-sm flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent/60",
+                "gap-2.5 px-2.5 py-2 text-sm md:justify-start flex w-full items-center justify-center rounded-full text-left transition-colors hover:bg-accent/60",
                 activeProvider === chef
                   ? "font-medium bg-accent text-foreground"
                   : "text-muted-foreground",
               )}
             >
-              <ModelSelectorLogo provider={slug} className="size-4 shrink-0" />
-              {chef}
+              <ModelSelectorLogo provider={slug} className="size-5 md:size-4 shrink-0" />
+              <span className="md:inline hidden">{chef}</span>
             </button>
           ))}
         </div>

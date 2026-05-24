@@ -20,6 +20,7 @@ interface ChatConversationProps {
   onPhoneNumberForVoiceAgent?: (phoneNumberId: string) => void;
   onGetManagedNumber?: () => void;
   onByoTwilio?: () => void;
+  onConfirmDocuments?: (documentIds: string[], labels: string[]) => void;
 }
 
 export function ChatConversation({
@@ -33,6 +34,7 @@ export function ChatConversation({
   onPhoneNumberForVoiceAgent,
   onGetManagedNumber,
   onByoTwilio,
+  onConfirmDocuments,
 }: ChatConversationProps) {
   const lastAssistantIndex = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -59,6 +61,7 @@ export function ChatConversation({
               onPhoneNumberForVoiceAgent={onPhoneNumberForVoiceAgent}
               onGetManagedNumber={onGetManagedNumber}
               onByoTwilio={onByoTwilio}
+              onConfirmDocuments={onConfirmDocuments}
             />
           ))}
           {showThinking ? <ThinkingRow /> : null}

@@ -30,7 +30,7 @@ function BrandHeader() {
         width={48}
         height={48}
         priority
-        className="dark:hidden"
+        className="size-9 sm:size-12 dark:hidden"
       />
       <Image
         src={mirropilotIconDark}
@@ -38,9 +38,9 @@ function BrandHeader() {
         width={48}
         height={48}
         priority
-        className="hidden dark:block"
+        className="size-9 sm:size-12 hidden dark:block"
       />
-      <h1 className="font-bold text-5xl ml-2 text-foreground">Mirrropilot</h1>
+      <h1 className="font-bold text-3xl ml-2 sm:text-5xl text-foreground">Mirrropilot</h1>
     </div>
   );
 }

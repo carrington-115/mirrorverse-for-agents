@@ -118,7 +118,7 @@ export function AddWebhookSheet({ open, onOpenChange }: AddWebhookSheetProps) {
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent className="gap-0 p-0 flex max-w-full min-w-[600px] flex-col">
+      <SheetContent className="gap-0 p-0 sm:min-w-[600px] flex max-w-full flex-col">
         <SheetHeader className="px-6 py-5 border-b border-border">
           <div className="gap-2 flex items-center">
             <Webhook className="size-5 text-muted-foreground" />
@@ -201,7 +201,7 @@ export function AddWebhookSheet({ open, onOpenChange }: AddWebhookSheetProps) {
             )}
 
             {form.authType === "basic" && (
-              <div className="gap-3 grid grid-cols-2">
+              <div className="gap-3 sm:grid-cols-2 grid grid-cols-1">
                 <div className="gap-1.5 flex flex-col">
                   <Label htmlFor="wh-username">Username</Label>
                   <Input
@@ -227,7 +227,7 @@ export function AddWebhookSheet({ open, onOpenChange }: AddWebhookSheetProps) {
             )}
 
             {form.authType === "custom_header" && (
-              <div className="gap-3 grid grid-cols-2">
+              <div className="gap-3 sm:grid-cols-2 grid grid-cols-1">
                 <div className="gap-1.5 flex flex-col">
                   <Label htmlFor="wh-header-name">Header name</Label>
                   <Input
@@ -277,7 +277,7 @@ export function AddWebhookSheet({ open, onOpenChange }: AddWebhookSheetProps) {
                   ))}
                 </div>
               )}
-              <div className="gap-2 grid grid-cols-[1fr_1fr_auto]">
+              <div className="gap-2 sm:grid-cols-[1fr_1fr_auto] grid grid-cols-1">
                 <Input
                   placeholder="Header name"
                   value={form.newHeaderName}

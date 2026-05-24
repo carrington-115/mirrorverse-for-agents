@@ -2,17 +2,13 @@ import type { Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
 import { slugify } from "../../lib/slug";
-import { ensureUserWorkspace } from "../tenancy/repo";
 
 import * as repo from "./repo";
 import type { CreateMcpServerInput } from "./inputs";
 
-interface BaseCtx {
+interface WorkspaceCtx {
   readonly db: Database;
   readonly userId: UserId;
-}
-
-interface WorkspaceCtx extends BaseCtx {
   readonly workspaceId: string;
 }
 
@@ -28,13 +24,13 @@ export const toolsService = {
     });
   },
 
-  async listConnections(ctx: BaseCtx) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
-    return repo.listWorkspaceConnections(ctx.db, workspaceId);
+  // workspaceProc has already resolved the workspace and opened the tenant
+  // transaction, so use ctx.workspaceId directly instead of re-resolving.
+  async listConnections(ctx: WorkspaceCtx) {
+    return repo.listWorkspaceConnections(ctx.db, ctx.workspaceId);
   },
 
-  async revokeConnection(ctx: BaseCtx, connectionId: string) {
-    const workspaceId = await ensureUserWorkspace(ctx.db, ctx.userId);
-    return repo.revokeConnection(ctx.db, connectionId, workspaceId);
+  async revokeConnection(ctx: WorkspaceCtx, connectionId: string) {
+    return repo.revokeConnection(ctx.db, connectionId, ctx.workspaceId);
   },
 };
