@@ -140,6 +140,28 @@ export async function getLatestVersion(
   return row ?? null;
 }
 
+// Returns the generatedByChatId of the first (origin) version of a workflow.
+// Every workflow created through Mirropilot has this set; a null result means
+// the workflow was created outside the chat flow.
+export async function getOriginChatId(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+): Promise<string | null> {
+  const [row] = await db
+    .select({ generatedByChatId: workflowVersions.generatedByChatId })
+    .from(workflowVersions)
+    .where(
+      and(
+        eq(workflowVersions.workflowId, workflowId),
+        eq(workflowVersions.workspaceId, workspaceId),
+      ),
+    )
+    .orderBy(workflowVersions.versionNumber)
+    .limit(1);
+  return row?.generatedByChatId ?? null;
+}
+
 export async function listVersionsForWorkflow(
   db: Database,
   workflowId: string,

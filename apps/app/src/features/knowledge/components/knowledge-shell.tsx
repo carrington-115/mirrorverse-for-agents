@@ -7,6 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useKbsQuery } from "../api/queries";
 import { useDeleteKbMutation } from "../api/mutations";
 import { CreateKbDialog } from "./create-kb-dialog";
@@ -16,14 +26,21 @@ export function KnowledgeShell() {
   const { data: kbs, isLoading } = useKbsQuery();
   const deleteMutation = useDeleteKbMutation();
   const [selectedKbId, setSelectedKbId] = useState<string | null>(null);
+  const [pendingDeleteKbId, setPendingDeleteKbId] = useState<string | null>(null);
 
   const handleDelete = (kbId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (selectedKbId === kbId) setSelectedKbId(null);
+    setPendingDeleteKbId(kbId);
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDeleteKbId) return;
+    if (selectedKbId === pendingDeleteKbId) setSelectedKbId(null);
     deleteMutation.mutate(
-      { kbId },
+      { kbId: pendingDeleteKbId },
       { onError: (err) => toast.error(err.message || "Failed to delete knowledge base") },
     );
+    setPendingDeleteKbId(null);
   };
 
   const list = kbs ?? [];
@@ -161,6 +178,35 @@ export function KnowledgeShell() {
           </div>
         </div>
       )}
+
+      <AlertDialog
+        open={pendingDeleteKbId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteKbId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete knowledge base?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">
+                {list.find((kb) => kb.id === pendingDeleteKbId)?.name ?? "this knowledge base"}
+              </span>{" "}
+              and all its documents. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

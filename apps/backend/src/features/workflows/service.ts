@@ -31,13 +31,12 @@ export const workflowsService = {
       input.workflowId,
       ctx.workspaceId,
     );
-    if (!workflow) return { workflow: null, version: null };
-    const version = await repo.getLatestVersion(
-      ctx.db,
-      workflow.id,
-      ctx.workspaceId,
-    );
-    return { workflow, version };
+    if (!workflow) return { workflow: null, version: null, originChatId: null };
+    const [version, originChatId] = await Promise.all([
+      repo.getLatestVersion(ctx.db, workflow.id, ctx.workspaceId),
+      repo.getOriginChatId(ctx.db, workflow.id, ctx.workspaceId),
+    ]);
+    return { workflow, version, originChatId };
   },
 
   async delete(ctx: WorkspaceCtx, input: DeleteWorkflowInput) {

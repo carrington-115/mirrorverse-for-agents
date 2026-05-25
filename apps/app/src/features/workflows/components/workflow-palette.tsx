@@ -8,10 +8,12 @@ import {
   Globe,
   GitBranch,
   Hammer,
+  Mic,
   Pencil,
   Search,
   ShieldCheck,
   Sparkles,
+  StickyNote,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -33,11 +35,7 @@ interface WorkflowPaletteProps {
   disabled?: boolean;
 }
 
-// Root-level buckets shown when the user opens the picker. Each maps to one or
-// more PaletteCategory values from the agent schema; "apps" is a special
-// bucket for MCP/integration vendors and will be populated from the workspace's
-// MCP server list once we add the listing query.
-type RootBucket = "ai" | "apps" | "transform" | "flow" | "core" | "human";
+type RootBucket = "ai" | "apps" | "transform" | "flow" | "core" | "human" | "editor";
 
 interface BucketMeta {
   readonly id: RootBucket;
@@ -51,9 +49,9 @@ const BUCKETS: readonly BucketMeta[] = [
   {
     id: "ai",
     label: "AI",
-    description: "Build autonomous agents, summarize or search documents",
+    description: "Agents, models, memory, and retrieval",
     icon: Bot,
-    categories: ["AI"],
+    categories: ["AI", "AI:Agents", "AI:Subcomponents"],
   },
   {
     id: "apps",
@@ -88,7 +86,14 @@ const BUCKETS: readonly BucketMeta[] = [
     label: "Human review",
     description: "Request approval before sensitive steps",
     icon: ShieldCheck,
-    categories: [],
+    categories: ["Core"],
+  },
+  {
+    id: "editor",
+    label: "Annotations",
+    description: "Sticky notes and canvas decorations",
+    icon: StickyNote,
+    categories: ["Editor"],
   },
 ];
 
@@ -195,10 +200,8 @@ export function WorkflowPalette({ onAdd, disabled }: WorkflowPaletteProps) {
               })
             }
           />
-        ) : bucket.id === "human" ? (
-          <p className="px-3 py-6 text-xs text-center text-muted-foreground">
-            Human review nodes land in a follow-up.
-          </p>
+        ) : bucket.id === "ai" ? (
+          <AiBucketContent term={term} disabled={disabled} onAdd={onAdd} />
         ) : visibleEntries.length === 0 ? (
           <p className="px-3 py-3 text-xs text-muted-foreground">No matches.</p>
         ) : (
@@ -215,6 +218,134 @@ export function WorkflowPalette({ onAdd, disabled }: WorkflowPaletteProps) {
         )}
       </div>
     </PaletteShell>
+  );
+}
+
+// Agent cards in the AI bucket: show a richer card with port labels.
+interface AgentCardProps {
+  readonly kind: string;
+  readonly label: string;
+  readonly description: string;
+  readonly ports: string[];
+  readonly icon: LucideIcon;
+  readonly disabled?: boolean;
+  readonly onClick: () => void;
+}
+
+function AgentCard({
+  kind: _kind,
+  label,
+  description,
+  ports,
+  icon: Icon,
+  disabled,
+  onClick,
+}: AgentCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "mx-2 mb-2 gap-1 p-3 flex flex-col rounded-lg border border-border text-left transition-colors hover:bg-muted/40",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+      )}
+    >
+      <div className="gap-2 flex items-center">
+        <Icon className="size-4 text-violet-500 shrink-0" />
+        <span className="text-xs font-semibold text-foreground">{label}</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground">{description}</p>
+      <div className="gap-1 mt-0.5 flex flex-wrap">
+        {ports.map((p) => (
+          <span
+            key={p}
+            className="px-1.5 py-0.5 font-medium rounded-full bg-muted text-[9px] text-muted-foreground"
+          >
+            {p}
+          </span>
+        ))}
+      </div>
+    </button>
+  );
+}
+
+function AiBucketContent({
+  term,
+  disabled,
+  onAdd,
+}: {
+  term: string;
+  disabled?: boolean;
+  onAdd: (kind: string) => void;
+}) {
+  const agentEntries = [
+    {
+      kind: "ai.agent",
+      label: "Normal agent",
+      description: "LLM agent — connect a model, memory, tools, and retriever.",
+      ports: ["input", "output", "model", "memory", "tools", "KB"],
+      icon: Bot,
+    },
+    {
+      kind: "ai.voice_agent",
+      label: "Voice agent",
+      description:
+        "Phone / voice agent — all normal agent ports plus a voice slot for VAPI telephony.",
+      ports: ["input", "output", "model", "memory", "tools", "KB", "voice"],
+      icon: Mic,
+    },
+  ];
+
+  const subcomponentEntries = PALETTE_ENTRIES.filter(
+    (e) => e.category === "AI:Subcomponents" && matchesSearch(e, term),
+  );
+
+  const visibleAgents = agentEntries.filter((a) => matchesSearch(a, term));
+
+  return (
+    <>
+      {visibleAgents.length > 0 && (
+        <>
+          <div className="px-3 pb-1 pt-2 font-semibold tracking-wider text-[10px] text-muted-foreground uppercase">
+            Agents
+          </div>
+          {visibleAgents.map((a) => (
+            <AgentCard
+              key={a.kind}
+              kind={a.kind}
+              label={a.label}
+              description={a.description}
+              ports={a.ports}
+              icon={a.icon}
+              disabled={disabled}
+              onClick={() => onAdd(a.kind)}
+            />
+          ))}
+        </>
+      )}
+      {subcomponentEntries.length > 0 && (
+        <>
+          <div className="border-t border-border" />
+          <div className="px-3 pb-1 pt-2 font-semibold tracking-wider text-[10px] text-muted-foreground uppercase">
+            Subcomponents
+          </div>
+          {subcomponentEntries.map((entry) => (
+            <PaletteEntryRow
+              key={entry.kind}
+              kind={entry.kind}
+              label={entry.label}
+              description={entry.description}
+              disabled={disabled}
+              onClick={() => onAdd(entry.kind)}
+            />
+          ))}
+        </>
+      )}
+      {visibleAgents.length === 0 && subcomponentEntries.length === 0 && (
+        <p className="px-3 py-3 text-xs text-muted-foreground">No matches.</p>
+      )}
+    </>
   );
 }
 

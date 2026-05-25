@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   File as FileIcon,
@@ -12,6 +13,16 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -42,12 +53,15 @@ const STATUS_VARIANTS = {
 export function DocumentList({ kbId }: { kbId: string }) {
   const { data: docs, isLoading } = useDocumentsQuery(kbId);
   const deleteMutation = useDeleteDocumentMutation(kbId);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  const handleDelete = (documentId: string) => {
+  const confirmDelete = () => {
+    if (!pendingDeleteId) return;
     deleteMutation.mutate(
-      { documentId },
+      { documentId: pendingDeleteId },
       { onError: (err) => toast.error(err.message || "Failed to delete document") },
     );
+    setPendingDeleteId(null);
   };
 
   if (isLoading) {
@@ -118,7 +132,7 @@ export function DocumentList({ kbId }: { kbId: string }) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(doc.id)}
+                        onClick={() => setPendingDeleteId(doc.id)}
                         disabled={deleteMutation.isPending}
                       >
                         <Trash2 className="size-4 text-muted-foreground" />
@@ -131,6 +145,38 @@ export function DocumentList({ kbId }: { kbId: string }) {
           </Table>
         </div>
       )}
+
+      <AlertDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">
+                {(() => {
+                  const doc = (docs ?? []).find((d) => d.id === pendingDeleteId);
+                  return doc?.fileName ?? doc?.sourceUrl ?? doc?.sourceType ?? "this document";
+                })()}
+              </span>
+              . This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

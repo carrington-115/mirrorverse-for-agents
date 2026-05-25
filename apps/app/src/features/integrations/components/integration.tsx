@@ -200,8 +200,11 @@ export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrati
     limit: 60,
   });
   const { data: connectionsData } = useConnectionsQuery();
+  // Only active connections count as "already added" — a revoked connection
+  // should reappear in the browse list so it can be reconnected.
   const connectedSlugs = useMemo(
-    () => new Set((connectionsData ?? []).map((c) => c.appSlug)),
+    () =>
+      new Set((connectionsData ?? []).filter((c) => c.status === "active").map((c) => c.appSlug)),
     [connectionsData],
   );
   const entries = useMemo(

@@ -1,34 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   defaultNodeForKind,
+  workflowDocumentSchema,
   type WorkflowConnectionInput,
   type WorkflowDocumentInput,
   type WorkflowNodeInput,
 } from "@mirrorverse/agent/schemas";
 
 import { Button } from "@/components/ui/button";
-import type { WorkflowChatMessage } from "@/lib/types";
 import { useWorkflowQuery, useWorkflowVersionQuery } from "@/features/workflows/api/queries";
 import { useSaveWorkflowVersionMutation } from "@/features/workflows/api/mutations";
 
 import { extractIconHints } from "@/features/workflows/lib/node-icon";
+import { connectionKindFromHandleId } from "@/features/workflows/lib/node-handles";
 
 import { WorkflowHeader } from "./workflow-header";
 import { DocumentCanvas, type CanvasNewConnection } from "./document-canvas";
-import { MirropilotSidebar } from "./mirropilot-sidebar";
 import { WorkflowPalette } from "./workflow-palette";
+import { NodeInspector } from "./node-inspector";
 
 interface WorkflowEditorProps {
   workflowId: string;
 }
 
-// Browser-safe id generator. Uses Web Crypto when available, falls back to a
-// Math.random shim for transient client-side ids (node creation, drag-and-drop).
 function makeClientId(prefix: string): string {
   const fromBrowser = globalThis.crypto?.randomUUID?.();
   if (typeof fromBrowser === "string") return `${prefix}_${fromBrowser.slice(0, 8)}`;
@@ -41,33 +40,85 @@ function nextNodePosition(existing: readonly WorkflowNodeInput[]): { x: number; 
   return { x: maxX + 240, y: 0 };
 }
 
+// Derive validation errors keyed by node id from a Zod parse result.
+function buildValidationErrors(doc: WorkflowDocumentInput): Map<string, string[]> {
+  const result = workflowDocumentSchema.safeParse(doc);
+  const map = new Map<string, string[]>();
+  if (result.success) return map;
+  for (const issue of result.error.issues) {
+    // issues with path like ["nodes", 2, "expression"] → node at index 2
+    if (issue.path[0] === "nodes" && typeof issue.path[1] === "number") {
+      const nodeId = doc.nodes[issue.path[1]]?.id;
+      if (nodeId) {
+        const existing = map.get(nodeId) ?? [];
+        existing.push(issue.message);
+        map.set(nodeId, existing);
+      }
+    }
+  }
+  return map;
+}
+
+const MAX_HISTORY = 50;
+
 export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
-  const [isMirropilotOpen, setIsMirropilotOpen] = useState(false);
-  const [chatMessages, _setChatMessages] = useState<WorkflowChatMessage[]>([]);
   const [pinnedVersion, setPinnedVersion] = useState<number | null>(null);
-  const [workingDoc, setWorkingDoc] = useState<WorkflowDocumentInput | null>(null);
+  const [workingDoc, setWorkingDocRaw] = useState<WorkflowDocumentInput | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  // Undo / redo stacks (not in state to avoid extra renders)
+  const pastDocs = useRef<WorkflowDocumentInput[]>([]);
+  const futureDocs = useRef<WorkflowDocumentInput[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Clipboard for copy/paste
+  const clipboard = useRef<WorkflowNodeInput[]>([]);
 
   const { data: latestData } = useWorkflowQuery(workflowId);
   const { data: pinnedData } = useWorkflowVersionQuery(workflowId, pinnedVersion);
   const saveMutation = useSaveWorkflowVersionMutation();
 
-  // When the user is viewing the latest version, that's editable. Pinned
-  // older versions are read-only previews.
   const editable = pinnedVersion === null;
 
   const latestDoc = (latestData?.version?.document ?? null) as WorkflowDocumentInput | null;
   const pinnedDoc = (pinnedData?.version?.document ?? null) as WorkflowDocumentInput | null;
 
-  // Reset working doc whenever the persisted latest changes (after a save,
-  // after the workflow first loads, after the chat side commits a new version).
+  // Wrap setWorkingDoc to push history before every mutation
+  const setWorkingDoc = useCallback(
+    (
+      updater:
+        | WorkflowDocumentInput
+        | ((prev: WorkflowDocumentInput | null) => WorkflowDocumentInput | null),
+    ) => {
+      setWorkingDocRaw((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (next && prev) {
+          pastDocs.current = [...pastDocs.current.slice(-MAX_HISTORY + 1), prev];
+          futureDocs.current = [];
+          setCanUndo(true);
+          setCanRedo(false);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  // Initialize working doc from latest persisted version
   useEffect(() => {
     if (!editable) return;
     if (!latestDoc) return;
     const snapshot = JSON.stringify(latestDoc);
     if (snapshot === savedSnapshot) return;
-    setWorkingDoc(latestDoc);
+    setWorkingDocRaw(latestDoc);
     setSavedSnapshot(snapshot);
+    // Reset history when a new version loads
+    pastDocs.current = [];
+    futureDocs.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
   }, [editable, latestDoc, savedSnapshot]);
 
   const displayDoc = editable ? workingDoc : pinnedDoc;
@@ -76,11 +127,21 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
     return JSON.stringify(workingDoc) !== savedSnapshot;
   }, [editable, workingDoc, savedSnapshot]);
 
+  // Validation (client-side zod, only while editing)
+  const validationErrors = useMemo(() => {
+    if (!editable || !workingDoc) return new Map<string, string[]>();
+    return buildValidationErrors(workingDoc);
+  }, [editable, workingDoc]);
+
+  const hasValidationErrors = validationErrors.size > 0;
+
   const workflowName =
     latestData?.workflow?.name ?? displayDoc?.metadata.title ?? "Untitled workflow";
   const workflowKind = latestData?.workflow?.kind ?? null;
   const workflowStatus = latestData?.workflow?.status ?? null;
   const updatedAt = latestData?.workflow?.updatedAt ?? null;
+  const originChatId =
+    (latestData as unknown as { originChatId?: string | null })?.originChatId ?? null;
   const currentVersionNumber = editable
     ? (latestData?.version?.versionNumber ?? null)
     : (pinnedData?.version?.versionNumber ?? null);
@@ -90,16 +151,89 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
       (displayDoc?.nodes ?? []).map((n) => ({
         ...n,
         hints: extractIconHints(n as unknown as Record<string, unknown>),
+        width: (n as Record<string, unknown>).width as number | undefined,
+        height: (n as Record<string, unknown>).height as number | undefined,
+        content: (n as Record<string, unknown>).content as string | undefined,
+        color: (n as Record<string, unknown>).color as number | undefined,
       })),
     [displayDoc],
   );
-  const connections = displayDoc?.connections ?? [];
+  const connections = (displayDoc?.connections ?? []).map((c) => ({
+    ...c,
+    fromHandleId: (c as Record<string, unknown>).fromHandleId as string | undefined,
+    toHandleId: (c as Record<string, unknown>).toHandleId as string | undefined,
+  }));
 
-  const handleToggleMirropilot = useCallback(() => {
-    setIsMirropilotOpen((v) => !v);
+  const selectedNode = useMemo(
+    () => workingDoc?.nodes.find((n) => n.id === selectedNodeId) ?? null,
+    [workingDoc, selectedNodeId],
+  );
+
+  // --- Undo / redo ---
+
+  const undo = useCallback(() => {
+    const prev = pastDocs.current.pop();
+    if (!prev) return;
+    setWorkingDocRaw((current) => {
+      if (current) futureDocs.current = [...futureDocs.current, current];
+      setCanUndo(pastDocs.current.length > 0);
+      setCanRedo(true);
+      return prev;
+    });
   }, []);
 
-  const handleSendMessage = useCallback(() => {}, []);
+  const redo = useCallback(() => {
+    const next = futureDocs.current.pop();
+    if (!next) return;
+    setWorkingDocRaw((current) => {
+      if (current) pastDocs.current = [...pastDocs.current, current];
+      setCanRedo(futureDocs.current.length > 0);
+      setCanUndo(true);
+      return next;
+    });
+  }, []);
+
+  // --- Keyboard shortcuts ---
+
+  useEffect(() => {
+    if (!editable) return;
+    function onKeyDown(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && !e.shiftKey && e.key === "z") {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((mod && e.shiftKey && e.key === "z") || (mod && e.key === "y")) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      // Copy selected node
+      if (mod && e.key === "c" && selectedNodeId) {
+        const node = workingDoc?.nodes.find((n) => n.id === selectedNodeId);
+        if (node) clipboard.current = [node];
+        return;
+      }
+      // Paste
+      if (mod && e.key === "v" && clipboard.current.length > 0) {
+        e.preventDefault();
+        setWorkingDoc((current) => {
+          if (!current) return current;
+          const pasted = clipboard.current.map((n) => ({
+            ...n,
+            id: makeClientId("node"),
+            position: { x: n.position.x + 40, y: n.position.y + 40 },
+          }));
+          return { ...current, nodes: [...current.nodes, ...pasted] };
+        });
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [editable, undo, redo, selectedNodeId, workingDoc, setWorkingDoc]);
+
+  // --- Canvas mutation handlers ---
 
   const handleAddNode = useCallback(
     (kind: string, overrides?: { name?: string; mcpDirectorySlug?: string }) => {
@@ -113,12 +247,15 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         position: nextNodePosition(workingDoc.nodes),
       });
       if (!node) {
-        toast.error(`Adding "${kind}" isn't supported yet.`);
+        toast.error(`Adding "${kind}" isn&apos;t supported yet.`);
         return;
       }
-      setWorkingDoc({ ...workingDoc, nodes: [...workingDoc.nodes, node] });
+      setWorkingDoc((current) => {
+        if (!current) return current;
+        return { ...current, nodes: [...current.nodes, node] };
+      });
     },
-    [editable, workingDoc],
+    [editable, workingDoc, setWorkingDoc],
   );
 
   const handlePositionChange = useCallback(
@@ -131,52 +268,86 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         };
       });
     },
-    [],
+    [setWorkingDoc],
   );
 
-  const handleNodeRemoved = useCallback((id: string) => {
-    setWorkingDoc((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        nodes: current.nodes.filter((n) => n.id !== id),
-        connections: current.connections.filter((c) => c.fromNodeId !== id && c.toNodeId !== id),
-      };
-    });
-  }, []);
+  const handleNodeRemoved = useCallback(
+    (id: string) => {
+      setSelectedNodeId((sel) => (sel === id ? null : sel));
+      setWorkingDoc((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          nodes: current.nodes.filter((n) => n.id !== id),
+          connections: current.connections.filter((c) => c.fromNodeId !== id && c.toNodeId !== id),
+        };
+      });
+    },
+    [setWorkingDoc],
+  );
 
-  const handleConnectionRemoved = useCallback((id: string) => {
-    setWorkingDoc((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        connections: current.connections.filter((c) => c.id !== id),
-      };
-    });
-  }, []);
+  const handleConnectionRemoved = useCallback(
+    (id: string) => {
+      setWorkingDoc((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          connections: current.connections.filter((c) => c.id !== id),
+        };
+      });
+    },
+    [setWorkingDoc],
+  );
 
-  const handleConnectionAdded = useCallback(({ fromNodeId, toNodeId }: CanvasNewConnection) => {
-    setWorkingDoc((current) => {
-      if (!current) return current;
-      const exists = current.connections.some(
-        (c) => c.fromNodeId === fromNodeId && c.toNodeId === toNodeId,
-      );
-      if (exists) return current;
-      const next: WorkflowConnectionInput = {
-        id: makeClientId("edge"),
-        kind: "main",
-        fromNodeId,
-        fromOutputIndex: 0,
-        toNodeId,
-        toInputIndex: 0,
-        condition: null,
-      };
-      return { ...current, connections: [...current.connections, next] };
-    });
-  }, []);
+  const handleConnectionAdded = useCallback(
+    ({ fromNodeId, fromHandleId, toNodeId, toHandleId }: CanvasNewConnection) => {
+      setWorkingDoc((current) => {
+        if (!current) return current;
+        const exists = current.connections.some(
+          (c) =>
+            c.fromNodeId === fromNodeId &&
+            c.toNodeId === toNodeId &&
+            (c as Record<string, unknown>).fromHandleId === fromHandleId,
+        );
+        if (exists) return current;
+        const next: WorkflowConnectionInput = {
+          id: makeClientId("edge"),
+          kind: connectionKindFromHandleId(fromHandleId) as WorkflowConnectionInput["kind"],
+          fromNodeId,
+          fromOutputIndex: 0,
+          toNodeId,
+          toInputIndex: 0,
+          condition: null,
+        };
+        // Store handle ids as extended fields for canvas rendering
+        const extended = { ...next, fromHandleId, toHandleId };
+        return {
+          ...current,
+          connections: [...current.connections, extended as WorkflowConnectionInput],
+        };
+      });
+    },
+    [setWorkingDoc],
+  );
+
+  const handleNodeUpdate = useCallback(
+    (patch: Partial<WorkflowNodeInput>) => {
+      if (!selectedNodeId) return;
+      setWorkingDoc((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          nodes: current.nodes.map((n) =>
+            n.id === selectedNodeId ? ({ ...n, ...patch } as WorkflowNodeInput) : n,
+          ),
+        };
+      });
+    },
+    [selectedNodeId, setWorkingDoc],
+  );
 
   const handleSave = useCallback(async () => {
-    if (!editable || !workingDoc || !isDirty) return;
+    if (!editable || !workingDoc || !isDirty || hasValidationErrors) return;
     try {
       await saveMutation.mutateAsync({
         workflowId,
@@ -185,16 +356,24 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
       });
       const snapshot = JSON.stringify(workingDoc);
       setSavedSnapshot(snapshot);
+      pastDocs.current = [];
+      futureDocs.current = [];
+      setCanUndo(false);
+      setCanRedo(false);
       toast.success("Saved as new version");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed");
     }
-  }, [editable, workingDoc, isDirty, saveMutation, workflowId]);
+  }, [editable, workingDoc, isDirty, hasValidationErrors, saveMutation, workflowId]);
 
   const handleDiscard = useCallback(() => {
     if (!latestDoc) return;
-    setWorkingDoc(latestDoc);
+    setWorkingDocRaw(latestDoc);
     setSavedSnapshot(JSON.stringify(latestDoc));
+    pastDocs.current = [];
+    futureDocs.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
   }, [latestDoc]);
 
   return (
@@ -206,13 +385,22 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         workflowStatus={workflowStatus}
         updatedAt={updatedAt}
         currentVersionNumber={currentVersionNumber}
+        originChatId={originChatId}
         onSelectVersion={setPinnedVersion}
-        onToggleMirropilot={handleToggleMirropilot}
+        canUndo={editable ? canUndo : undefined}
+        canRedo={editable ? canRedo : undefined}
+        onUndo={editable ? undo : undefined}
+        onRedo={editable ? redo : undefined}
       />
 
       {editable && isDirty ? (
         <div className="gap-2 px-3 py-1.5 flex items-center justify-end border-b border-border bg-muted/40">
           <span className="text-xs text-muted-foreground">Unsaved changes</span>
+          {hasValidationErrors && (
+            <span className="text-xs text-destructive">
+              {validationErrors.size} node{validationErrors.size !== 1 ? "s" : ""} with errors
+            </span>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -226,7 +414,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
             size="sm"
             className="h-7 gap-1.5 text-xs"
             onClick={handleSave}
-            disabled={saveMutation.isPending}
+            disabled={saveMutation.isPending || hasValidationErrors}
+            title={hasValidationErrors ? "Fix validation errors before saving" : undefined}
           >
             {saveMutation.isPending ? (
               <Loader2 className="size-3 animate-spin" />
@@ -239,10 +428,6 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
       ) : null}
 
       <div className="min-h-0 flex flex-1 gap-(--xs,8px) overflow-hidden px-(--xs,8px) pb-(--xs,8px)">
-        {isMirropilotOpen && (
-          <MirropilotSidebar messages={chatMessages} onSendMessage={handleSendMessage} />
-        )}
-
         {editable ? <WorkflowPalette onAdd={handleAddNode} disabled={!workingDoc} /> : null}
 
         <div className="relative flex-1 overflow-hidden rounded-lg border border-border">
@@ -250,10 +435,13 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
             nodes={nodes}
             connections={connections}
             editable={editable}
+            selectedNodeId={selectedNodeId}
+            validationErrors={validationErrors}
             onNodePositionChange={handlePositionChange}
             onNodeRemoved={handleNodeRemoved}
             onConnectionRemoved={handleConnectionRemoved}
             onConnectionAdded={handleConnectionAdded}
+            onNodeSelect={setSelectedNodeId}
           />
           {!latestData ? (
             <div className="inset-0 text-sm absolute grid place-items-center text-muted-foreground">
@@ -266,6 +454,15 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
             </div>
           ) : null}
         </div>
+
+        {editable && selectedNode ? (
+          <NodeInspector
+            node={selectedNode}
+            validationErrors={validationErrors.get(selectedNode.id)}
+            onUpdate={handleNodeUpdate}
+            onClose={() => setSelectedNodeId(null)}
+          />
+        ) : null}
       </div>
     </div>
   );

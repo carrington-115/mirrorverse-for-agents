@@ -71,8 +71,11 @@ export function IntegrationsPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const { data, isLoading } = useDirectoryListQuery({ limit: 24 });
+  // Only active connections count as "already added" — a revoked connection
+  // leaves the table (which is active-only) and should reappear here.
   const connectedSlugs = useMemo(
-    () => new Set((connectionsData ?? []).map((c) => c.appSlug)),
+    () =>
+      new Set((connectionsData ?? []).filter((c) => c.status === "active").map((c) => c.appSlug)),
     [connectionsData],
   );
   const entries = useMemo(

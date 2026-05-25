@@ -7,11 +7,17 @@ export interface PaletteEntry {
   readonly description: string;
 }
 
-export type PaletteCategory = "Triggers" | "Core" | "AI" | "Flow" | "Transform" | "Skill";
+export type PaletteCategory =
+  | "Triggers"
+  | "Core"
+  | "AI"
+  | "AI:Agents"
+  | "AI:Subcomponents"
+  | "Flow"
+  | "Transform"
+  | "Skill"
+  | "Editor";
 
-// Curated catalog. Phase B exposes these in the palette; remaining kinds
-// (human.review, editor.sticky_note, sub_workflow flavours, etc.) will land
-// when their property panels do.
 export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
   {
     kind: "trigger.manual",
@@ -58,20 +64,38 @@ export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
   {
     kind: "ai.agent",
     label: "AI agent",
-    category: "AI",
-    description: "Run an LLM agent with prompts, memory, and tools.",
+    category: "AI:Agents",
+    description: "LLM agent — connects to model, memory, tools, and retriever slots.",
+  },
+  {
+    kind: "ai.voice_agent",
+    label: "Voice agent",
+    category: "AI:Agents",
+    description: "Phone / voice agent — all agent slots plus a voice slot for VAPI telephony.",
   },
   {
     kind: "ai.language_model",
     label: "Language model",
-    category: "AI",
+    category: "AI:Subcomponents",
     description: "Configure a model for an agent slot.",
   },
   {
     kind: "ai.memory",
     label: "Memory",
-    category: "AI",
+    category: "AI:Subcomponents",
     description: "Give an agent conversational memory.",
+  },
+  {
+    kind: "ai.retriever",
+    label: "Knowledge base retriever",
+    category: "AI:Subcomponents",
+    description: "Wire a KB into an agent&apos;s retriever slot for RAG.",
+  },
+  {
+    kind: "ai.output_parser",
+    label: "Output parser",
+    category: "AI:Subcomponents",
+    description: "Parse and validate an agent&apos;s raw output.",
   },
   {
     kind: "flow.if",
@@ -114,6 +138,18 @@ export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
     label: "Transform",
     category: "Transform",
     description: "Reshape data between steps.",
+  },
+  {
+    kind: "human.review",
+    label: "Human review",
+    category: "Core",
+    description: "Pause and request approval before a sensitive step.",
+  },
+  {
+    kind: "editor.sticky_note",
+    label: "Sticky note",
+    category: "Editor",
+    description: "Add a freeform text annotation to the canvas.",
   },
 ];
 
@@ -285,6 +321,72 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
         kind: "transform",
         op: "edit_fields",
         config: {},
+      } as WorkflowNodeInput;
+    case "ai.voice_agent":
+      return {
+        ...base,
+        kind: "ai.voice_agent",
+        direction: "inbound",
+        firstMessage: "Hello, how can I help you today?",
+        endCallPhrases: ["goodbye", "bye"],
+        maxDurationSec: 300,
+        silenceTimeoutSec: 30,
+        interruptionEnabled: true,
+        recordingEnabled: false,
+        voiceEntry: {
+          provider: "elevenlabs",
+          voiceId: "21m00Tcm4TlvDq8ikWAM",
+          model: "eleven_turbo_v2",
+        },
+        modelConnection: {
+          provider: "anthropic",
+          model: "claude-haiku-4-5",
+          systemPrompt: "You are a helpful voice assistant.",
+        },
+        toolsEndpoint: {
+          tools: [],
+          serverUrl: "https://example.com/tools",
+        },
+        knowledgeBaseIds: [],
+      } as WorkflowNodeInput;
+    case "ai.retriever":
+      return {
+        ...base,
+        kind: "ai.retriever",
+        knowledgeBaseId: "",
+        topK: 6,
+        minScore: null,
+      } as WorkflowNodeInput;
+    case "ai.output_parser":
+      return {
+        ...base,
+        kind: "ai.output_parser",
+        strategy: "auto_fix",
+        schema: null,
+        autoFix: true,
+      } as WorkflowNodeInput;
+    case "human.review":
+      return {
+        ...base,
+        kind: "human.review",
+        channel: { kind: "chat" },
+        promptTemplate: {
+          mode: "static",
+          value: "Please review and approve to continue.",
+        },
+        responseSchema: null,
+        timeoutSec: 3600,
+        onTimeout: "abort",
+        defaultValue: null,
+      } as WorkflowNodeInput;
+    case "editor.sticky_note":
+      return {
+        ...base,
+        kind: "editor.sticky_note",
+        content: "",
+        width: 200,
+        height: 120,
+        color: 0,
       } as WorkflowNodeInput;
     default:
       return null;

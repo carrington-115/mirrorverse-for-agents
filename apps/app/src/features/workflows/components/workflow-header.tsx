@@ -3,7 +3,17 @@
 import { useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, Check, PanelLeft, Pencil, Share2, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  BotMessageSquare,
+  Check,
+  Pencil,
+  Redo2,
+  Share2,
+  Trash2,
+  Undo2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -34,8 +44,12 @@ interface WorkflowHeaderProps {
   workflowStatus: string | null;
   updatedAt: Date | string | null;
   currentVersionNumber: number | null;
+  originChatId?: string | null;
   onSelectVersion: (versionNumber: number | null) => void;
-  onToggleMirropilot: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -63,8 +77,12 @@ export function WorkflowHeader({
   workflowStatus,
   updatedAt,
   currentVersionNumber,
+  originChatId,
   onSelectVersion,
-  onToggleMirropilot,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: WorkflowHeaderProps) {
   const router = useRouter();
   const renameMutation = useRenameWorkflowMutation();
@@ -140,15 +158,30 @@ export function WorkflowHeader({
           >
             <ArrowLeft className="size-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-6 rounded-sm"
-            onClick={onToggleMirropilot}
-            title="Toggle Mirropilot"
-          >
-            <PanelLeft className="size-4" />
-          </Button>
+          {onUndo !== undefined && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6 rounded-sm"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="size-3.5" />
+            </Button>
+          )}
+          {onRedo !== undefined && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6 rounded-sm"
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Shift+Z)"
+            >
+              <Redo2 className="size-3.5" />
+            </Button>
+          )}
         </div>
 
         <div className="gap-2 min-w-0 flex items-center">
@@ -213,6 +246,20 @@ export function WorkflowHeader({
                   currentVersionNumber={currentVersionNumber}
                   onSelectVersion={onSelectVersion}
                 />
+              ) : null}
+              {originChatId ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                  asChild
+                  title="View originating Mirropilot chat"
+                >
+                  <a href={`/mirropilot/${originChatId}`}>
+                    <BotMessageSquare className="size-3" />
+                    View in Mirropilot
+                  </a>
+                </Button>
               ) : null}
               {updatedAt ? (
                 <span className="text-xs whitespace-nowrap text-muted-foreground">

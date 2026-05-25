@@ -7,6 +7,16 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ChannelSearchBar } from "@/features/deploy/components/channel-search-bar";
 import { ChannelEmptyState } from "@/features/deploy/components/channel-empty-state";
 import {
@@ -29,6 +39,7 @@ export function PhoneShell() {
   const [choiceOpen, setChoiceOpen] = useState(false);
   const [twilioOpen, setTwilioOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
+  const [pendingReleaseId, setPendingReleaseId] = useState<string | null>(null);
 
   const { data: phoneNumbers = [], isLoading } = useListNumbersQuery();
   const { mutate: releaseNumber } = useReleaseNumberMutation();
@@ -117,7 +128,7 @@ export function PhoneShell() {
     { label: "Edit", onClick: () => toast.info("Edit coming soon") },
     {
       label: "Delete",
-      onClick: (row) => releaseNumber({ phoneNumberId: row.id }),
+      onClick: (row) => setPendingReleaseId(row.id),
       destructive: true,
     },
   ];
@@ -185,6 +196,38 @@ export function PhoneShell() {
       />
       <AddPhoneSheet open={twilioOpen} onOpenChange={setTwilioOpen} />
       <PhoneNumbersListSheet open={listOpen} onOpenChange={setListOpen} />
+
+      <AlertDialog
+        open={pendingReleaseId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingReleaseId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete phone number?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently release{" "}
+              <span className="font-medium text-foreground">
+                {phoneNumbers.find((n) => n.id === pendingReleaseId)?.number ?? "this phone number"}
+              </span>
+              . This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingReleaseId) releaseNumber({ phoneNumberId: pendingReleaseId });
+                setPendingReleaseId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

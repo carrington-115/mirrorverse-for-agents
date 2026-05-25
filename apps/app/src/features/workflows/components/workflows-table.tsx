@@ -32,6 +32,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { useRenameWorkflowMutation } from "@/features/workflows/api/mutations";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -328,6 +338,8 @@ export function WorkflowsTable({
 }: WorkflowsTableProps) {
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -446,10 +458,7 @@ export function WorkflowsTable({
               <button
                 type="button"
                 className="gap-1.5 text-sm flex items-center rounded-md px-(--xs,8px) py-[4px] text-destructive transition-colors hover:bg-destructive/10"
-                onClick={() => {
-                  selectedIds.forEach((id) => onDelete(id));
-                  setSelectedIds(new Set());
-                }}
+                onClick={() => setBulkDeleteOpen(true)}
               >
                 <Trash2 className="size-3.5" />
                 Delete
@@ -520,7 +529,7 @@ export function WorkflowsTable({
                     w={w}
                     selected={selectedIds.has(w.id)}
                     onToggle={() => toggleOne(w.id)}
-                    onDelete={() => onDelete(w.id)}
+                    onDelete={() => setPendingDeleteId(w.id)}
                   />
                 ))}
               </SortableContext>
@@ -557,6 +566,65 @@ export function WorkflowsTable({
           </button>
         </div>
       )}
+
+      <AlertDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete workflow?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">
+                {workflows.find((w) => w.id === pendingDeleteId)?.name ?? "this workflow"}
+              </span>
+              . This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingDeleteId) onDelete(pendingDeleteId);
+                setPendingDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedIds.size} workflow{selectedIds.size !== 1 ? "s" : ""}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected workflow{selectedIds.size !== 1 ? "s" : ""}.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                selectedIds.forEach((id) => onDelete(id));
+                setSelectedIds(new Set());
+                setBulkDeleteOpen(false);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
