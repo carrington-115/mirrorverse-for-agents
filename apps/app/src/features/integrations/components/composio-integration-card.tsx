@@ -1,14 +1,49 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Image from "next/image";
+import { Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTRPC } from "@/lib/trpc/client";
-import { DirectoryIcon } from "./directory-icon";
-import type { DirectoryEntry } from "../api/types";
 
-export function DirectoryCardSkeleton() {
+export interface ComposioIntegrationItem {
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  description: string | null;
+  tools: readonly { slug: string; description: string }[];
+}
+
+interface ComposioIntegrationIconProps {
+  item: Pick<ComposioIntegrationItem, "name" | "logoUrl">;
+  size?: number;
+  className?: string;
+}
+
+function ComposioIntegrationIcon({ item, size = 24, className }: ComposioIntegrationIconProps) {
+  const [errored, setErrored] = useState(false);
+
+  if (!item.logoUrl || errored) {
+    return <Plug className={`text-muted-foreground ${className ?? ""}`} size={size} />;
+  }
+
+  return (
+    <Image
+      src={item.logoUrl}
+      alt={item.name}
+      width={size}
+      height={size}
+      unoptimized
+      className={`object-contain ${className ?? ""}`}
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
+export function ComposioIntegrationCardSkeleton() {
   return (
     <div className="gap-3 p-4 flex min-h-[180px] flex-col justify-between rounded-xl border border-border bg-background">
       <div className="gap-2 flex flex-col">
@@ -28,12 +63,12 @@ export function DirectoryCardSkeleton() {
   );
 }
 
-interface DirectoryCardProps {
-  entry: DirectoryEntry;
-  onViewDetails?: (entry: DirectoryEntry) => void;
+interface ComposioIntegrationCardProps {
+  item: ComposioIntegrationItem;
+  onViewDetails?: (item: ComposioIntegrationItem) => void;
 }
 
-export function DirectoryCard({ entry, onViewDetails }: DirectoryCardProps) {
+export function ComposioIntegrationCard({ item, onViewDetails }: ComposioIntegrationCardProps) {
   const trpc = useTRPC();
   const connectMutation = useMutation(
     trpc.connections.initiateAppConnection.mutationOptions({
@@ -43,9 +78,7 @@ export function DirectoryCard({ entry, onViewDetails }: DirectoryCardProps) {
         }
       },
       onError: () => {
-        toast.error(
-          `Could not connect ${entry.displayName}. Please add it on your Composio dashboard.`,
-        );
+        toast.error(`Could not connect ${item.name}. Please check your Composio dashboard.`);
       },
     }),
   );
@@ -53,10 +86,10 @@ export function DirectoryCard({ entry, onViewDetails }: DirectoryCardProps) {
   return (
     <div className="gap-3 p-4 hover:shadow-sm flex cursor-pointer flex-col justify-between rounded-xl border border-border bg-background transition-shadow">
       <div className="gap-1.5 flex flex-col">
-        <DirectoryIcon entry={entry} size={24} className="size-6" />
-        <h3 className="text-md font-semibold text-foreground">{entry.displayName}</h3>
+        <ComposioIntegrationIcon item={item} size={24} className="size-6" />
+        <h3 className="text-md font-semibold text-foreground">{item.name}</h3>
         <p className="text-sm leading-relaxed line-clamp-3 text-muted-foreground">
-          {entry.oneLiner ?? entry.description ?? ""}
+          {item.description ?? `${item.tools.length} tools available`}
         </p>
       </div>
 
@@ -64,7 +97,7 @@ export function DirectoryCard({ entry, onViewDetails }: DirectoryCardProps) {
         <Button
           size="sm"
           className="text-xs w-1/2 cursor-pointer"
-          onClick={() => connectMutation.mutate({ appSlug: entry.slug })}
+          onClick={() => connectMutation.mutate({ appSlug: item.slug })}
           disabled={connectMutation.isPending}
         >
           {connectMutation.isPending ? "Connecting..." : "Connect"}
@@ -73,7 +106,7 @@ export function DirectoryCard({ entry, onViewDetails }: DirectoryCardProps) {
           size="sm"
           variant="outline"
           className="text-xs w-1/2 cursor-pointer"
-          onClick={() => onViewDetails?.(entry)}
+          onClick={() => onViewDetails?.(item)}
           disabled={!onViewDetails}
         >
           Details

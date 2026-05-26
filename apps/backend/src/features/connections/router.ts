@@ -14,6 +14,13 @@ export const connectionsRouter = router({
       ),
     ),
 
+  listAvailableIntegrations: protectedProc.query(({ ctx }) =>
+    connectionsService.listAvailableIntegrations({
+      db: ctx.db,
+      userId: ctx.user.id,
+    }),
+  ),
+
   initiateAppConnection: workspaceProc
     .input(initiateAppConnectionInput)
     .mutation(({ ctx, input }) =>

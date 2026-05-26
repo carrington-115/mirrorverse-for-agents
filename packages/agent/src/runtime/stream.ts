@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+﻿import { randomUUID } from "node:crypto";
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -7,20 +7,21 @@ import {
   streamText,
   type UIMessage,
 } from "ai";
+import { propagateAttributes } from "@langfuse/tracing";
 
 import { breakdownStepUsage } from "../billing";
 import { resolveModel } from "../models/resolve";
 import { sanitizeToolCallHistory } from "../sanitize-history";
-import { MIRROPILOT_SYSTEM_PROMPT } from "../system-prompt";
+import { MIRRORPILOT_SYSTEM_PROMPT } from "../system-prompt";
 import { makeWorkflowCommitTool, WORKFLOW_COMMIT_TOOL_NAME } from "../tools/workflow-commit";
 
-import { DEFAULT_MAX_STEPS, DEFAULT_MIRROPILOT_MODEL, LOG_PREFIX } from "./constants";
+import { DEFAULT_MAX_STEPS, DEFAULT_MIRRORPILOT_MODEL, LOG_PREFIX } from "./constants";
 import { makeLifecycleEmitter } from "./lifecycle";
 import { buildProviderOptions } from "./provider-options";
-import type { RunMirropilotDeps } from "./types";
+import type { RunMirrorpilotDeps } from "./types";
 
-export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> {
-  const modelId = deps.model ?? DEFAULT_MIRROPILOT_MODEL;
+export async function runMirrorpilot(deps: RunMirrorpilotDeps): Promise<Response> {
+  const modelId = deps.model ?? DEFAULT_MIRRORPILOT_MODEL;
   const rawModelMessages = await convertToModelMessages(deps.messages, {
     tools: {
       [WORKFLOW_COMMIT_TOOL_NAME]: makeWorkflowCommitTool({
@@ -80,56 +81,73 @@ export async function runMirropilot(deps: RunMirropilotDeps): Promise<Response> 
       };
 
       const system = deps.systemPromptSuffix
-        ? `${MIRROPILOT_SYSTEM_PROMPT}\n\n${deps.systemPromptSuffix}`
-        : MIRROPILOT_SYSTEM_PROMPT;
+        ? `${MIRRORPILOT_SYSTEM_PROMPT}\n\n${deps.systemPromptSuffix}`
+        : MIRRORPILOT_SYSTEM_PROMPT;
 
-      const result = streamText({
-        model: resolveModel(modelId),
-        system,
-        messages: modelMessages,
-        tools,
-        stopWhen: stepCountIs(deps.maxSteps ?? DEFAULT_MAX_STEPS),
-        providerOptions: buildProviderOptions(modelId),
-        experimental_onToolCallStart: async ({ toolCall }) => {
-          await emit({
-            kind: "tool_use_started",
-            messageId: assistantMessageId,
-            toolUseId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
+      await propagateAttributes(
+        {
+          sessionId: deps.chatId,
+          userId: deps.userId,
+          tags: ["chat", modelId],
+        },
+        async () => {
+          const result = streamText({
+            model: resolveModel(modelId),
+            system,
+            messages: modelMessages,
+            tools,
+            stopWhen: stepCountIs(deps.maxSteps ?? DEFAULT_MAX_STEPS),
+            providerOptions: buildProviderOptions(modelId),
+            experimental_telemetry: {
+              isEnabled: true,
+              functionId: "mirrorpilot-chat",
+              metadata: {
+                chatId: deps.chatId,
+                workspaceId: deps.workspaceId,
+              },
+            },
+            experimental_onToolCallStart: async ({ toolCall }) => {
+              await emit({
+                kind: "tool_use_started",
+                messageId: assistantMessageId,
+                toolUseId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+              });
+            },
+            experimental_onToolCallFinish: async ({ toolCall, error }) => {
+              await emit({
+                kind: "tool_use_completed",
+                messageId: assistantMessageId,
+                toolUseId: toolCall.toolCallId,
+                isError: Boolean(error),
+              });
+            },
+            onStepFinish: async ({ text, toolCalls, finishReason, usage }) => {
+              const breakdown = breakdownStepUsage(usage, modelId);
+              console.log(
+                `${LOG_PREFIX} step.finish reason=${finishReason} ` +
+                  `textChars=${text?.length ?? 0} toolCalls=${toolCalls?.length ?? 0} ` +
+                  `inputTokens=${usage?.inputTokens ?? 0} outputTokens=${usage?.outputTokens ?? 0} ` +
+                  `cents=${breakdown.totalCostCents}`,
+              );
+              if (deps.onUsage && breakdown.entries.length > 0) {
+                await deps.onUsage({ model: modelId, breakdown });
+              }
+            },
+            onError: ({ error }) => {
+              console.error(`${LOG_PREFIX} streamText error:`, error);
+            },
           });
-        },
-        experimental_onToolCallFinish: async ({ toolCall, error }) => {
-          await emit({
-            kind: "tool_use_completed",
-            messageId: assistantMessageId,
-            toolUseId: toolCall.toolCallId,
-            isError: Boolean(error),
-          });
-        },
-        onStepFinish: async ({ text, toolCalls, finishReason, usage }) => {
-          const breakdown = breakdownStepUsage(usage, modelId);
-          console.log(
-            `${LOG_PREFIX} step.finish reason=${finishReason} ` +
-              `textChars=${text?.length ?? 0} toolCalls=${toolCalls?.length ?? 0} ` +
-              `inputTokens=${usage?.inputTokens ?? 0} outputTokens=${usage?.outputTokens ?? 0} ` +
-              `cents=${breakdown.totalCostCents}`,
-          );
-          if (deps.onUsage && breakdown.entries.length > 0) {
-            await deps.onUsage({ model: modelId, breakdown });
-          }
-        },
-        onError: ({ error }) => {
-          console.error(`${LOG_PREFIX} streamText error:`, error);
-        },
-      });
 
-      // Forward native model reasoning so the chain-of-thought timeline shows
-      // the model's real thinking interleaved with our builder narration and
-      // the acting (tool) steps. Providers that emit a reasoning part even for
-      // a trivial one-line answer no longer look out of place: the client
-      // co-locates reasoning with acting steps and auto-collapses the panel to
-      // a "Thought process" summary once the turn finishes.
-      writer.merge(result.toUIMessageStream<UIMessage>({ sendReasoning: true }));
+          // Forward native model reasoning so the chain-of-thought timeline shows
+          // the model's real thinking interleaved with our builder narration and
+          // the acting (tool) steps. Providers that emit a reasoning part even for
+          // a trivial one-line answer no longer look out of place: the client
+          // co-locates reasoning with acting steps and auto-collapses the panel to
+          // a "Thought process" summary once the turn finishes.
+          writer.merge(result.toUIMessageStream<UIMessage>({ sendReasoning: true }));
+        },
+      );
     },
     onError: (error) => {
       console.error(`${LOG_PREFIX} stream response error:`, error);

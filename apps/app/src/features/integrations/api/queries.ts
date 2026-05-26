@@ -7,3 +7,8 @@ export function useConnectionsQuery() {
   const trpc = useTRPC();
   return useQuery(trpc.tools.listConnections.queryOptions());
 }
+
+export function useComposioIntegrationsQuery() {
+  const trpc = useTRPC();
+  return useQuery(trpc.connections.listAvailableIntegrations.queryOptions());
+}

@@ -28,9 +28,9 @@ import {
 
 interface DocumentNodeShape {
   readonly id: string;
-  readonly name: string;
-  readonly kind: string;
+  readonly type: string;
   readonly position: { readonly x: number; readonly y: number };
+  readonly params: Record<string, unknown>;
   readonly hints?: NodeIconHints;
   readonly width?: number;
   readonly height?: number;
@@ -39,12 +39,10 @@ interface DocumentNodeShape {
 }
 
 interface DocumentConnectionShape {
-  readonly id: string;
-  readonly kind: string;
-  readonly fromNodeId: string;
-  readonly toNodeId: string;
-  readonly fromHandleId?: string;
-  readonly toHandleId?: string;
+  readonly from: string;
+  readonly fromPort: string;
+  readonly to: string;
+  readonly toPort: string;
 }
 
 export interface CanvasNodeChange {
@@ -74,7 +72,7 @@ interface DocumentCanvasProps {
   readonly onNodeSelect?: (id: string | null) => void;
 }
 
-// Node kind → pastel sticky note background colors
+// Node type → pastel sticky note background colors
 const STICKY_COLORS = [
   "#fef9c3", // yellow
   "#dcfce7", // green
@@ -84,18 +82,30 @@ const STICKY_COLORS = [
   "#ffedd5", // orange
 ];
 
-// --- Workflow node (all kinds except sticky) ---
+// Format "trigger.webhook" → "Webhook"
+function formatTypeLabel(type: string): string {
+  const dot = type.lastIndexOf(".");
+  const tail = dot >= 0 ? type.slice(dot + 1) : type;
+  return tail.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Stable composite edge id from connection fields
+function makeEdgeId(from: string, fromPort: string, to: string, toPort: string): string {
+  return `${from}|${fromPort}|${to}|${toPort}`;
+}
+
+// --- Workflow node (all types except sticky) ---
 
 interface WorkflowNodeData extends Record<string, unknown> {
   readonly label: string;
-  readonly kind: string;
+  readonly nodeType: string;
   readonly hints?: NodeIconHints;
   readonly editable: boolean;
   readonly hasValidationError: boolean;
 }
 
 function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected?: boolean }) {
-  const handles = getHandlesForKind(data.kind);
+  const handles = getHandlesForKind(data.nodeType);
   const positionMap = {
     Left: Position.Left,
     Right: Position.Right,
@@ -136,12 +146,12 @@ function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected?: b
 
       {/* Node header */}
       <div className="gap-2.5 min-w-0 p-3 flex w-full items-start rounded-t-md border-b bg-secondary">
-        <NodeIcon kind={data.kind} hints={data.hints} />
+        <NodeIcon kind={data.nodeType} hints={data.hints} />
         <div className="min-w-0 flex flex-1 flex-col">
           <span className="text-xs font-semibold leading-tight truncate text-secondary-foreground">
             {data.label}
           </span>
-          <span className="text-[10px] text-muted-foreground">{data.kind}</span>
+          <span className="text-[10px] text-muted-foreground">{data.nodeType}</span>
         </div>
         {data.hasValidationError && (
           <span className="font-medium shrink-0 text-[10px] text-destructive">!</span>
@@ -245,7 +255,7 @@ export function DocumentCanvas({
   const rfNodes = useMemo<RFNode[]>(
     () =>
       nodes.map((n) => {
-        if (n.kind === "editor.sticky_note") {
+        if (n.type === "editor.sticky_note") {
           return {
             id: n.id,
             type: "stickyNote",
@@ -266,8 +276,8 @@ export function DocumentCanvas({
           position: n.position,
           selected: n.id === selectedNodeId,
           data: {
-            label: n.name,
-            kind: n.kind,
+            label: formatTypeLabel(n.type),
+            nodeType: n.type,
             hints: n.hints,
             editable,
             hasValidationError: (validationErrors?.get(n.id)?.length ?? 0) > 0,
@@ -280,14 +290,15 @@ export function DocumentCanvas({
   const rfEdges = useMemo<RFEdge[]>(
     () =>
       connections.map((c) => {
-        const edgeType = edgeTypeForKind(c.kind);
-        const color = edgeColorForKind(c.kind);
+        const connectionKind = connectionKindFromHandleId(c.fromPort);
+        const edgeType = edgeTypeForKind(connectionKind);
+        const color = edgeColorForKind(connectionKind);
         return {
-          id: c.id,
-          source: c.fromNodeId,
-          sourceHandle: c.fromHandleId ?? "main-out",
-          target: c.toNodeId,
-          targetHandle: c.toHandleId ?? "main-in",
+          id: makeEdgeId(c.from, c.fromPort, c.to, c.toPort),
+          source: c.from,
+          sourceHandle: c.fromPort,
+          target: c.to,
+          targetHandle: c.toPort,
           type: edgeType,
           ...(color ? { style: { stroke: color } } : {}),
         };

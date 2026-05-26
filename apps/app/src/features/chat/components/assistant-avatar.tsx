@@ -1,20 +1,20 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 
-import mirropilotIconLight from "@/assets/mirropilot-icon.svg";
-import mirropilotIconDark from "@/assets/mirropilot-icon-dark.svg";
+import mirrorpilotIconLight from "@/assets/mirrorpilot-icon.svg";
+import mirrorpilotIconDark from "@/assets/mirrorpilot-icon-dark.svg";
 
 export function AssistantAvatar() {
   return (
     <div className="size-7 grid shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-background">
       <Image
-        src={mirropilotIconLight}
+        src={mirrorpilotIconLight}
         alt="Mirrro"
         width={16}
         height={16}
         className="dark:hidden"
       />
       <Image
-        src={mirropilotIconDark}
+        src={mirrorpilotIconDark}
         alt="Mirrro"
         width={16}
         height={16}

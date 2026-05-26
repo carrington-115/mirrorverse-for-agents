@@ -18,7 +18,7 @@ export function buildProviderOptions(modelId: string) {
   // Older Anthropic models (Sonnet 4.6, Haiku 4.5) still use the token budget.
   const thinkingOptions = modelId.startsWith(ANTHROPIC_OPUS_PREFIX)
     ? {
-        thinking: { type: "adaptive" as const },
+        thinking: { type: "adaptive", display: "summarized" as const },
         effort: ANTHROPIC_ADAPTIVE_THINKING_EFFORT,
       }
     : {

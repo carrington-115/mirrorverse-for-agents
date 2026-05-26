@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useCallback, useEffect, memo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
@@ -23,12 +23,12 @@ import type {
   ThinkingBlock,
   ToolUseBlock,
 } from "@/features/chat/api/types";
-import { MirropilotLoader } from "./pilot-loader";
+import { MirrorpilotLoader } from "./pilot-loader";
 
 function AgentAvatar({ isAnimating }: { isAnimating: boolean }) {
   return (
     <div className="size-8 flex shrink-0 items-center justify-center rounded-full border border-border bg-secondary">
-      <MirropilotLoader size={16} className={cn(!isAnimating && "opacity-60")} />
+      <MirrorpilotLoader size={16} className={cn(!isAnimating && "opacity-60")} />
     </div>
   );
 }
@@ -160,7 +160,7 @@ function TextBlockView({ block, isStreaming }: { block: TextBlock; isStreaming: 
 function PendingLoader() {
   return (
     <div className="gap-2 py-1 flex items-center">
-      <MirropilotLoader size={18} />
+      <MirrorpilotLoader size={18} />
       <span className="text-xs text-muted-foreground">Mirrro is thinking…</span>
     </div>
   );

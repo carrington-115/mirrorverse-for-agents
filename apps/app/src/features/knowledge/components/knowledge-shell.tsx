@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -44,8 +44,8 @@ export function KnowledgeShell() {
   };
 
   const list = kbs ?? [];
-  const mirropilotKbs = list.filter((kb) => kb.source === "mirropilot");
-  const manualKbs = list.filter((kb) => kb.source !== "mirropilot");
+  const mirrorpilotKbs = list.filter((kb) => kb.source === "mirrorpilot");
+  const manualKbs = list.filter((kb) => kb.source !== "mirrorpilot");
   const selected = list.find((kb) => kb.id === selectedKbId) ?? null;
 
   if (isLoading) {
@@ -94,7 +94,7 @@ export function KnowledgeShell() {
             <p className="font-medium">No knowledge bases yet</p>
             <p className="text-sm text-muted-foreground">
               Create one to start grounding your agents with documents, or upload a file in
-              Mirropilot to create one automatically.
+              Mirrorpilot to create one automatically.
             </p>
           </div>
           <CreateKbDialog>
@@ -105,16 +105,16 @@ export function KnowledgeShell() {
         <div className="gap-6 lg:grid-cols-[300px_1fr] grid grid-cols-1">
           {/* ── Left panel — KB list ──────────────────────── */}
           <div className="gap-4 flex flex-col">
-            {/* Mirropilot section */}
-            {mirropilotKbs.length > 0 && (
+            {/* Mirrorpilot section */}
+            {mirrorpilotKbs.length > 0 && (
               <div className="gap-2 flex flex-col">
                 <div className="gap-1.5 px-1 flex items-center">
                   <Bot className="size-3.5 text-primary" />
                   <span className="text-xs font-semibold tracking-wide text-primary uppercase">
-                    Mirropilot uploads
+                    Mirrorpilot uploads
                   </span>
                 </div>
-                {mirropilotKbs.map((kb) => (
+                {mirrorpilotKbs.map((kb) => (
                   <KbCard
                     key={kb.id}
                     kb={kb}
@@ -122,7 +122,7 @@ export function KnowledgeShell() {
                     isPending={deleteMutation.isPending && deleteMutation.variables?.kbId === kb.id}
                     onClick={() => setSelectedKbId(kb.id)}
                     onDelete={handleDelete}
-                    badge="Mirropilot"
+                    badge="Mirrorpilot"
                   />
                 ))}
               </div>
@@ -131,7 +131,7 @@ export function KnowledgeShell() {
             {/* Manual section */}
             {manualKbs.length > 0 && (
               <div className="gap-2 flex flex-col">
-                {mirropilotKbs.length > 0 && (
+                {mirrorpilotKbs.length > 0 && (
                   <div className="px-1">
                     <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                       Your knowledge bases
@@ -161,10 +161,10 @@ export function KnowledgeShell() {
                   <Badge variant="outline" className="text-xs">
                     {selected.id.slice(0, 8)}
                   </Badge>
-                  {selected.source === "mirropilot" && (
+                  {selected.source === "mirrorpilot" && (
                     <Badge variant="secondary" className="gap-1 text-xs">
                       <Bot className="size-3" />
-                      Mirropilot
+                      Mirrorpilot
                     </Badge>
                   )}
                 </div>

@@ -6,6 +6,7 @@ import type { WorkflowDocument } from "@mirrorverse/types";
 import type { WorkflowDocumentInput } from "../../schemas/workflow";
 
 import { INITIAL_VERSION_NUMBER, INITIAL_WORKFLOW_STATUS } from "./constants";
+import type { WorkflowKind } from "./constants";
 
 const { workflows, workflowVersions, chats } = schema;
 
@@ -21,6 +22,7 @@ interface PersistArgs {
   readonly userId: string;
   readonly chatId: string;
   readonly document: WorkflowDocumentInput;
+  readonly kind: WorkflowKind;
   readonly summary: string;
 }
 
@@ -72,18 +74,24 @@ export async function getLatestVersionForChat(
 
 export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkflow> {
   const existing = await getLatestVersionForChat(args.db, args.chatId, args.workspaceId);
-  const checksum = checksumDocument(args.document);
   const versionId = randomUUID();
 
   if (existing) {
     const nextVersionNumber = existing.versionNumber + 1;
+    const docWithVersion: WorkflowDocumentInput = {
+      ...args.document,
+      id: existing.workflowId,
+      version: nextVersionNumber,
+    };
+    const checksum = checksumDocument(docWithVersion);
+
     await args.db.transaction(async (tx) => {
       await tx.insert(workflowVersions).values({
         id: versionId,
         workspaceId: args.workspaceId,
         workflowId: existing.workflowId,
         versionNumber: nextVersionNumber,
-        document: args.document as unknown as WorkflowDocument,
+        document: docWithVersion as unknown as WorkflowDocument,
         compiledAgent: null,
         createdBy: args.userId,
         generatedByChatId: args.chatId,
@@ -94,9 +102,8 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
         .update(workflows)
         .set({
           currentVersionId: versionId,
-          name: args.document.metadata.title,
-          description: args.document.metadata.description ?? null,
-          kind: args.document.kind,
+          name: args.document.name,
+          kind: args.kind,
         })
         .where(
           and(eq(workflows.id, existing.workflowId), eq(workflows.workspaceId, args.workspaceId)),
@@ -111,13 +118,20 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
   }
 
   const workflowId = randomUUID();
+  const docWithVersion: WorkflowDocumentInput = {
+    ...args.document,
+    id: workflowId,
+    version: INITIAL_VERSION_NUMBER,
+  };
+  const checksum = checksumDocument(docWithVersion);
+
   await args.db.transaction(async (tx) => {
     await tx.insert(workflows).values({
       id: workflowId,
       workspaceId: args.workspaceId,
-      name: args.document.metadata.title,
-      description: args.document.metadata.description ?? null,
-      kind: args.document.kind,
+      name: args.document.name,
+      description: null,
+      kind: args.kind,
       status: INITIAL_WORKFLOW_STATUS,
       currentVersionId: versionId,
       createdBy: args.userId,
@@ -129,7 +143,7 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
       workspaceId: args.workspaceId,
       workflowId,
       versionNumber: INITIAL_VERSION_NUMBER,
-      document: args.document as unknown as WorkflowDocument,
+      document: docWithVersion as unknown as WorkflowDocument,
       compiledAgent: null,
       createdBy: args.userId,
       generatedByChatId: args.chatId,

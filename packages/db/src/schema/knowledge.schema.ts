@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+﻿import { sql } from "drizzle-orm";
 import {
   customType,
   index,
@@ -22,7 +22,7 @@ const embeddingVector = customType<{ data: number[]; driverData: string }>({
 export type KnowledgeDocumentSourceType = "pdf" | "url" | "text" | "image" | "file";
 export type KnowledgeDocumentStatus = "pending" | "processing" | "ready" | "failed";
 
-export type KnowledgeBaseSource = "manual" | "mirropilot";
+export type KnowledgeBaseSource = "manual" | "mirrorpilot";
 
 export const knowledgeBases = pgTable(
   "knowledge_bases",

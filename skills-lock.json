@@ -73,6 +73,12 @@
       "skillPath": "skills/inngest-steps/SKILL.md",
       "computedHash": "f37a3a423739fba256a5cd8cfa35b6121bf3192a0fe2a964e5c41af1036f3de0"
     },
+    "langfuse": {
+      "source": "langfuse/skills",
+      "sourceType": "github",
+      "skillPath": "skills/langfuse/SKILL.md",
+      "computedHash": "cdee09e562cd1f3635304f57649c257db84b8524938f4014e9033b9e492c33c5"
+    },
     "primitives": {
       "source": "assistant-ui/skills",
       "sourceType": "github",

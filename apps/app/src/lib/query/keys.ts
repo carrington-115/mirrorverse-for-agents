@@ -34,4 +34,10 @@ export const queryKeys = {
     all: ["chat"] as const,
     session: (sessionId: string) => [...queryKeys.chat.all, "session", sessionId] as const,
   },
+  billing: {
+    all: ["billing"] as const,
+    plan: (workspaceId: string) => [...queryKeys.billing.all, "plan", workspaceId] as const,
+    invoices: (workspaceId: string) => [...queryKeys.billing.all, "invoices", workspaceId] as const,
+    usage: (workspaceId: string) => [...queryKeys.billing.all, "usage", workspaceId] as const,
+  },
 };

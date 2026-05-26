@@ -1,26 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { isTextUIPart, isToolUIPart, type UIMessage } from "ai";
 
-import {
-  ChainOfThought,
-  ChainOfThoughtContent,
-  ChainOfThoughtHeader,
-  ChainOfThoughtStep,
-} from "@mirrorverse/ui/ai-elements/chain-of-thought";
+import { ChainOfThoughtStep } from "@mirrorverse/ui/ai-elements/chain-of-thought";
 import { Message, MessageContent, MessageResponse } from "@mirrorverse/ui/ai-elements/message";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@mirrorverse/ui/ai-elements/reasoning";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 import { AssistantAvatar } from "./assistant-avatar";
 import { MessageActions } from "./message-actions";
 import { WorkflowCommitCard } from "./workflow-commit-card";
+import { WorkflowPlanCard } from "./workflow-plan-card";
 import { PhoneNumberSelectionCard } from "./phone-number-selection-card";
 import { PhoneNumberProvisionCard } from "./phone-number-provision-card";
 import { UnassignedPhoneNumbersCard } from "./unassigned-phone-numbers-card";
 import { VoiceAgentActivateCard } from "./voice-agent-activate-card";
 import { KnowledgeBaseCard } from "./knowledge-base-card";
 import { isWorkflowCommitPart } from "@/features/chat/lib/workflow-commit-tool";
-import { buildCotTimeline, deriveCotPhase } from "@/features/chat/lib/cot-timeline";
+import { isSubmitPlanPart, type SubmitPlanToolPart } from "@/features/chat/lib/submit-plan-tool";
+import { buildCotTimeline } from "@/features/chat/lib/cot-timeline";
 import { isKbViewPart, type KbViewToolPart } from "@/features/chat/lib/knowledge-tools";
 import {
   isPhoneSearchPart,
@@ -78,30 +80,6 @@ export function MessageRow({
 
   const isLive = isLast && isStreaming;
   const { steps, hasAny } = buildCotTimeline(message);
-  const phase = deriveCotPhase(message, isLive);
-  const headerLabel =
-    phase === "thinking" ? "Thinking…" : phase === "working" ? "Working…" : "Thought process";
-
-  // Open while the assistant works, collapse when the turn finishes — but stop
-  // driving the panel once the user has manually toggled it this turn. The
-  // override resets when the message stops being live, so the next live turn
-  // auto-opens again; historical messages stay collapsed (never live).
-  const [cotOpen, setCotOpen] = useState(false);
-  const userTouchedRef = useRef(false);
-
-  useEffect(() => {
-    if (userTouchedRef.current) return;
-    setCotOpen(isLive);
-  }, [isLive]);
-
-  useEffect(() => {
-    if (!isLive) userTouchedRef.current = false;
-  }, [isLive]);
-
-  const handleCotOpenChange = (next: boolean) => {
-    userTouchedRef.current = true;
-    setCotOpen(next);
-  };
 
   const handleCopy = () => {
     const text = extractCopyText(message);
@@ -130,33 +108,28 @@ export function MessageRow({
     <Message from={message.role}>
       <MessageContent className="sm:text-[14.6px] text-[13px]">
         {hasAny ? (
-          <ChainOfThought open={cotOpen} onOpenChange={handleCotOpenChange}>
-            <ChainOfThoughtHeader>{headerLabel}</ChainOfThoughtHeader>
-            <ChainOfThoughtContent>
-              {steps.map((step, i) => {
-                const isLastStep = i === steps.length - 1;
-                if (step.kind === "reasoning") {
-                  return (
-                    <ChainOfThoughtStep
-                      key={step.key}
-                      icon={step.icon}
-                      label={step.text}
-                      status={isLive && isLastStep ? "active" : "complete"}
-                    />
-                  );
-                }
+          <div className="not-prose space-y-3 w-full">
+            {steps.map((step, i) => {
+              const isLastStep = i === steps.length - 1;
+              if (step.kind === "reasoning") {
                 return (
-                  <ChainOfThoughtStep
-                    key={step.key}
-                    icon={step.icon}
-                    label={step.label}
-                    status={step.status === "error" ? "complete" : step.status}
-                    className={step.status === "error" ? "text-destructive" : undefined}
-                  />
+                  <Reasoning key={step.key} isStreaming={isLive && isLastStep} className="!mb-0">
+                    <ReasoningTrigger icon={step.icon} />
+                    <ReasoningContent>{step.text}</ReasoningContent>
+                  </Reasoning>
                 );
-              })}
-            </ChainOfThoughtContent>
-          </ChainOfThought>
+              }
+              return (
+                <ChainOfThoughtStep
+                  key={step.key}
+                  icon={step.icon}
+                  label={step.label}
+                  status={step.status === "error" ? "complete" : step.status}
+                  className={step.status === "error" ? "text-destructive" : undefined}
+                />
+              );
+            })}
+          </div>
         ) : null}
         {isEditing && message.role === "user" ? (
           <div className="gap-2 flex w-full flex-col">
@@ -189,6 +162,9 @@ export function MessageRow({
           message.parts.map((part, i) => {
             const key = `${message.id}-${i}`;
             if (isTextUIPart(part)) return <MessageResponse key={key}>{part.text}</MessageResponse>;
+            if (isToolUIPart(part) && isSubmitPlanPart(part)) {
+              return <WorkflowPlanCard key={key} part={part as SubmitPlanToolPart} />;
+            }
             if (isToolUIPart(part) && isWorkflowCommitPart(part)) {
               return (
                 <WorkflowCommitCard key={key} part={part} onWorkflowSelect={onWorkflowSelect} />

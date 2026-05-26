@@ -53,6 +53,7 @@ import darkmarketplaceImage from "@/assets/icons/store-dark.svg";
 export const navLinks: NavLinkType[] = [
   { label: "Product", id: "product" },
   { label: "Features", id: "features" },
+  { label: "Pricing", id: "pricing" },
   { label: "How it works", id: "how-it-works" },
   { label: "FAQs", id: "faqs" },
 ];

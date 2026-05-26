@@ -41,6 +41,7 @@ export function mapTtsProvider(provider: string): string {
 export function compileToVapiAssistant(
   node: VoiceAgentNode,
   webhookUrl: string,
+  assistantName?: string,
 ): Vapi.CreateAssistantDto {
   const hasKnowledge = (node.knowledgeBaseIds?.length ?? 0) > 0;
 
@@ -139,7 +140,7 @@ export function compileToVapiAssistant(
   }
 
   return {
-    name: node.name,
+    name: assistantName ?? "Voice Agent",
     model: modelPayload,
     voice: voicePayload,
     transcriber: transcriberPayload,

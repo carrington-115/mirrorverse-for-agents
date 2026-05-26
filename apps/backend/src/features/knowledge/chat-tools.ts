@@ -1,4 +1,4 @@
-import { tool } from "ai";
+﻿import { tool } from "ai";
 import { z } from "zod";
 
 import type { Database } from "@mirrorverse/db";
@@ -120,7 +120,7 @@ Returns the most relevant excerpts; cite the source filename when you use them.$
   });
 
   // ── Authoring tools (full-auto KB build) ─────────────────────────────────
-  // Let Mirropilot create a knowledge base and ingest sources during the chat,
+  // Let Mirrorpilot create a knowledge base and ingest sources during the chat,
   // returning the REAL knowledgeBaseId so it can wire a RAG voice agent without
   // a placeholder.
 

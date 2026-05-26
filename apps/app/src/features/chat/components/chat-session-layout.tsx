@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,7 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
   const handleNewSession = () => {
     startTransition(async () => {
       const newSessionId = await generateSessionId();
-      router.push(`/mirropilot/${newSessionId}`);
+      router.push(`/mirrorpilot/${newSessionId}`);
     });
   };
 
@@ -26,7 +26,7 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
       contentScroll={false}
       header={
         <DashboardHeader
-          title="Mirropilot"
+          title="Mirrorpilot"
           actions={
             <div className="flex gap-(--sm)">
               <Button onClick={handleNewSession} disabled={busy} className="cursor-pointer">

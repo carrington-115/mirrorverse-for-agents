@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useGetOrCreateSessionKbMutation } from "../api/mutations";
 
 function sessionKbName(): string {
-  return `Mirropilot – ${new Date().toLocaleDateString("en-US", {
+  return `Mirrorpilot – ${new Date().toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -21,7 +21,7 @@ export interface UploadedFile {
   readonly kbId: string;
 }
 
-export function useMirropilotFileUpload(sessionId: string) {
+export function useMirrorpilotFileUpload(sessionId: string) {
   const trpc = useTRPC();
   const qc = useQueryClient();
   const getOrCreateKb = useGetOrCreateSessionKbMutation();
@@ -60,7 +60,7 @@ export function useMirropilotFileUpload(sessionId: string) {
             //    attachment — image or document — is stored, regardless of
             //    whether we can later extract searchable text from it.
             const blob = await fetch(file.url).then((r) => r.blob());
-            const storageKey = `knowledge/mirropilot/${sessionId}/${Date.now()}-${filename}`;
+            const storageKey = `knowledge/mirrorpilot/${sessionId}/${Date.now()}-${filename}`;
 
             const { uploadUrl } = await signUploadUrl.mutateAsync({ storageKey });
             const uploadRes = await fetch(uploadUrl, {
@@ -75,7 +75,7 @@ export function useMirropilotFileUpload(sessionId: string) {
             }
 
             // 2. Register it as a knowledge-base document so it ingests and
-            //    shows up in the Mirropilot section of the knowledge base page.
+            //    shows up in the Mirrorpilot section of the knowledge base page.
             //    sourceType drives the ingest worker's text extraction:
             //    pdf -> pdf-parse, image -> vision OCR, file -> docx/xlsx/text.
             if (mediaType === "application/pdf" || mediaType.includes("pdf")) {

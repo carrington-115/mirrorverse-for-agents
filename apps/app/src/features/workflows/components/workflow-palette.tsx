@@ -22,7 +22,7 @@ import { PALETTE_ENTRIES, type PaletteCategory } from "@mirrorverse/agent/schema
 
 import { Input } from "@/components/ui/input";
 import { NodeIcon } from "@/features/workflows/lib/node-icon";
-import { useMcpDirectoryListQuery } from "@/features/workflows/api/queries";
+import { useComposioAppsQuery } from "@/features/workflows/api/queries";
 import { cn } from "@/lib/utils";
 
 export interface PaletteAddOverrides {
@@ -190,13 +190,13 @@ export function WorkflowPalette({ onAdd, disabled }: WorkflowPaletteProps) {
       <PaletteSearch value={search} onChange={setSearch} />
       <div className="min-h-0 py-2 scrollbar-subtle flex-1 overflow-y-auto">
         {bucket.id === "apps" ? (
-          <McpDirectoryList
+          <ComposioAppList
             search={term}
             disabled={disabled}
-            onPick={(entry) =>
+            onPick={(slug, name) =>
               onAdd("core.tool_call", {
-                name: entry.displayName,
-                mcpDirectorySlug: entry.slug,
+                name,
+                mcpDirectorySlug: slug,
               })
             }
           />
@@ -452,21 +452,38 @@ function PaletteEntryRow({ kind, label, description, disabled, onClick }: Palett
   );
 }
 
-interface McpDirectoryListProps {
+interface ComposioAppListProps {
   readonly search: string;
   readonly disabled?: boolean;
-  readonly onPick: (entry: McpDirectoryEntry) => void;
+  readonly onPick: (slug: string, name: string) => void;
 }
 
-interface McpDirectoryEntry {
-  readonly slug: string;
-  readonly displayName: string;
-  readonly oneLiner: string | null;
-  readonly iconUrl: string | null;
+function ComposioAppIcon({ logoUrl, name }: { logoUrl: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+  const initials = name.slice(0, 2).toUpperCase();
+
+  if (!logoUrl || failed) {
+    return (
+      <span className="font-semibold text-[10px] text-muted-foreground uppercase">{initials}</span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logoUrl}
+      alt=""
+      width={18}
+      height={18}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
-function McpDirectoryList({ search, disabled, onPick }: McpDirectoryListProps) {
-  const { data, isLoading, isError } = useMcpDirectoryListQuery(search);
+function ComposioAppList({ search, disabled, onPick }: ComposioAppListProps) {
+  const { data, isLoading, isError } = useComposioAppsQuery();
   if (isLoading) {
     return <p className="px-3 py-6 text-xs text-center text-muted-foreground">Loading apps…</p>;
   }
@@ -475,17 +492,23 @@ function McpDirectoryList({ search, disabled, onPick }: McpDirectoryListProps) {
       <p className="px-3 py-6 text-xs text-center text-destructive">Couldn&apos;t load apps.</p>
     );
   }
-  const items = (data?.items ?? []) as McpDirectoryEntry[];
+  const term = search.trim().toLowerCase();
+  const items = (data ?? []).filter(
+    (i) =>
+      !term ||
+      i.name.toLowerCase().includes(term) ||
+      (i.description ?? "").toLowerCase().includes(term),
+  );
   if (items.length === 0) {
     return <p className="px-3 py-6 text-xs text-center text-muted-foreground">No matches.</p>;
   }
   return (
     <>
-      {items.map((entry) => (
+      {items.map((item) => (
         <button
-          key={entry.slug}
+          key={item.slug}
           type="button"
-          onClick={() => onPick(entry)}
+          onClick={() => onPick(item.slug, item.name)}
           disabled={disabled}
           className={cn(
             "gap-2.5 px-3 py-2 flex w-full items-center text-left transition-colors hover:bg-muted/40",
@@ -496,28 +519,12 @@ function McpDirectoryList({ search, disabled, onPick }: McpDirectoryListProps) {
             className="grid shrink-0 place-items-center rounded-md border border-border bg-background"
             style={{ width: 28, height: 28 }}
           >
-            {entry.iconUrl ? (
-              // Directory icons come from anywhere; using a plain <img> avoids
-              // having to allowlist every CDN in next.config remotePatterns.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={entry.iconUrl}
-                alt=""
-                width={18}
-                height={18}
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <span className="font-semibold text-[10px] text-muted-foreground uppercase">
-                {entry.displayName.slice(0, 2)}
-              </span>
-            )}
+            <ComposioAppIcon logoUrl={item.logoUrl} name={item.name} />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium truncate text-foreground">{entry.displayName}</div>
-            {entry.oneLiner ? (
-              <div className="text-xs truncate text-muted-foreground">{entry.oneLiner}</div>
+            <div className="text-sm font-medium truncate text-foreground">{item.name}</div>
+            {item.description ? (
+              <div className="text-xs truncate text-muted-foreground">{item.description}</div>
             ) : null}
           </div>
         </button>

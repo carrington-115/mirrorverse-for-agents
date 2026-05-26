@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -100,7 +100,7 @@ function NewChatButton() {
   const handleNewChatClick = () => {
     startTransition(async () => {
       const sessionId = await generateSessionId();
-      router.push(`/mirropilot/${sessionId}`);
+      router.push(`/mirrorpilot/${sessionId}`);
     });
   };
 

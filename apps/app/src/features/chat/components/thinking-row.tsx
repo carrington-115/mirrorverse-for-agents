@@ -1,4 +1,4 @@
-import { AssistantAvatar } from "./assistant-avatar";
+﻿import { AssistantAvatar } from "./assistant-avatar";
 
 const DOT_DELAYS = ["0ms", "150ms", "300ms"] as const;
 
@@ -7,7 +7,7 @@ export function ThinkingRow() {
     <div className="my-6 gap-3 flex w-full">
       <AssistantAvatar />
       <div className="gap-2 text-sm flex items-center text-muted-foreground">
-        <span>Mirropilot is thinking</span>
+        <span>Mirrorpilot is thinking</span>
         <span className="gap-0.5 flex">
           {DOT_DELAYS.map((delay) => (
             <span

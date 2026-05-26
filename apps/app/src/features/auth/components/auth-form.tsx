@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ function copyFor(mode: AuthMode): ModeCopy {
     heading: "Welcome back",
     subheading: "Enter your email and we'll send you a 6-digit code",
     submitLabel: "Sign in with email",
-    next: "/mirropilot",
+    next: "/mirrorpilot",
     footerText: "Don't have an account?",
     footerLinkHref: "/sign-up",
     footerLinkLabel: "Sign up",

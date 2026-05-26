@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import { AlertCircle, Brain, Wrench } from "lucide-react";
+import { AlertCircle, Brain, Lightbulb, PenLine, Sparkles, Wrench } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
 import { buildCotTimeline, deriveCotPhase } from "./cot-timeline";
@@ -13,11 +13,51 @@ function msg(parts: TestPart[]): UIMessage {
 }
 
 describe("buildCotTimeline", () => {
-  it("maps a reasoning part to a reasoning step with the brain icon", () => {
+  it("uses Sparkles for a standalone reasoning step (no following tool)", () => {
     const { steps, hasAny } = buildCotTimeline(msg([{ type: "reasoning", text: "thinking hard" }]));
     expect(hasAny).toBe(true);
     expect(steps).toHaveLength(1);
-    expect(steps[0]).toMatchObject({ kind: "reasoning", text: "thinking hard", icon: Brain });
+    expect(steps[0]).toMatchObject({ kind: "reasoning", text: "thinking hard", icon: Sparkles });
+  });
+
+  it("uses Lightbulb when reasoning precedes submit_plan", () => {
+    const { steps } = buildCotTimeline(
+      msg([
+        { type: "reasoning", text: "forming a plan" },
+        { type: "tool-submit_plan", toolCallId: "t1", state: "input-available" },
+      ]),
+    );
+    expect(steps[0]).toMatchObject({ kind: "reasoning", icon: Lightbulb });
+  });
+
+  it("uses PenLine when reasoning precedes workflow_commit", () => {
+    const { steps } = buildCotTimeline(
+      msg([
+        { type: "reasoning", text: "drafting the workflow" },
+        { type: "tool-workflow_commit", toolCallId: "t1", state: "input-available" },
+      ]),
+    );
+    expect(steps[0]).toMatchObject({ kind: "reasoning", icon: PenLine });
+  });
+
+  it("uses Brain as fallback when reasoning precedes an unknown tool", () => {
+    const { steps } = buildCotTimeline(
+      msg([
+        { type: "reasoning", text: "thinking" },
+        { type: "tool-do_magic_thing", toolCallId: "t1", state: "input-available" },
+      ]),
+    );
+    expect(steps[0]).toMatchObject({ kind: "reasoning", icon: Brain });
+  });
+
+  it("uses Sparkles for final reasoning after a completed tool (no further tool follows)", () => {
+    const { steps } = buildCotTimeline(
+      msg([
+        { type: "tool-workflow_commit", toolCallId: "t1", state: "output-available", output: {} },
+        { type: "reasoning", text: "summarising" },
+      ]),
+    );
+    expect(steps[1]).toMatchObject({ kind: "reasoning", icon: Sparkles });
   });
 
   it("drops blank reasoning parts", () => {

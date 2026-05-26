@@ -33,7 +33,7 @@ export async function GET(req: Request): Promise<Response> {
 
   if (!connectionRequest) return jsonError(404, "Connection request not found");
   if (connectionRequest.status !== "pending") {
-    return redirectToApp(connectionRequest.workspaceId, "already_resolved");
+    return closePopup("already_resolved");
   }
   const { workspaceId } = connectionRequest;
   if (new Date() > connectionRequest.expiresAt) {
@@ -43,7 +43,7 @@ export async function GET(req: Request): Promise<Response> {
         .set({ status: "expired" })
         .where(eq(schema.connectionRequests.id, requestId)),
     );
-    return redirectToApp(workspaceId, "expired");
+    return closePopup("expired");
   }
 
   const composio = getComposioInstance();
@@ -68,7 +68,7 @@ export async function GET(req: Request): Promise<Response> {
   );
 
   if (!account) {
-    return redirectToApp(workspaceId, "pending");
+    return closePopup("pending");
   }
 
   // Persist the connection and resolve the request inside the tenant
@@ -107,10 +107,22 @@ export async function GET(req: Request): Promise<Response> {
     }
   }
 
-  return redirectToApp(connectionRequest.workspaceId, "success");
+  return closePopup("success");
 }
 
-function redirectToApp(_workspaceId: string, status: string): Response {
-  const appUrl = env.CORS_ORIGIN;
-  return Response.redirect(`${appUrl}/integrations?oauth=${status}`, 302);
+function closePopup(status: string): Response {
+  // Return an HTML page that closes the OAuth popup and notifies the opener.
+  // A redirect would navigate the popup to the app and leave it open.
+  const safeStatus = status.replace(/[^a-z_]/g, "");
+  const html = `<!DOCTYPE html><html><head><title>Connecting&hellip;</title></head><body>
+<script>
+  try { window.opener && window.opener.postMessage({ type: 'oauth_callback', status: '${safeStatus}' }, '*'); } catch(e) {}
+  window.close();
+</script>
+<p>Connection ${safeStatus}. You may close this window.</p>
+</body></html>`;
+  return new Response(html, {
+    status: 200,
+    headers: { "content-type": "text/html" },
+  });
 }

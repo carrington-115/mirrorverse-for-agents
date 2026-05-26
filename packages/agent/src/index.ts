@@ -1,5 +1,5 @@
-export { runMirropilot } from "./runtime";
-export type { AgentLifecycleEvent, RunMirropilotDeps, RunMirropilotResult } from "./runtime";
+﻿export { runMirrorpilot } from "./runtime";
+export type { AgentLifecycleEvent, RunMirrorpilotDeps, RunMirrorpilotResult } from "./runtime";
 export { sanitizeToolCallHistory } from "./sanitize-history";
 export { providerForModel, resolveModel } from "./models/resolve";
 export type { ModelProvider } from "./models/resolve";

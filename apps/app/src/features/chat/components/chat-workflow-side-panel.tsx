@@ -16,16 +16,16 @@ interface ChatWorkflowSidePanelProps {
 interface WorkflowDocumentShape {
   readonly nodes: ReadonlyArray<{
     id: string;
-    name: string;
-    kind: string;
+    type: string;
     position: { x: number; y: number };
+    params: Record<string, unknown>;
     hints?: NodeIconHints;
   }>;
   readonly connections: ReadonlyArray<{
-    id: string;
-    kind: string;
-    fromNodeId: string;
-    toNodeId: string;
+    from: string;
+    fromPort: string;
+    to: string;
+    toPort: string;
   }>;
 }
 

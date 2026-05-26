@@ -57,6 +57,13 @@
       "when": 1779840000000,
       "tag": "0007_knowledge_hnsw",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779791673945,
+      "tag": "0008_bright_hydra",
+      "breakpoints": true
     }
   ]
 }

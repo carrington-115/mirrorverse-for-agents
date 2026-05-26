@@ -10,6 +10,7 @@ import {
   getComposioAuthRedirectUrl,
   getComposioInstance,
   getToolkitMetadata,
+  listComposioIntegrations,
   lookupComposioMcpServerId,
 } from "../../mcp/composio/client";
 import { createConnectionRequest } from "../../mcp/composio/auth";
@@ -30,6 +31,10 @@ interface BaseCtx {
 export const connectionsService = {
   async toolkitInfo(_ctx: BaseCtx, input: ToolkitInfoInput) {
     return getToolkitMetadata(input.slugs);
+  },
+
+  async listAvailableIntegrations(_ctx: BaseCtx) {
+    return listComposioIntegrations();
   },
 
   async initiateAppConnection(

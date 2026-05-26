@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -323,7 +323,7 @@ function HeaderCommand() {
     setOpen(false);
     startTransition(async () => {
       const sessionId = await generateSessionId();
-      router.push(`/mirropilot/${sessionId}`);
+      router.push(`/mirrorpilot/${sessionId}`);
     });
   };
 
@@ -370,9 +370,9 @@ function HeaderCommand() {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Navigation">
-              <CommandItem onSelect={() => runCommand(() => router.push("/mirropilot"))}>
+              <CommandItem onSelect={() => runCommand(() => router.push("/mirrorpilot"))}>
                 <Sparkles />
-                <span>Mirropilot</span>
+                <span>Mirrorpilot</span>
               </CommandItem>
               <CommandItem onSelect={() => runCommand(() => router.push("/workflows"))}>
                 <WorkflowIcon />

@@ -154,11 +154,15 @@ function readString(obj: RawNode, key: string): string | null {
 }
 
 export function extractIconHints(node: RawNode): NodeIconHints | undefined {
-  const kind = typeof node.kind === "string" ? node.kind : "";
+  // Support both new schema (fields in params) and direct fields for backwards compat.
+  const nodeType = readString(node, "type") ?? readString(node, "kind") ?? "";
+  const params =
+    typeof node.params === "object" && node.params !== null ? (node.params as RawNode) : node;
+
   const out: { mcpServerId?: string; channelKind?: string; modelId?: string } = {};
 
-  if (kind === "trigger.chat_message") {
-    const channels = node.channels;
+  if (nodeType === "trigger.chat_message") {
+    const channels = params.channels ?? node.channels;
     if (Array.isArray(channels) && channels.length > 0) {
       const first = channels[0] as RawNode | null;
       if (first && typeof first === "object") {
@@ -168,13 +172,24 @@ export function extractIconHints(node: RawNode): NodeIconHints | undefined {
     }
   }
 
-  const mcpServerId = readString(node, "mcpServerId");
+  const mcpServerId = readString(params, "mcpServerId") ?? readString(node, "mcpServerId");
   if (mcpServerId) out.mcpServerId = mcpServerId;
 
-  // ai.language_model carries a model id; ai.agent has it on the connected
-  // language model, but if a model hint exists at the agent level we'll use it.
-  const modelId = readString(node, "model") ?? readString(node, "modelId");
+  const modelId =
+    readString(params, "model") ??
+    readString(node, "model") ??
+    readString(params, "modelId") ??
+    readString(node, "modelId");
   if (modelId) out.modelId = modelId;
+
+  // Voice agents carry model info inside modelConnection.model
+  if (!out.modelId) {
+    const mc = (params.modelConnection ?? node.modelConnection) as RawNode | undefined;
+    if (mc && typeof mc === "object") {
+      const m = readString(mc, "model");
+      if (m) out.modelId = m;
+    }
+  }
 
   return Object.keys(out).length > 0 ? out : undefined;
 }

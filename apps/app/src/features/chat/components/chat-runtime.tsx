@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
@@ -15,8 +15,8 @@ import {
   useEditAndTruncateMutation,
 } from "@/features/chat/api/mutations";
 
-import { useMirropilotFileUpload } from "@/features/knowledge/hooks/use-mirropilot-file-upload";
-import { ManageIntegrationsDialog } from "@/features/integrations/components/integration";
+import { useMirrorpilotFileUpload } from "@/features/knowledge/hooks/use-mirrorpilot-file-upload";
+import { ComposioIntegrationsDialog } from "@/features/integrations/components/integration";
 import { AddWebhookSheet } from "@/features/webhooks/components/add-webhook-sheet";
 
 import { AppConnectPanel } from "./app-connect-panel";
@@ -42,7 +42,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
   const [webhookOpen, setWebhookOpen] = useState(false);
 
   const transport = useMemo(() => buildChatTransport(sessionId), [sessionId]);
-  const { upload: uploadFiles, isUploading } = useMirropilotFileUpload(sessionId);
+  const { upload: uploadFiles, isUploading } = useMirrorpilotFileUpload(sessionId);
 
   // Documents the user picked in a knowledge-base card to scope RAG to. Held in
   // a ref so every subsequent request carries it without re-creating handlers.
@@ -224,6 +224,9 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
   const isStreaming = status === "streaming";
   const isSubmitted = status === "submitted";
 
+  const lastMessage = messages[messages.length - 1];
+  const lastMessageHasContent = lastMessage?.role === "assistant" && lastMessage.parts.length > 0;
+
   const inputBlock = (
     <ChatPromptInput
       onSubmit={handleSubmit}
@@ -253,23 +256,38 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
       ? (interrupt as { kind: string; id: string; appSlugs: string[] })
       : null;
 
-  // Auto-resume: when the needs_credentials panel dismisses via polling (not manual cancel),
+  // Auto-resume: when either interrupt panel dismisses via polling (not manual cancel),
   // re-send the last user message so the agent continues automatically.
   const autoResumeRef = useRef(false);
   useEffect(() => {
-    if (credentialsInterrupt) {
+    if (credentialsInterrupt || credentialInterrupt) {
       autoResumeRef.current = true;
     }
-  }, [credentialsInterrupt]);
+  }, [credentialsInterrupt, credentialInterrupt]);
   useEffect(() => {
-    if (autoResumeRef.current && !credentialsInterrupt && !credentialsDismissed && streamFinished) {
+    if (
+      autoResumeRef.current &&
+      !credentialsInterrupt &&
+      !credentialInterrupt &&
+      !credentialsDismissed &&
+      !interruptDismissed &&
+      streamFinished
+    ) {
       autoResumeRef.current = false;
       setStreamFinished(false);
       regenerate({
         body: { model, skipUserInsert: true, ragDocumentIds: ragDocumentIdsRef.current },
       });
     }
-  }, [credentialsInterrupt, credentialsDismissed, streamFinished, regenerate, model]);
+  }, [
+    credentialsInterrupt,
+    credentialInterrupt,
+    credentialsDismissed,
+    interruptDismissed,
+    streamFinished,
+    regenerate,
+    model,
+  ]);
 
   // Reset dismissed flags when a new interrupt arrives (different id).
   const prevInterruptId = useRef<string | null>(null);
@@ -300,7 +318,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
             onDismiss={() => setCredentialsDismissed(true)}
           />
         )}
-        <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
+        <ComposioIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
         <AddWebhookSheet open={webhookOpen} onOpenChange={setWebhookOpen} />
       </>
     );
@@ -311,7 +329,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
       <ChatConversation
         messages={messages}
         isStreaming={isStreaming}
-        showThinking={isSubmitted}
+        showThinking={isSubmitted || (isStreaming && !lastMessageHasContent)}
         onEditUserMessage={handleEditUserMessage}
         onRetryAssistant={handleRetryAssistant}
         onWorkflowSelect={onWorkflowSelect}
@@ -338,7 +356,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
           onDismiss={() => setInterruptDismissed(true)}
         />
       )}
-      <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
+      <ComposioIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
       <AddWebhookSheet open={webhookOpen} onOpenChange={setWebhookOpen} />
     </div>
   );

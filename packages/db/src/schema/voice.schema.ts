@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+﻿import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -22,7 +22,7 @@ import { workflows, workflowVersions } from "./workflows.schema";
 
 /**
  * Stores encrypted Twilio credentials for BYO (bring-your-own) phone numbers
- * connected via the Mirrropilot chat flow. Separate from the Composio
+ * connected via the Mirrorpilot chat flow. Separate from the Composio
  * connections table, which requires an MCP server reference.
  */
 export const voiceTwilioCreds = pgTable(

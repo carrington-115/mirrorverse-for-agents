@@ -18,6 +18,7 @@ export interface WorkflowCommitSuccess {
   readonly versionNumber: number;
   readonly title: string;
   readonly kind: WorkflowKind;
+  readonly document?: unknown;
 }
 
 export interface WorkflowCommitFailure {

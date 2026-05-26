@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -73,7 +73,7 @@ export function SetupForm() {
         role: data.role || undefined,
         otherRole: data.role === "other" ? data.otherRole?.trim() || undefined : undefined,
       });
-      router.push("/mirropilot");
+      router.push("/mirrorpilot");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     }

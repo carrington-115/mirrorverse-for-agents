@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { cn } from "@/lib/utils";
 
-interface MirropilotLoaderProps {
+interface MirrorpilotLoaderProps {
   size?: number;
   className?: string;
 }
 
-export function MirropilotLoader({ size = 24, className }: MirropilotLoaderProps) {
+export function MirrorpilotLoader({ size = 24, className }: MirrorpilotLoaderProps) {
   return (
     <svg
       width={size}
@@ -15,16 +15,16 @@ export function MirropilotLoader({ size = 24, className }: MirropilotLoaderProps
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("mirropilot-loader", className)}
+      className={cn("mirrorpilot-loader", className)}
     >
       <style>{`
-        .mirropilot-loader .tri-back-l {
+        .mirrorpilot-loader .tri-back-l {
           animation: mp-pulse-bl 1.6s ease-in-out infinite;
         }
-        .mirropilot-loader .tri-back-r {
+        .mirrorpilot-loader .tri-back-r {
           animation: mp-pulse-br 1.6s ease-in-out infinite 0.2s;
         }
-        .mirropilot-loader .tri-front {
+        .mirrorpilot-loader .tri-front {
           animation: mp-pulse-f 1.6s ease-in-out infinite 0.1s;
         }
         @keyframes mp-pulse-bl {
@@ -40,11 +40,11 @@ export function MirropilotLoader({ size = 24, className }: MirropilotLoaderProps
           50%       { opacity: 0.75; }
         }
         @media (prefers-color-scheme: dark) {
-          .mirropilot-loader .tri-back-l,
-          .mirropilot-loader .tri-back-r {
+          .mirrorpilot-loader .tri-back-l,
+          .mirrorpilot-loader .tri-back-r {
             fill: #c0c0c0;
           }
-          .mirropilot-loader .tri-front {
+          .mirrorpilot-loader .tri-front {
             fill: #ffffff;
           }
         }

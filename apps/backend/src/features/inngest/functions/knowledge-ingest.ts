@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+﻿import { createHash } from "node:crypto";
 
 import type { InngestFunction } from "inngest";
 import { schema, type Database } from "@mirrorverse/db";
@@ -128,7 +128,7 @@ function looksLikeText(mediaType: string, fileName: string): boolean {
 /**
  * Extract embeddable text from a non-PDF "file" by media type / extension.
  * Unsupported binaries return "" so the document is still stored in the bucket
- * and listed in the Mirropilot section — it simply has no searchable chunks.
+ * and listed in the Mirrorpilot section — it simply has no searchable chunks.
  */
 async function extractFileText(
   url: string,

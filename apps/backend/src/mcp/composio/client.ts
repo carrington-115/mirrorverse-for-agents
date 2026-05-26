@@ -60,20 +60,6 @@ export async function listComposioTools(
 export async function lookupComposioMcpServerId(
   db: Database,
 ): Promise<string | null> {
-  // Seed the global row on-demand in case the seeding migration hasn't run.
-  await db
-    .insert(schema.mcpServers)
-    .values({
-      slug: "composio",
-      name: "Composio",
-      description:
-        "Composio-managed integrations — OAuth and tool execution via composio.dev",
-      kind: "composio",
-      transport: "http",
-      enabled: true,
-    })
-    .onConflictDoNothing();
-
   const [row] = await db
     .select({ id: schema.mcpServers.id })
     .from(schema.mcpServers)
@@ -85,6 +71,21 @@ export async function lookupComposioMcpServerId(
     )
     .limit(1);
   return row?.id ?? null;
+}
+
+export async function listConnectedApps(
+  workspaceId: string,
+): Promise<{ slug: string; name: string }[]> {
+  if (!isComposioConfigured()) return [];
+  const composio = getComposioInstance();
+  const connected = await composio.connectedAccounts.list({
+    userIds: [workspaceId],
+    statuses: ["ACTIVE"],
+  });
+  return connected.items.map((a) => ({
+    slug: a.toolkit.slug,
+    name: (a.toolkit as { name?: string }).name ?? a.toolkit.slug,
+  }));
 }
 
 export interface ToolkitInfo {
@@ -117,6 +118,82 @@ export async function getToolkitMetadata(
   return results
     .filter(
       (r): r is PromiseFulfilledResult<ToolkitInfo> => r.status === "fulfilled",
+    )
+    .map((r) => r.value);
+}
+
+export interface ComposioIntegrationTool {
+  readonly slug: string;
+  readonly description: string;
+}
+
+export interface ComposioIntegration {
+  readonly slug: string;
+  readonly name: string;
+  readonly logoUrl: string | null;
+  readonly description: string | null;
+  readonly tools: readonly ComposioIntegrationTool[];
+}
+
+export async function listComposioIntegrations(): Promise<
+  ComposioIntegration[]
+> {
+  if (!isComposioConfigured()) return [];
+  const composio = getComposioInstance();
+
+  const allItems: Array<{ toolkit?: { slug?: string } }> = [];
+  let cursor: string | undefined;
+  do {
+    const page = await composio.authConfigs.list({ limit: 100, cursor });
+    const pageItems =
+      (
+        page as {
+          items?: Array<{ toolkit?: { slug?: string } }>;
+          nextCursor?: string | null;
+        }
+      ).items ?? [];
+    allItems.push(...pageItems);
+    const nextCursor = (page as { nextCursor?: string | null }).nextCursor;
+    cursor = nextCursor ?? undefined;
+  } while (cursor);
+
+  const seenSlugs = new Set<string>();
+  for (const item of allItems) {
+    const slug = item.toolkit?.slug;
+    if (slug) seenSlugs.add(slug);
+  }
+  const toolkitSlugs = [...seenSlugs];
+  if (toolkitSlugs.length === 0) return [];
+
+  const results = await Promise.allSettled(
+    toolkitSlugs.map(async (slug): Promise<ComposioIntegration> => {
+      const [tk, rawTools] = await Promise.all([
+        composio.toolkits.get(slug),
+        composio.tools.getRawComposioTools({ toolkits: [slug] }),
+      ]);
+      const meta = tk.meta as
+        | { logo?: string; description?: string }
+        | undefined;
+      const tools: ComposioIntegrationTool[] = (
+        rawTools as Array<{ slug?: string; description?: string }>
+      )
+        .map((t) => ({ slug: t.slug ?? "", description: t.description ?? "" }))
+        .filter((t) => t.slug.length > 0);
+
+      return {
+        slug,
+        name: tk.name ?? slug,
+        logoUrl: meta?.logo ?? null,
+        description: meta?.description ?? null,
+        tools,
+      };
+    }),
+  );
+
+  return results
+    .filter(
+      (r): r is PromiseFulfilledResult<ComposioIntegration> =>
+        r.status === "fulfilled",
     )
     .map((r) => r.value);
 }

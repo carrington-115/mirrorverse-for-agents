@@ -177,6 +177,29 @@ export const chatsService = {
       return { ...interrupt, appSlugs: stillMissing };
     }
 
+    // For the single-app tool-call interrupt, check whether the OAuth was completed.
+    // Without this check the interrupt event stays in chat_events forever and the
+    // dialog reappears on every subsequent message.
+    if (interrupt.kind === "needs_credential") {
+      const reqId = interrupt.connectionRequestId as string | undefined;
+      const appSlug = interrupt.appSlug as string | undefined;
+      // Primary check: connection request was resolved via OAuth callback.
+      if (reqId) {
+        const resolved = await repo.isConnectionRequestResolved(ctx.db, reqId);
+        if (resolved) return null;
+      }
+      // Fallback: the app is now connected in the DB (handles Composio timing edge
+      // case where the callback returned "pending" but the account later synced).
+      if (appSlug) {
+        const stillMissing = await repo.filterUnconnectedSlugs(
+          ctx.db,
+          chat.workspaceId,
+          [appSlug],
+        );
+        if (stillMissing.length === 0) return null;
+      }
+    }
+
     return interrupt;
   },
 

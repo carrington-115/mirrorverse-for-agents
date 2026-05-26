@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition, type KeyboardEvent } from "react";
 import { DndContext, type DragEndEvent, closestCenter } from "@dnd-kit/core";
@@ -386,7 +386,7 @@ export function WorkflowsTable({
   const handleNewSession = () => {
     startTransition(async () => {
       const newSessionId = await generateSessionId();
-      router.push(`/mirropilot/${newSessionId}`);
+      router.push(`/mirrorpilot/${newSessionId}`);
     });
   };
 

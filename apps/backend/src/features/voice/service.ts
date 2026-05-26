@@ -169,15 +169,21 @@ export const voiceService = {
       throw appError(ErrCode.NotFound, "Workflow version not found");
     }
 
-    const voiceNode = version.document.nodes.find(
-      (n): n is VoiceAgentNode => n.kind === "ai.voice_agent",
+    const voiceNodeRaw = version.document.nodes.find(
+      (n) => n.type === "ai.voice_agent",
     );
-    if (!voiceNode) {
+    if (!voiceNodeRaw) {
       throw appError(ErrCode.BadInput, "Workflow has no voice agent node");
     }
+    // All voice-agent config lives in params; cast to the typed interface.
+    const voiceNode = voiceNodeRaw.params as unknown as VoiceAgentNode;
 
     const webhookUrl = `${env.BACKEND_URL}/api/voice/webhook`;
-    const payload = compileToVapiAssistant(voiceNode, webhookUrl);
+    const payload = compileToVapiAssistant(
+      voiceNode,
+      webhookUrl,
+      workflow.name,
+    );
     const assistant = await createAssistant(payload);
 
     await bindAssistantToNumber(phoneNum.vapiPhoneNumberId, assistant.id);

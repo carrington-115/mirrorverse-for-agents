@@ -1,4 +1,4 @@
-import type { Database } from "@mirrorverse/db";
+﻿import type { Database } from "@mirrorverse/db";
 
 import { appError, ErrCode } from "../../lib/errors";
 import {
@@ -61,7 +61,7 @@ export const knowledgeService = {
       ctx.userId,
       input.name,
       undefined,
-      "mirropilot",
+      "mirrorpilot",
       input.chatSessionId,
     );
     if (!kb)

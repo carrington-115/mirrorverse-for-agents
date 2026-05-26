@@ -1,4 +1,4 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 Project-level guidance for Claude Code working in this repo.
 
@@ -297,7 +297,7 @@ apps/app/src/
   For dynamic params, destructure and pass through:
 
   ```tsx
-  // src/app/(app)/mirropilot/[sessionId]/page.tsx
+  // src/app/(app)/mirrorpilot/[sessionId]/page.tsx
   import { ChatPage } from "@/features/chat/pages/chat-page";
   export { metadata } from "@/features/chat/pages/chat-page";
 
