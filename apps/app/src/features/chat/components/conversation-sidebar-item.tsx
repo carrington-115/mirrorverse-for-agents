@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -35,7 +35,7 @@ interface ConversationSidebarItemProps {
 export function ConversationSidebarItem({ chatId, title, isPinned }: ConversationSidebarItemProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const href = `/mirropilot/${chatId}`;
+  const href = `/mirrorpilot/${chatId}`;
   const isActive = pathname === href;
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -48,7 +48,7 @@ export function ConversationSidebarItem({ chatId, title, isPinned }: Conversatio
       {
         onSuccess: () => {
           setConfirmOpen(false);
-          if (isActive) router.push("/mirropilot");
+          if (isActive) router.push("/mirrorpilot");
         },
       },
     );

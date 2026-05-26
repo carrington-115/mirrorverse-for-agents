@@ -1,9 +1,9 @@
-/// <reference types="cypress" />
+﻿/// <reference types="cypress" />
 
 describe("Authentication", () => {
   describe("middleware route gating", () => {
-    it("redirects to /sign-in when an unauthenticated user visits /mirropilot", () => {
-      cy.visit("/mirropilot", { failOnStatusCode: false });
+    it("redirects to /sign-in when an unauthenticated user visits /mirrorpilot", () => {
+      cy.visit("/mirrorpilot", { failOnStatusCode: false });
       cy.location("pathname", { timeout: 10_000 }).should("eq", "/sign-in");
       cy.location("search").should("include", "redirect_url");
     });
@@ -38,7 +38,7 @@ describe("Authentication", () => {
       // No API call needed — typing 000000 doesn't reach Supabase if there's no
       // real user. We just check the page doesn't navigate.
       cy.uniqueTestEmail().then((email) => {
-        const params = new URLSearchParams({ email, next: "/mirropilot" });
+        const params = new URLSearchParams({ email, next: "/mirrorpilot" });
         cy.visit(`/onboarding/verify-account?${params.toString()}`);
         cy.get('[data-input-otp="true"]').type("000000");
         cy.contains("button", "Continue").click();
@@ -46,7 +46,7 @@ describe("Authentication", () => {
       });
     });
 
-    it("accepts the correct code and lands on /mirropilot with cookies set", () => {
+    it("accepts the correct code and lands on /mirrorpilot with cookies set", () => {
       cy.uniqueTestEmail().then((email) => {
         cy.signInViaAdminOtp(email);
         cy.getAllCookies().then((cookies) => {
@@ -64,7 +64,7 @@ describe("Authentication", () => {
   });
 
   describe("sign-up form", () => {
-    it("submits and routes the post-OTP redirect to /mirropilot", () => {
+    it("submits and routes the post-OTP redirect to /mirrorpilot", () => {
       // Form behavior is identical to sign-in (consolidated component);
       // we only verify that the sign-up form sends the user to verify-account
       // with the correct next param. OTP request mocked.

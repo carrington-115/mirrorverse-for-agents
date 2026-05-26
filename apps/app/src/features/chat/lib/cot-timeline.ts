@@ -4,11 +4,16 @@ import {
   AlertCircle,
   BookOpen,
   Brain,
+  Lightbulb,
   ListOrdered,
+  ListTodo,
   Mic,
+  PenLine,
   PhoneOutgoing,
   PlugZap,
   Search,
+  Server,
+  Sparkles,
   Workflow,
   Wrench,
 } from "lucide-react";
@@ -61,6 +66,29 @@ const TOOL_META: Record<string, { label: string; icon: LucideIcon }> = {
   [VOICE_ACTIVATE_TOOL_TYPE]: { label: "Activating voice agent", icon: Mic },
   [WORKFLOW_COMMIT_TOOL_TYPE]: { label: "Building workflow", icon: Workflow },
   [KB_VIEW_TOOL_TYPE]: { label: "Reviewing knowledge base", icon: BookOpen },
+  "tool-submit_plan": { label: "Planning workflow", icon: ListTodo },
+  "tool-list_connected_apps": { label: "Checking connected apps", icon: PlugZap },
+  "tool-list_mcp_servers": { label: "Checking MCP servers", icon: Server },
+};
+
+/**
+ * Icon to show on a reasoning step based on the next tool the model will call.
+ * Reasoning steps aren't tool calls themselves — they precede one — so we look
+ * ahead at the upcoming tool and pick an icon that signals what the model is
+ * thinking *about*. Falls back to `Brain` for unknown tools, `Sparkles` when
+ * there is no following tool (model is composing its final answer).
+ */
+const REASONING_BEFORE_TOOL_ICON: Record<string, LucideIcon> = {
+  "tool-submit_plan": Lightbulb,
+  [WORKFLOW_COMMIT_TOOL_TYPE]: PenLine,
+  [PHONE_SEARCH_TOOL_TYPE]: Search,
+  [PHONE_PROVISION_TOOL_TYPE]: PhoneOutgoing,
+  [PHONE_BYO_TOOL_TYPE]: PlugZap,
+  [UNASSIGNED_NUMBERS_TOOL_TYPE]: ListOrdered,
+  [VOICE_ACTIVATE_TOOL_TYPE]: Mic,
+  [KB_VIEW_TOOL_TYPE]: BookOpen,
+  "tool-list_connected_apps": PlugZap,
+  "tool-list_mcp_servers": Server,
 };
 
 /** Fallback label for a tool we don't have explicit copy for (e.g. future tools). */
@@ -82,18 +110,26 @@ function toActingStatus(state: string): ActingStatus {
  * Walks a message's parts and produces the ordered timeline of reasoning and
  * acting steps. Text parts (the visible answer) and `step-start` boundaries are
  * skipped — neither type-guard matches them — so they never become steps.
+ *
+ * Reasoning steps use a look-ahead: scan forward in `parts` to find the next
+ * tool call and pick an icon that signals what the model is thinking about.
+ * If no tool follows (the model is composing its answer) `Sparkles` is used.
  */
 export function buildCotTimeline(message: UIMessage): { steps: CotStep[]; hasAny: boolean } {
   const steps: CotStep[] = [];
+  const parts = message.parts;
 
-  message.parts.forEach((part, index) => {
+  for (let index = 0; index < parts.length; index++) {
+    const part = parts[index];
     const key = `${message.id}-cot-${index}`;
 
     if (isReasoningUIPart(part)) {
       const text = part.text.trim();
-      if (!text) return;
-      steps.push({ kind: "reasoning", key, text, icon: Brain });
-      return;
+      if (!text) continue;
+      const nextTool = parts.slice(index + 1).find(isToolUIPart);
+      const icon = nextTool ? (REASONING_BEFORE_TOOL_ICON[nextTool.type] ?? Brain) : Sparkles;
+      steps.push({ kind: "reasoning", key, text, icon });
+      continue;
     }
 
     if (isToolUIPart(part)) {
@@ -107,7 +143,7 @@ export function buildCotTimeline(message: UIMessage): { steps: CotStep[]; hasAny
         status,
       });
     }
-  });
+  }
 
   return { steps, hasAny: steps.length > 0 };
 }

@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { siteConfig } from "@/lib/seo/site";
-import mirroLogoLight from "@/assets/mirropilot-icon.svg";
-import mirroLogoDark from "@/assets/mirropilot-icon-dark.svg";
+import mirroLogoLight from "@/assets/mirrorpilot-icon.svg";
+import mirroLogoDark from "@/assets/mirrorpilot-icon-dark.svg";
 
 function LogoMark() {
   return (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -23,7 +23,7 @@ export function VerifyOtpForm() {
   const emailParam = searchParams.get("email");
   const nextParam = searchParams.get("next");
   const email = emailParam === null ? "" : emailParam;
-  const next = nextParam === null ? "/mirropilot" : nextParam;
+  const next = nextParam === null ? "/mirrorpilot" : nextParam;
 
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);

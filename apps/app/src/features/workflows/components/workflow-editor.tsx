@@ -17,7 +17,6 @@ import { useWorkflowQuery, useWorkflowVersionQuery } from "@/features/workflows/
 import { useSaveWorkflowVersionMutation } from "@/features/workflows/api/mutations";
 
 import { extractIconHints } from "@/features/workflows/lib/node-icon";
-import { connectionKindFromHandleId } from "@/features/workflows/lib/node-handles";
 
 import { WorkflowHeader } from "./workflow-header";
 import { DocumentCanvas, type CanvasNewConnection } from "./document-canvas";
@@ -46,7 +45,6 @@ function buildValidationErrors(doc: WorkflowDocumentInput): Map<string, string[]
   const map = new Map<string, string[]>();
   if (result.success) return map;
   for (const issue of result.error.issues) {
-    // issues with path like ["nodes", 2, "expression"] → node at index 2
     if (issue.path[0] === "nodes" && typeof issue.path[1] === "number") {
       const nodeId = doc.nodes[issue.path[1]]?.id;
       if (nodeId) {
@@ -57,6 +55,17 @@ function buildValidationErrors(doc: WorkflowDocumentInput): Map<string, string[]
     }
   }
   return map;
+}
+
+// Parse composite edge id back to connection fields
+function parseEdgeId(
+  id: string,
+): { from: string; fromPort: string; to: string; toPort: string } | null {
+  const parts = id.split("|");
+  if (parts.length !== 4) return null;
+  const [from, fromPort, to, toPort] = parts;
+  if (!from || !fromPort || !to || !toPort) return null;
+  return { from, fromPort, to, toPort };
 }
 
 const MAX_HISTORY = 50;
@@ -135,8 +144,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
 
   const hasValidationErrors = validationErrors.size > 0;
 
-  const workflowName =
-    latestData?.workflow?.name ?? displayDoc?.metadata.title ?? "Untitled workflow";
+  const workflowName = displayDoc?.name ?? latestData?.workflow?.name ?? "Untitled workflow";
   const workflowKind = latestData?.workflow?.kind ?? null;
   const workflowStatus = latestData?.workflow?.status ?? null;
   const updatedAt = latestData?.workflow?.updatedAt ?? null;
@@ -151,18 +159,15 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
       (displayDoc?.nodes ?? []).map((n) => ({
         ...n,
         hints: extractIconHints(n as unknown as Record<string, unknown>),
-        width: (n as Record<string, unknown>).width as number | undefined,
-        height: (n as Record<string, unknown>).height as number | undefined,
-        content: (n as Record<string, unknown>).content as string | undefined,
-        color: (n as Record<string, unknown>).color as number | undefined,
+        width: typeof n.params?.width === "number" ? n.params.width : undefined,
+        height: typeof n.params?.height === "number" ? n.params.height : undefined,
+        content: typeof n.params?.content === "string" ? n.params.content : undefined,
+        color: typeof n.params?.color === "number" ? n.params.color : undefined,
       })),
     [displayDoc],
   );
-  const connections = (displayDoc?.connections ?? []).map((c) => ({
-    ...c,
-    fromHandleId: (c as Record<string, unknown>).fromHandleId as string | undefined,
-    toHandleId: (c as Record<string, unknown>).toHandleId as string | undefined,
-  }));
+
+  const connections = displayDoc?.connections ?? [];
 
   const selectedNode = useMemo(
     () => workingDoc?.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -239,20 +244,17 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
     (kind: string, overrides?: { name?: string; mcpDirectorySlug?: string }) => {
       if (!editable || !workingDoc) return;
       const id = makeClientId("node");
-      const fallbackName = kind.replace(/^.*\./, "").replace(/_/g, " ");
-      const node = defaultNodeForKind({
-        kind,
-        id,
-        name: overrides?.name ?? fallbackName,
-        position: nextNodePosition(workingDoc.nodes),
-      });
+      const node = defaultNodeForKind({ kind, id, position: nextNodePosition(workingDoc.nodes) });
       if (!node) {
         toast.error(`Adding "${kind}" isn&apos;t supported yet.`);
         return;
       }
+      const finalNode: WorkflowNodeInput = overrides?.mcpDirectorySlug
+        ? { ...node, params: { ...node.params, mcpServerId: overrides.mcpDirectorySlug } }
+        : node;
       setWorkingDoc((current) => {
         if (!current) return current;
-        return { ...current, nodes: [...current.nodes, node] };
+        return { ...current, nodes: [...current.nodes, finalNode] };
       });
     },
     [editable, workingDoc, setWorkingDoc],
@@ -279,7 +281,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         return {
           ...current,
           nodes: current.nodes.filter((n) => n.id !== id),
-          connections: current.connections.filter((c) => c.fromNodeId !== id && c.toNodeId !== id),
+          connections: current.connections.filter((c) => c.from !== id && c.to !== id),
         };
       });
     },
@@ -287,12 +289,22 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
   );
 
   const handleConnectionRemoved = useCallback(
-    (id: string) => {
+    (edgeId: string) => {
+      const parsed = parseEdgeId(edgeId);
+      if (!parsed) return;
       setWorkingDoc((current) => {
         if (!current) return current;
         return {
           ...current,
-          connections: current.connections.filter((c) => c.id !== id),
+          connections: current.connections.filter(
+            (c) =>
+              !(
+                c.from === parsed.from &&
+                c.fromPort === parsed.fromPort &&
+                c.to === parsed.to &&
+                c.toPort === parsed.toPort
+              ),
+          ),
         };
       });
     },
@@ -303,27 +315,21 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
     ({ fromNodeId, fromHandleId, toNodeId, toHandleId }: CanvasNewConnection) => {
       setWorkingDoc((current) => {
         if (!current) return current;
+        const fromPort = fromHandleId ?? "main-out";
+        const toPort = toHandleId ?? "main-in";
         const exists = current.connections.some(
-          (c) =>
-            c.fromNodeId === fromNodeId &&
-            c.toNodeId === toNodeId &&
-            (c as Record<string, unknown>).fromHandleId === fromHandleId,
+          (c) => c.from === fromNodeId && c.fromPort === fromPort && c.to === toNodeId,
         );
         if (exists) return current;
         const next: WorkflowConnectionInput = {
-          id: makeClientId("edge"),
-          kind: connectionKindFromHandleId(fromHandleId) as WorkflowConnectionInput["kind"],
-          fromNodeId,
-          fromOutputIndex: 0,
-          toNodeId,
-          toInputIndex: 0,
-          condition: null,
+          from: fromNodeId,
+          fromPort,
+          to: toNodeId,
+          toPort,
         };
-        // Store handle ids as extended fields for canvas rendering
-        const extended = { ...next, fromHandleId, toHandleId };
         return {
           ...current,
-          connections: [...current.connections, extended as WorkflowConnectionInput],
+          connections: [...current.connections, next],
         };
       });
     },

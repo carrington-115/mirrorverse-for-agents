@@ -1,8 +1,8 @@
-export { runMirropilot } from "./stream";
+﻿export { runMirrorpilot } from "./stream";
 export type {
   AgentLifecycleEvent,
   FinishEvent,
-  RunMirropilotDeps,
-  RunMirropilotResult,
+  RunMirrorpilotDeps,
+  RunMirrorpilotResult,
   UsageEvent,
 } from "./types";

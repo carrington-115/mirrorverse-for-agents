@@ -8,6 +8,7 @@ import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import {
   createContext,
@@ -141,6 +142,7 @@ export const Reasoning = memo(
 );
 
 export type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
+  icon?: LucideIcon;
   getThinkingMessage?: (isStreaming: boolean, duration?: number) => ReactNode;
 };
 
@@ -158,6 +160,7 @@ export const ReasoningTrigger = memo(
   ({
     className,
     children,
+    icon: Icon = BrainIcon,
     getThinkingMessage = defaultGetThinkingMessage,
     ...props
   }: ReasoningTriggerProps) => {
@@ -173,7 +176,7 @@ export const ReasoningTrigger = memo(
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4" />
+            <Icon className="size-4" />
             {getThinkingMessage(isStreaming, duration)}
             <ChevronDownIcon
               className={cn("size-4 transition-transform", isOpen ? "rotate-180" : "rotate-0")}

@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useMemo, useState } from "react";
 import { Search, Shapes, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useTRPC } from "@/lib/trpc/client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import {
   Empty,
   EmptyContent,
@@ -17,305 +14,229 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useDirectoryListQuery } from "@/features/mcp-directory/api/queries";
 import { useConnectionsQuery } from "@/features/integrations/api/queries";
-import { useDebouncedValue } from "@/features/mcp-directory/lib/use-debounced-value";
-import { DirectoryGrid } from "@/features/mcp-directory/components/directory-grid";
-import { DirectoryIcon } from "@/features/mcp-directory/components/directory-icon";
-import type { DirectoryEntry } from "@/features/mcp-directory/api/types";
+import { useComposioIntegrationsQuery } from "@/features/integrations/api/queries";
+import {
+  ComposioIntegrationCard,
+  ComposioIntegrationCardSkeleton,
+  type ComposioIntegrationItem,
+} from "./composio-integration-card";
+import { ComposioIntegrationSheet } from "./composio-integration-sheet";
 
-interface CategorySidebarProps {
-  categories: readonly string[];
-  selected: string;
-  onSelect: (cat: string) => void;
-}
+type SidebarCategory = "All";
 
-export function CategorySidebar({ categories, selected, onSelect }: CategorySidebarProps) {
-  return (
-    <nav className="gap-0.5 flex flex-col">
-      {categories.map((cat) => (
-        <button
-          key={cat}
-          type="button"
-          onClick={() => onSelect(cat)}
-          className={cn(
-            "px-3 py-1.5 text-sm w-full cursor-pointer rounded-lg text-left transition-colors",
-            selected === cat
-              ? "font-medium bg-muted text-foreground"
-              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-          )}
-        >
-          {cat}
-        </button>
-      ))}
-    </nav>
-  );
-}
+const SIDEBAR_CATEGORIES: readonly SidebarCategory[] = ["All"];
 
-interface IntegrationSearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}
-
-export function IntegrationSearchBar({
-  value,
-  onChange,
-  placeholder = "Search by name or category",
-}: IntegrationSearchBarProps) {
-  return (
-    <InputGroup className="mr-10">
-      <InputGroupAddon>
-        <Search />
-      </InputGroupAddon>
-      <InputGroupInput
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-    </InputGroup>
-  );
-}
-
-interface AddIntegrationSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  entry: DirectoryEntry | null;
-}
-
-export function AddIntegrationSheet({ open, onOpenChange, entry }: AddIntegrationSheetProps) {
-  const trpc = useTRPC();
-  const connectMutation = useMutation(
-    trpc.connections.initiateAppConnection.mutationOptions({
-      onSuccess: ({ redirectUrl }) => {
-        if (redirectUrl) {
-          window.open(redirectUrl, "_blank", "noopener,noreferrer,width=600,height=700");
-        }
-        onOpenChange(false);
-      },
-      onError: () => {
-        toast.error(
-          `Could not connect ${entry?.displayName ?? "this integration"}. Please add it on your Composio dashboard.`,
-        );
-      },
-    }),
-  );
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle>Integration details</SheetTitle>
-        </SheetHeader>
-
-        <Tabs defaultValue="credentials" className="px-4">
-          <TabsList variant="line">
-            <TabsTrigger value="credentials">Connect</TabsTrigger>
-            <TabsTrigger value="tools">Tools</TabsTrigger>
-            <TabsTrigger value="about">About</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="credentials" className="mt-4 gap-4 flex flex-col">
-            <p className="text-sm text-muted-foreground">
-              Authentication is handled via Composio. Click Connect below to start the OAuth flow.
-            </p>
-          </TabsContent>
-
-          <TabsContent value="tools" className="mt-4 gap-2 flex flex-col">
-            <p className="text-sm text-muted-foreground">
-              {entry
-                ? `Tools provided by ${entry.displayName}.`
-                : "Select an integration to see its tools."}
-            </p>
-            {entry && entry.toolNames.length > 0 ? (
-              <ul className="gap-1 text-sm flex flex-col text-foreground">
-                {entry.toolNames.map((tool: string) => (
-                  <li key={tool} className="font-mono">
-                    {tool}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </TabsContent>
-
-          <TabsContent value="about" className="mt-4">
-            {entry ? (
-              <div className="gap-3 flex flex-col">
-                <div className="gap-3 flex items-center">
-                  <DirectoryIcon entry={entry} size={32} className="size-8" />
-                  <div>
-                    <p className="font-medium">{entry.displayName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {entry.authorName ? `by ${entry.authorName}` : "Integration"}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {entry.description ?? entry.oneLiner ?? ""}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No integration selected.</p>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        <div className="p-4 mt-auto">
-          <Button
-            className="w-full cursor-pointer"
-            disabled={!entry || connectMutation.isPending}
-            onClick={() => {
-              if (entry) connectMutation.mutate({ appSlug: entry.slug });
-            }}
-          >
-            {connectMutation.isPending ? "Connecting..." : "Connect"}
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-interface ManageIntegrationsDialogProps {
+interface ComposioIntegrationsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const DEFAULT_CATEGORY = "All";
-
-export function ManageIntegrationsDialog({ open, onOpenChange }: ManageIntegrationsDialogProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_CATEGORY);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
-  const isMobile = useIsMobile();
-
-  const debouncedSearch = useDebouncedValue(searchQuery, 250);
-  const { data, isLoading } = useDirectoryListQuery({
-    search: debouncedSearch || undefined,
-    category: selectedCategory === DEFAULT_CATEGORY ? undefined : selectedCategory,
-    limit: 60,
-  });
+function useIntegrationsData(search: string) {
+  const { data: composioIntegrations, isLoading } = useComposioIntegrationsQuery();
   const { data: connectionsData } = useConnectionsQuery();
-  // Only active connections count as "already added" — a revoked connection
-  // should reappear in the browse list so it can be reconnected.
+
   const connectedSlugs = useMemo(
     () =>
       new Set((connectionsData ?? []).filter((c) => c.status === "active").map((c) => c.appSlug)),
     [connectionsData],
   );
-  const entries = useMemo(
-    () => (data?.items ?? []).filter((e) => !connectedSlugs.has(e.slug)),
-    [data, connectedSlugs],
+
+  const items = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (composioIntegrations ?? [])
+      .filter((i) => !connectedSlugs.has(i.slug))
+      .filter(
+        (i) =>
+          !term ||
+          i.name.toLowerCase().includes(term) ||
+          (i.description ?? "").toLowerCase().includes(term),
+      );
+  }, [composioIntegrations, connectedSlugs, search]);
+
+  return { items, isLoading };
+}
+
+function IntegrationsGrid({
+  items,
+  isLoading,
+  search,
+  onViewDetails,
+}: {
+  items: ComposioIntegrationItem[];
+  isLoading: boolean;
+  search: string;
+  onViewDetails: (item: ComposioIntegrationItem) => void;
+}) {
+  if (isLoading) {
+    return (
+      <div className="gap-4 sm:grid-cols-2 lg:grid-cols-3 grid grid-cols-1">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <ComposioIntegrationCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <p className="py-16 text-sm text-center text-muted-foreground">
+        {search ? "No integrations match your search." : "No integrations available."}
+      </p>
+    );
+  }
+  return (
+    <div className="gap-4 sm:grid-cols-2 lg:grid-cols-3 grid grid-cols-1">
+      {items.map((item) => (
+        <ComposioIntegrationCard key={item.slug} item={item} onViewDetails={onViewDetails} />
+      ))}
+    </div>
   );
+}
 
-  const [seenCategories, setSeenCategories] = useState<readonly string[]>([]);
-  useEffect(() => {
-    setSeenCategories((prev) => {
-      const next = new Set(prev);
-      let changed = false;
-      for (const entry of entries) {
-        for (const cat of entry.categories) {
-          if (!next.has(cat)) {
-            next.add(cat);
-            changed = true;
-          }
-        }
-      }
-      return changed ? Array.from(next).sort() : prev;
-    });
-  }, [entries]);
-  const categories = useMemo(() => [DEFAULT_CATEGORY, ...seenCategories], [seenCategories]);
+export function ComposioIntegrationsDialog({
+  open,
+  onOpenChange,
+}: ComposioIntegrationsDialogProps) {
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<SidebarCategory>("All");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ComposioIntegrationItem | null>(null);
+  const isMobile = useIsMobile();
 
-  function handleSelect(entry: DirectoryEntry) {
-    setSelectedEntry(entry);
+  const { items, isLoading } = useIntegrationsData(search);
+
+  function handleViewDetails(item: ComposioIntegrationItem) {
+    setSelectedItem(item);
     setSheetOpen(true);
   }
 
-  const categoryLabel =
-    selectedCategory === DEFAULT_CATEGORY ? "All integrations" : selectedCategory;
+  const detailSheet = (
+    <ComposioIntegrationSheet open={sheetOpen} onOpenChange={setSheetOpen} item={selectedItem} />
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent
+            side="bottom"
+            className="gap-0 p-0 flex flex-col rounded-t-xl"
+            style={{ height: "90dvh" }}
+          >
+            {/* Header — shrinks to content, stays pinned */}
+            <div className="shrink-0 border-b border-border">
+              <SheetHeader className="gap-3 px-4 pt-4 pb-0 border-0">
+                <SheetTitle className="text-base font-semibold">Browse integrations</SheetTitle>
+              </SheetHeader>
+              <div className="gap-3 px-4 pb-3 flex flex-col">
+                <InputGroup>
+                  <InputGroupAddon>
+                    <Search />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search integrations"
+                  />
+                </InputGroup>
+                {/* Category badges */}
+                <div className="gap-2 pb-1 flex overflow-x-auto">
+                  {SIDEBAR_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        "px-3 py-1 text-xs font-medium shrink-0 cursor-pointer rounded-full border whitespace-nowrap transition-colors",
+                        selectedCategory === cat
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-background text-foreground hover:bg-muted/50",
+                      )}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Body — fills remaining height and scrolls */}
+            <div className="min-h-0 px-4 py-4 flex-1 overflow-y-auto">
+              <IntegrationsGrid
+                items={items}
+                isLoading={isLoading}
+                search={search}
+                onViewDetails={handleViewDetails}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+        {detailSheet}
+      </>
+    );
+  }
 
   return (
     <>
-      {isMobile ? (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-          <SheetContent side="right" className="gap-0 p-0 flex w-full! max-w-none! flex-col">
-            <SheetHeader className="gap-3 px-4 py-4 shrink-0 border-b border-border">
-              <SheetTitle>Browse apps</SheetTitle>
-              <InputGroup>
-                <InputGroupAddon>
-                  <Search />
-                </InputGroupAddon>
-                <InputGroupInput
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or category"
-                />
-              </InputGroup>
-              <div className="gap-2 pb-1 flex overflow-x-auto">
-                {categories.map((cat) => (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="p-0 gap-0 h-[640px] w-[80vw]! max-w-[95vw]! overflow-hidden">
+          <div className="flex h-full overflow-hidden">
+            {/* Sticky sidebar */}
+            <aside className="w-52 flex shrink-0 flex-col overflow-hidden border-r border-border">
+              <DialogHeader className="px-4 pt-4 pb-3 top-0 sticky z-10 shrink-0 bg-background">
+                <DialogTitle className="text-base font-semibold">Browse integrations</DialogTitle>
+              </DialogHeader>
+              <nav className="gap-0.5 px-2 pb-2 flex flex-col overflow-y-auto">
+                {SIDEBAR_CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      "px-3 py-1 text-xs font-medium shrink-0 cursor-pointer rounded-full border whitespace-nowrap transition-colors",
+                      "px-3 py-1.5 text-sm w-full cursor-pointer rounded-lg text-left transition-colors",
                       selectedCategory === cat
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-background text-foreground hover:bg-muted/50",
+                        ? "font-medium bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                     )}
                   >
                     {cat}
                   </button>
                 ))}
-              </div>
-            </SheetHeader>
-            <div className="px-4 py-4 flex-1 overflow-y-auto">
-              <DirectoryGrid entries={entries} loading={isLoading} onViewDetails={handleSelect} />
-            </div>
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="p-0 gap-0 w-[80vw]! max-w-[95vw]! overflow-hidden">
-            <div className="flex h-[640px]">
-              <aside className="w-44 p-4 shrink-0 overflow-y-auto border-r border-border">
-                <CategorySidebar
-                  categories={categories}
-                  selected={selectedCategory}
-                  onSelect={setSelectedCategory}
-                />
-              </aside>
+              </nav>
+            </aside>
 
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="px-5 py-4 flex items-center justify-between border-b border-border">
-                  <h2 className="text-base font-semibold text-foreground">{categoryLabel}</h2>
-                  <div className="gap-3 flex items-center">
-                    <IntegrationSearchBar
-                      value={searchQuery}
-                      onChange={setSearchQuery}
-                      placeholder="Search by name or category"
-                    />
-                  </div>
-                </div>
-
-                <div className="px-5 py-4 flex-1 overflow-y-auto">
-                  <DirectoryGrid
-                    entries={entries}
-                    loading={isLoading}
-                    onViewDetails={handleSelect}
+            {/* Main content */}
+            <div className="min-h-0 flex flex-1 flex-col overflow-hidden">
+              {/* Sticky search header */}
+              <div className="px-5 py-4 top-0 sticky z-10 shrink-0 border-b border-border bg-background">
+                <InputGroup className="w-3/4">
+                  <InputGroupAddon>
+                    <Search />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search integrations"
                   />
-                </div>
+                </InputGroup>
+              </div>
+
+              {/* Scrollable grid */}
+              <div className="px-5 py-4 min-h-0 flex-1 overflow-y-auto">
+                <IntegrationsGrid
+                  items={items}
+                  isLoading={isLoading}
+                  search={search}
+                  onViewDetails={handleViewDetails}
+                />
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <AddIntegrationSheet open={sheetOpen} onOpenChange={setSheetOpen} entry={selectedEntry} />
+          </div>
+        </DialogContent>
+      </Dialog>
+      {detailSheet}
     </>
   );
 }

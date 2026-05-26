@@ -1,4 +1,4 @@
-import AlternatingFeature from "@/components/alternating-feature";
+﻿import AlternatingFeature from "@/components/alternating-feature";
 import teamAutonomyImg from "@/assets/images/dashboard/team autonomy.png";
 import promptBuilderImg from "@/assets/images/dashboard/prompt-to-workflow builder.png";
 import monitorImg from "@/assets/images/dashboard/monitor.png";
@@ -16,7 +16,7 @@ export default function Communication() {
 
         <AlternatingFeature
           title="Prompt-to-workflow builder"
-          description="Describe what you want in plain English and watch Mirrropilot instantly build powerful, customizable automations — no code, no waiting."
+          description="Describe what you want in plain English and watch Mirrorpilot instantly build powerful, customizable automations — no code, no waiting."
           imageSrc={promptBuilderImg}
           imagePosition="left"
         />

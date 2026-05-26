@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import IllustrationStepComponent from "@/components/illustration-step-component";
 import workflowImg from "@/assets/images/deploy/workflow-step.svg";
@@ -30,7 +30,7 @@ export default function Updates() {
           />
           <IllustrationStepComponent
             title="Automate and scale"
-            description="Let mirrroPilot take over repetitive tasks organization-wide — freeing your team to focus on what truly matters."
+            description="Let Mirrorpilot take over repetitive tasks organization-wide — freeing your team to focus on what truly matters."
             imageSrc={automateImg}
           />
           <IllustrationStepComponent

@@ -1,3 +1,4 @@
+import "./lib/tracing.js"; // must be first — registers OTel before any spans are created
 import { Buffer } from "node:buffer";
 import {
   createServer,
@@ -7,12 +8,15 @@ import {
 import { Readable } from "node:stream";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
+import { getDb } from "@mirrorverse/db";
+
 import { env } from "@mirrorverse/env/backend";
 
 import { POST as chatHandler } from "../api/chat";
 import { GET as connectionsCallbackGet } from "../api/connections/callback";
 import { POST as speechHandler } from "../api/speech";
 import { vapiWebhookHandler } from "./features/voice/webhook";
+import { handleStripeWebhook } from "./features/billing/webhooks/stripe";
 import {
   GET as inngestGet,
   POST as inngestPost,
@@ -102,6 +106,12 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/voice/webhook") {
       const response = await vapiWebhookHandler(request);
+      await pipeResponse(res, response);
+      return;
+    }
+
+    if (url.pathname === "/api/webhooks/stripe") {
+      const response = await handleStripeWebhook(request, getDb());
       await pipeResponse(res, response);
       return;
     }

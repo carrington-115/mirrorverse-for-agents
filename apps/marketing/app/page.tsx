@@ -1,4 +1,4 @@
-import { Communication, Features, Footer, Hero, Product, Updates, FAQ } from "@/sections";
+import { Communication, Features, Footer, Hero, Pricing, Product, Updates, FAQ } from "@/sections";
 
 export default function Home() {
   return (
@@ -7,6 +7,7 @@ export default function Home() {
       <Product />
       <Communication />
       <Features />
+      <Pricing />
       <Updates />
       <FAQ />
       <Footer />

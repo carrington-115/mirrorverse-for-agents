@@ -1,7 +1,7 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 
-import mirropilotIconLight from "@/assets/mirropilot-icon.svg";
-import mirropilotIconDark from "@/assets/mirropilot-icon-dark.svg";
+import mirrorpilotIconLight from "@/assets/mirrorpilot-icon.svg";
+import mirrorpilotIconDark from "@/assets/mirrorpilot-icon-dark.svg";
 import { CHAT_STARTERS } from "@/features/chat/config";
 
 interface ChatEmptyStateProps {
@@ -25,7 +25,7 @@ function BrandHeader() {
   return (
     <div className="gap-y-6 mb-[var(--spacing-lg)] flex items-center justify-center">
       <Image
-        src={mirropilotIconLight}
+        src={mirrorpilotIconLight}
         alt="Mirrro"
         width={48}
         height={48}
@@ -33,14 +33,14 @@ function BrandHeader() {
         className="size-9 sm:size-12 dark:hidden"
       />
       <Image
-        src={mirropilotIconDark}
+        src={mirrorpilotIconDark}
         alt="Mirrro"
         width={48}
         height={48}
         priority
         className="size-9 sm:size-12 hidden dark:block"
       />
-      <h1 className="font-bold text-3xl ml-2 sm:text-5xl text-foreground">Mirrropilot</h1>
+      <h1 className="font-bold text-3xl ml-2 sm:text-5xl text-foreground">Mirrorpilot</h1>
     </div>
   );
 }

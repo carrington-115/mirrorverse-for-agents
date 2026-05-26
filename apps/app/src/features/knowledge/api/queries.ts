@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
@@ -34,7 +34,7 @@ export function useDocumentsQuery(kbId: string | null) {
   });
 }
 
-// Documents a Mirropilot chat can see: the user's manually-created knowledge
+// Documents a Mirrorpilot chat can see: the user's manually-created knowledge
 // bases plus files uploaded during this chat session.
 export function useChatKnowledgeDocumentsQuery(chatSessionId: string | null) {
   const trpc = useTRPC();

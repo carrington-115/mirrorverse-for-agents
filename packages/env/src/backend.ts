@@ -35,7 +35,14 @@ export const env = createEnv({
     POSTHOG_API_KEY: z.string().min(1).optional(),
     POSTHOG_HOST: z.url().default("https://app.posthog.com"),
 
+    LANGFUSE_SECRET_KEY: z.string().min(1).optional(),
+    LANGFUSE_PUBLIC_KEY: z.string().min(1).optional(),
+    LANGFUSE_BASE_URL: z.string().url().optional(),
+
     BACKEND_URL: z.string().url().default("http://localhost:3001"),
+
+    STRIPE_SECRET_KEY: z.string().min(1).optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
     VAPI_API_KEY: z.string().min(1).optional(),
     VAPI_WEBHOOK_SECRET: z.string().min(1).optional(),

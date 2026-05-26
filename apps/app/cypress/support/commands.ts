@@ -1,4 +1,4 @@
-/// <reference types="cypress" />
+﻿/// <reference types="cypress" />
 
 interface GeneratedOtp {
   email_otp: string;
@@ -43,7 +43,7 @@ declare global {
        * straight to /onboarding/verify-account, then verifies a real OTP
        * obtained via the admin API. Uses 1 email per call.
        *
-       * Returns the user to whatever `next` says — defaults to /mirropilot.
+       * Returns the user to whatever `next` says — defaults to /mirrorpilot.
        */
       signInViaAdminOtp(email: string, next?: string): Chainable<void>;
     }
@@ -94,7 +94,7 @@ Cypress.Commands.add("submitSignInEmail", (email: string) => {
   cy.wait("@otpRequest");
   cy.location("pathname", { timeout: 15_000 }).should("eq", "/onboarding/verify-account");
   cy.location("search").should("include", `email=${encodeURIComponent(email)}`);
-  cy.location("search").should("include", "next=%2Fmirropilot");
+  cy.location("search").should("include", "next=%2Fmirrorpilot");
 });
 
 Cypress.Commands.add("submitSignUpEmail", (email: string) => {
@@ -107,10 +107,10 @@ Cypress.Commands.add("submitSignUpEmail", (email: string) => {
   cy.wait("@otpRequest");
   cy.location("pathname", { timeout: 15_000 }).should("eq", "/onboarding/verify-account");
   cy.location("search").should("include", `email=${encodeURIComponent(email)}`);
-  cy.location("search").should("include", "next=%2Fmirropilot");
+  cy.location("search").should("include", "next=%2Fmirrorpilot");
 });
 
-Cypress.Commands.add("signInViaAdminOtp", (email: string, next: string = "/mirropilot") => {
+Cypress.Commands.add("signInViaAdminOtp", (email: string, next: string = "/mirrorpilot") => {
   cy.task<GeneratedOtp>("generateOtp", { email, shouldCreateUser: true }).then((otp) => {
     const code = otp.email_otp;
     if (typeof code !== "string" || code.length !== 6) {

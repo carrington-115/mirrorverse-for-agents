@@ -1,6 +1,9 @@
 import { and, eq, isNull, schema, type Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
+import { stripe } from "../billing/stripe-client";
+import { getFreePlan, upsertSubscription } from "../billing/repo";
+
 const { workspaces, workspaceMembers, userProfiles } = schema;
 
 const DEFAULT_PLAN_ID = "free";
@@ -104,6 +107,7 @@ export async function ensureUserWorkspace(
           isNull(userProfiles.defaultWorkspaceId),
         ),
       );
+    void bootstrapWorkspaceBilling(db, inserted.id, profile?.email ?? null);
     return inserted.id;
   }
 
@@ -122,4 +126,70 @@ export async function ensureUserWorkspace(
       and(eq(userProfiles.id, userId), isNull(userProfiles.defaultWorkspaceId)),
     );
   return byslug.id;
+}
+
+// Fire-and-forget: creates a Stripe customer + local subscription row for a
+// newly created workspace. Errors are logged but never propagate — a failed
+// bootstrap can be retried manually without breaking workspace access.
+async function bootstrapWorkspaceBilling(
+  db: Database,
+  workspaceId: string,
+  email: string | null,
+): Promise<void> {
+  try {
+    const [ws] = await db
+      .select({ stripeCustomerId: workspaces.stripeCustomerId })
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .limit(1);
+
+    if (ws?.stripeCustomerId) return; // already bootstrapped
+
+    const customer = await stripe.customers.create({
+      ...(email ? { email } : {}),
+      metadata: { workspaceId },
+    });
+
+    await db
+      .update(workspaces)
+      .set({
+        stripeCustomerId: customer.id,
+        ...(email ? { billingEmail: email } : {}),
+      })
+      .where(eq(workspaces.id, workspaceId));
+
+    const freePlan = await getFreePlan(db);
+    const now = new Date();
+    const periodEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      now.getDate(),
+    );
+
+    // If the free plan has a Stripe price, create a real Stripe subscription.
+    // Otherwise, record a local subscription only (placeholder until price is seeded).
+    let stripeSubId = `manual-free-${workspaceId}`;
+    if (freePlan?.stripeMonthlyPriceId) {
+      const sub = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ price: freePlan.stripeMonthlyPriceId }],
+      });
+      stripeSubId = sub.id;
+    }
+
+    await upsertSubscription(db, {
+      workspaceId,
+      stripeSubscriptionId: stripeSubId,
+      stripeCustomerId: customer.id,
+      planId: "free",
+      status: "active",
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: false,
+      trialEndsAt: null,
+      defaultPaymentMethod: null,
+    });
+  } catch (err) {
+    console.error("[billing] bootstrapWorkspaceBilling failed:", err);
+  }
 }

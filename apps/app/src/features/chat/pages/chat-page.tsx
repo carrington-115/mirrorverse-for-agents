@@ -1,9 +1,9 @@
-import { buildMetadata } from "@/lib/seo/metadata";
+﻿import { buildMetadata } from "@/lib/seo/metadata";
 import { ChatShell } from "@/features/chat/components/chat-shell";
 
 export const metadata = buildMetadata({
-  title: "Mirropilot",
-  description: "Chat with Mirropilot to design, debug, and deploy agents.",
+  title: "Mirrorpilot",
+  description: "Chat with Mirrorpilot to design, debug, and deploy agents.",
   noIndex: true,
 });
 

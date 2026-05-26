@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -253,11 +253,11 @@ export function WorkflowHeader({
                   size="sm"
                   className="h-6 gap-1 px-2 text-xs text-muted-foreground"
                   asChild
-                  title="View originating Mirropilot chat"
+                  title="View originating Mirrorpilot chat"
                 >
-                  <a href={`/mirropilot/${originChatId}`}>
+                  <a href={`/mirrorpilot/${originChatId}`}>
                     <BotMessageSquare className="size-3" />
-                    View in Mirropilot
+                    View in Mirrorpilot
                   </a>
                 </Button>
               ) : null}

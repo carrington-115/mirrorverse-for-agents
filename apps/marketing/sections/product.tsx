@@ -1,5 +1,5 @@
-import FeatureCard from "@/components/feature-card";
-import mirrropilotProduct from "@/assets/images/mirropiliot-product.png";
+﻿import FeatureCard from "@/components/feature-card";
+import mirrorpilotProduct from "@/assets/images/mirrorpilot-product.png";
 import workflowProduct from "@/assets/images/automations-product.png";
 import memoryProduct from "@/assets/images/shared-memory-product.png";
 
@@ -18,9 +18,9 @@ export default function Product() {
 
         <div className="mt-(--spacing-64) flex w-full max-w-[1188px] flex-col gap-[16px]">
           <FeatureCard
-            title="Mirrropilot"
+            title="Mirrorpilot"
             description="Your AI teammate that thinks, chats, and acts across every channel."
-            imageSrc={mirrropilotProduct}
+            imageSrc={mirrorpilotProduct}
             layout="horizontal"
             containerClassName="bg-[#faf5ff] border-[#e9d5ff]"
             imageContainerClassName="border-[#ede9fe]"

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { FaGoogle } from "react-icons/fa";
@@ -12,7 +12,7 @@ interface OAuthButtonsProps {
   disabled?: boolean;
 }
 
-export function OAuthButtons({ redirectPath = "/mirropilot", disabled }: OAuthButtonsProps) {
+export function OAuthButtons({ redirectPath = "/mirrorpilot", disabled }: OAuthButtonsProps) {
   const [pending, setPending] = useState<"google" | null>(null);
 
   const handleOAuth = async (provider: "google") => {

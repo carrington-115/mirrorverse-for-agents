@@ -15,7 +15,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { NodeIcon } from "@/features/workflows/lib/node-icon";
 import type { WorkflowNodeInput } from "@mirrorverse/agent/schemas";
-import { ParameterInput } from "./parameter-input";
 
 interface NodeInspectorProps {
   readonly node: WorkflowNodeInput;
@@ -81,20 +80,20 @@ function TextareaInput({
   );
 }
 
-function SelectInput<T extends string>({
+function SelectInput({
   label,
   value,
   options,
   onChange,
 }: {
   label: string;
-  value: T;
-  options: readonly { value: T; label: string }[];
-  onChange: (v: T) => void;
+  value: string;
+  options: readonly { value: string; label: string }[];
+  onChange: (v: string) => void;
 }) {
   return (
     <Field label={label}>
-      <Select value={value} onValueChange={(v) => onChange(v as T)}>
+      <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="h-7 text-xs">
           <SelectValue />
         </SelectTrigger>
@@ -127,6 +126,34 @@ function ToggleInput({
   );
 }
 
+// --- Param access helpers ---
+
+type Params = Record<string, unknown>;
+
+function str(params: Params, key: string, fallback = ""): string {
+  const v = params[key];
+  return typeof v === "string" ? v : fallback;
+}
+
+function num(params: Params, key: string, fallback: number): number {
+  const v = params[key];
+  return typeof v === "number" ? v : fallback;
+}
+
+function bool(params: Params, key: string, fallback: boolean): boolean {
+  const v = params[key];
+  return typeof v === "boolean" ? v : fallback;
+}
+
+function asObj(v: unknown): Params {
+  return typeof v === "object" && v !== null ? (v as Params) : {};
+}
+
+// Returns an updater that patches a single params key
+function useParamUpdater(node: WorkflowNodeInput, onUpdate: NodeInspectorProps["onUpdate"]) {
+  return (key: string, value: unknown) => onUpdate({ params: { ...node.params, [key]: value } });
+}
+
 // --- Per-kind forms ---
 
 function ManualTriggerForm() {
@@ -141,21 +168,22 @@ function CronTriggerForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "trigger.cron" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   return (
     <>
       <TextInput
         label="Cron expression"
-        value={node.expression}
-        onChange={(v) => onUpdate({ expression: v } as Partial<WorkflowNodeInput>)}
+        value={str(node.params, "expression")}
+        onChange={(v) => p("expression", v)}
         placeholder="0 9 * * *"
       />
       <TextInput
         label="Timezone"
-        value={node.timezone}
-        onChange={(v) => onUpdate({ timezone: v } as Partial<WorkflowNodeInput>)}
+        value={str(node.params, "timezone")}
+        onChange={(v) => p("timezone", v)}
         placeholder="UTC"
       />
     </>
@@ -166,20 +194,21 @@ function WebhookTriggerForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "trigger.webhook" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   return (
     <>
       <TextInput
         label="Endpoint slug"
-        value={node.endpointSlug}
-        onChange={(v) => onUpdate({ endpointSlug: v } as Partial<WorkflowNodeInput>)}
+        value={str(node.params, "endpointSlug")}
+        onChange={(v) => p("endpointSlug", v)}
         placeholder="my-webhook"
       />
       <SelectInput
         label="Method"
-        value={node.method}
+        value={str(node.params, "method", "POST")}
         options={[
           { value: "GET", label: "GET" },
           { value: "POST", label: "POST" },
@@ -187,12 +216,12 @@ function WebhookTriggerForm({
           { value: "PATCH", label: "PATCH" },
           { value: "DELETE", label: "DELETE" },
         ]}
-        onChange={(v) => onUpdate({ method: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("method", v)}
       />
       <ToggleInput
         label="Verify signature"
-        value={node.verifySignature}
-        onChange={(v) => onUpdate({ verifySignature: v } as Partial<WorkflowNodeInput>)}
+        value={bool(node.params, "verifySignature", false)}
+        onChange={(v) => p("verifySignature", v)}
       />
     </>
   );
@@ -202,48 +231,42 @@ function AgentForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "ai.agent" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   return (
     <>
       <TextareaInput
         label="System prompt"
-        value={node.systemPrompt}
-        onChange={(v) => onUpdate({ systemPrompt: v } as Partial<WorkflowNodeInput>)}
+        value={str(node.params, "systemPrompt")}
+        onChange={(v) => p("systemPrompt", v)}
         placeholder="You are a helpful assistant."
       />
-      <Field label="User prompt">
-        <ParameterInput
-          label="User prompt"
-          value={node.userPromptTemplate as Parameters<typeof ParameterInput>[0]["value"]}
-          onChange={(v) => onUpdate({ userPromptTemplate: v } as Partial<WorkflowNodeInput>)}
-          allowFromAi
-          multiline
-        />
-      </Field>
+      <TextareaInput
+        label="User prompt"
+        value={str(node.params, "userPromptTemplate")}
+        onChange={(v) => p("userPromptTemplate", v)}
+        placeholder="Process the input: {{ $json }}"
+      />
       <Field label="Max iterations">
         <Input
           className="h-7 text-xs"
           type="number"
           min={1}
           max={50}
-          value={node.maxIterations}
-          onChange={(e) =>
-            onUpdate({
-              maxIterations: parseInt(e.target.value, 10) || 1,
-            } as Partial<WorkflowNodeInput>)
-          }
+          value={num(node.params, "maxIterations", 10)}
+          onChange={(e) => p("maxIterations", parseInt(e.target.value, 10) || 1)}
         />
       </Field>
       <SelectInput
         label="Output mode"
-        value={node.outputMode}
+        value={str(node.params, "outputMode", "text")}
         options={[
           { value: "text", label: "Text" },
           { value: "json", label: "JSON" },
         ]}
-        onChange={(v) => onUpdate({ outputMode: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("outputMode", v)}
       />
     </>
   );
@@ -253,39 +276,37 @@ function VoiceAgentForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "ai.voice_agent" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
+  const mc = asObj(node.params.modelConnection);
   return (
     <>
       <SelectInput
         label="Direction"
-        value={node.direction}
+        value={str(node.params, "direction", "inbound")}
         options={[
           { value: "inbound", label: "Inbound" },
           { value: "outbound", label: "Outbound" },
         ]}
-        onChange={(v) => onUpdate({ direction: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("direction", v)}
       />
       <TextareaInput
         label="First message"
-        value={node.firstMessage}
-        onChange={(v) => onUpdate({ firstMessage: v } as Partial<WorkflowNodeInput>)}
+        value={str(node.params, "firstMessage")}
+        onChange={(v) => p("firstMessage", v)}
         placeholder="Hello, how can I help you today?"
       />
       <TextareaInput
         label="System prompt"
-        value={node.modelConnection.systemPrompt}
-        onChange={(v) =>
-          onUpdate({
-            modelConnection: { ...node.modelConnection, systemPrompt: v },
-          } as Partial<WorkflowNodeInput>)
-        }
+        value={str(mc, "systemPrompt")}
+        onChange={(v) => p("modelConnection", { ...mc, systemPrompt: v })}
         placeholder="You are a helpful voice assistant."
       />
       <SelectInput
         label="Model"
-        value={node.modelConnection.model}
+        value={str(mc, "model", "claude-haiku-4-5")}
         options={[
           { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
           { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
@@ -294,29 +315,21 @@ function VoiceAgentForm({
           { value: "gpt-4o", label: "GPT-4o" },
           { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
         ]}
-        onChange={(v) =>
-          onUpdate({
-            modelConnection: { ...node.modelConnection, model: v },
-          } as Partial<WorkflowNodeInput>)
-        }
+        onChange={(v) => p("modelConnection", { ...mc, model: v })}
       />
       <Field label="Max duration (seconds)">
         <Input
           className="h-7 text-xs"
           type="number"
           min={30}
-          value={node.maxDurationSec}
-          onChange={(e) =>
-            onUpdate({
-              maxDurationSec: parseInt(e.target.value, 10) || 300,
-            } as Partial<WorkflowNodeInput>)
-          }
+          value={num(node.params, "maxDurationSec", 300)}
+          onChange={(e) => p("maxDurationSec", parseInt(e.target.value, 10) || 300)}
         />
       </Field>
       <ToggleInput
         label="Enable recording"
-        value={node.recordingEnabled ?? false}
-        onChange={(v) => onUpdate({ recordingEnabled: v } as Partial<WorkflowNodeInput>)}
+        value={bool(node.params, "recordingEnabled", false)}
+        onChange={(v) => p("recordingEnabled", v)}
       />
     </>
   );
@@ -326,24 +339,26 @@ function LanguageModelForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "ai.language_model" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
+  const opts = asObj(node.params.options);
   return (
     <>
       <SelectInput
         label="Provider"
-        value={node.provider}
+        value={str(node.params, "provider", "anthropic")}
         options={[
           { value: "anthropic", label: "Anthropic" },
           { value: "openai", label: "OpenAI" },
           { value: "google", label: "Google" },
         ]}
-        onChange={(v) => onUpdate({ provider: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("provider", v)}
       />
       <SelectInput
         label="Model"
-        value={node.model}
+        value={str(node.params, "model", "claude-haiku-4-5")}
         options={[
           { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
           { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
@@ -352,7 +367,7 @@ function LanguageModelForm({
           { value: "gpt-4o", label: "GPT-4o" },
           { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
         ]}
-        onChange={(v) => onUpdate({ model: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("model", v)}
       />
       <Field label="Temperature">
         <Input
@@ -361,11 +376,9 @@ function LanguageModelForm({
           min={0}
           max={2}
           step={0.1}
-          value={node.options?.temperature ?? 0.7}
+          value={num(opts, "temperature", 0.7)}
           onChange={(e) =>
-            onUpdate({
-              options: { ...node.options, temperature: parseFloat(e.target.value) || 0.7 },
-            } as Partial<WorkflowNodeInput>)
+            p("options", { ...opts, temperature: parseFloat(e.target.value) || 0.7 })
           }
         />
       </Field>
@@ -374,11 +387,9 @@ function LanguageModelForm({
           className="h-7 text-xs"
           type="number"
           min={1}
-          value={node.options?.maxTokens ?? 1024}
+          value={num(opts, "maxTokens", 1024)}
           onChange={(e) =>
-            onUpdate({
-              options: { ...node.options, maxTokens: parseInt(e.target.value, 10) || 1024 },
-            } as Partial<WorkflowNodeInput>)
+            p("options", { ...opts, maxTokens: parseInt(e.target.value, 10) || 1024 })
           }
         />
       </Field>
@@ -390,33 +401,30 @@ function MemoryForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "ai.memory" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   return (
     <>
       <SelectInput
         label="Strategy"
-        value={node.strategy}
+        value={str(node.params, "strategy", "buffer_window")}
         options={[
           { value: "buffer_window", label: "Buffer window" },
           { value: "summary_buffer", label: "Summary buffer" },
           { value: "vector_retrieval", label: "Vector retrieval" },
           { value: "postgres_chat", label: "Postgres chat" },
         ]}
-        onChange={(v) => onUpdate({ strategy: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("strategy", v)}
       />
       <Field label="Context window length">
         <Input
           className="h-7 text-xs"
           type="number"
           min={1}
-          value={node.contextWindowLength}
-          onChange={(e) =>
-            onUpdate({
-              contextWindowLength: parseInt(e.target.value, 10) || 5,
-            } as Partial<WorkflowNodeInput>)
-          }
+          value={num(node.params, "contextWindowLength", 5)}
+          onChange={(e) => p("contextWindowLength", parseInt(e.target.value, 10) || 5)}
         />
       </Field>
     </>
@@ -427,15 +435,16 @@ function RetrieverForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "ai.retriever" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   return (
     <>
       <TextInput
         label="Knowledge base ID"
-        value={node.knowledgeBaseId}
-        onChange={(v) => onUpdate({ knowledgeBaseId: v } as Partial<WorkflowNodeInput>)}
+        value={str(node.params, "knowledgeBaseId")}
+        onChange={(v) => p("knowledgeBaseId", v)}
         placeholder="kb_…"
       />
       <Field label="Top K results">
@@ -444,10 +453,8 @@ function RetrieverForm({
           type="number"
           min={1}
           max={20}
-          value={node.topK}
-          onChange={(e) =>
-            onUpdate({ topK: parseInt(e.target.value, 10) || 6 } as Partial<WorkflowNodeInput>)
-          }
+          value={num(node.params, "topK", 6)}
+          onChange={(e) => p("topK", parseInt(e.target.value, 10) || 6)}
         />
       </Field>
     </>
@@ -458,14 +465,15 @@ function HttpRequestForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "core.http_request" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   return (
     <>
       <SelectInput
         label="Method"
-        value={node.method}
+        value={str(node.params, "method", "GET")}
         options={[
           { value: "GET", label: "GET" },
           { value: "POST", label: "POST" },
@@ -473,16 +481,14 @@ function HttpRequestForm({
           { value: "PATCH", label: "PATCH" },
           { value: "DELETE", label: "DELETE" },
         ]}
-        onChange={(v) => onUpdate({ method: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("method", v)}
       />
-      <Field label="URL">
-        <ParameterInput
-          label="URL"
-          value={node.url as Parameters<typeof ParameterInput>[0]["value"]}
-          onChange={(v) => onUpdate({ url: v } as Partial<WorkflowNodeInput>)}
-          placeholder="https://api.example.com/endpoint"
-        />
-      </Field>
+      <TextInput
+        label="URL"
+        value={str(node.params, "url")}
+        onChange={(v) => p("url", v)}
+        placeholder="https://api.example.com/endpoint"
+      />
     </>
   );
 }
@@ -491,26 +497,27 @@ function CodeForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "core.code" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   return (
     <>
       <SelectInput
         label="Language"
-        value={node.language}
+        value={str(node.params, "language", "typescript")}
         options={[
           { value: "typescript", label: "TypeScript" },
           { value: "javascript", label: "JavaScript" },
           { value: "python", label: "Python" },
         ]}
-        onChange={(v) => onUpdate({ language: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("language", v)}
       />
       <Field label="Source">
         <Textarea
           className="text-xs min-h-[120px] resize-none font-mono"
-          value={node.source}
-          onChange={(e) => onUpdate({ source: e.target.value } as Partial<WorkflowNodeInput>)}
+          value={str(node.params, "source")}
+          onChange={(e) => p("source", e.target.value)}
           placeholder="return { result: $json.value };"
         />
       </Field>
@@ -519,12 +526,8 @@ function CodeForm({
           className="h-7 text-xs"
           type="number"
           min={1}
-          value={node.timeoutSec}
-          onChange={(e) =>
-            onUpdate({
-              timeoutSec: parseInt(e.target.value, 10) || 10,
-            } as Partial<WorkflowNodeInput>)
-          }
+          value={num(node.params, "timeoutSec", 10)}
+          onChange={(e) => p("timeoutSec", parseInt(e.target.value, 10) || 10)}
         />
       </Field>
     </>
@@ -535,38 +538,42 @@ function IfForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "flow.if" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
-  const first = node.conditions[0];
+  const p = useParamUpdater(node, onUpdate);
+  const conditions = Array.isArray(node.params.conditions)
+    ? (node.params.conditions as Params[])
+    : [];
+  const first = conditions[0];
   return (
     <>
       <SelectInput
         label="Combinator"
-        value={node.combinator}
+        value={str(node.params, "combinator", "and")}
         options={[
           { value: "and", label: "All conditions (AND)" },
           { value: "or", label: "Any condition (OR)" },
         ]}
-        onChange={(v) => onUpdate({ combinator: v } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("combinator", v)}
       />
       {first && (
-        <Field label="Left value">
-          <ParameterInput
-            label="Left value"
-            value={first.leftValue as Parameters<typeof ParameterInput>[0]["value"]}
-            onChange={(v) =>
-              onUpdate({
-                conditions: node.conditions.map((c, i) => (i === 0 ? { ...c, leftValue: v } : c)),
-              } as Partial<WorkflowNodeInput>)
-            }
-          />
-        </Field>
+        <TextInput
+          label="Left value"
+          value={str(first, "leftValue")}
+          onChange={(v) =>
+            p(
+              "conditions",
+              conditions.map((c, i) => (i === 0 ? { ...c, leftValue: v } : c)),
+            )
+          }
+          placeholder="{{ $json.field }}"
+        />
       )}
       {first && (
         <SelectInput
           label="Operator"
-          value={first.operator}
+          value={str(first, "operator", "equals")}
           options={[
             { value: "equals", label: "Equals" },
             { value: "not_equals", label: "Not equals" },
@@ -577,9 +584,10 @@ function IfForm({
             { value: "is_not_empty", label: "Is not empty" },
           ]}
           onChange={(v) =>
-            onUpdate({
-              conditions: node.conditions.map((c, i) => (i === 0 ? { ...c, operator: v } : c)),
-            } as Partial<WorkflowNodeInput>)
+            p(
+              "conditions",
+              conditions.map((c, i) => (i === 0 ? { ...c, operator: v } : c)),
+            )
           }
         />
       )}
@@ -591,25 +599,26 @@ function StickyNoteForm({
   node,
   onUpdate,
 }: {
-  node: Extract<WorkflowNodeInput, { kind: "editor.sticky_note" }>;
+  node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
+  const p = useParamUpdater(node, onUpdate);
   const COLORS = ["Yellow", "Green", "Blue", "Pink", "Purple", "Orange"];
   return (
     <>
       <Field label="Content">
         <Textarea
           className="text-xs min-h-[80px] resize-none"
-          value={node.content}
-          onChange={(e) => onUpdate({ content: e.target.value } as Partial<WorkflowNodeInput>)}
+          value={str(node.params, "content")}
+          onChange={(e) => p("content", e.target.value)}
           placeholder="Add a note…"
         />
       </Field>
       <SelectInput
         label="Color"
-        value={String(node.color)}
+        value={String(num(node.params, "color", 0))}
         options={COLORS.map((label, i) => ({ value: String(i), label }))}
-        onChange={(v) => onUpdate({ color: parseInt(v, 10) } as Partial<WorkflowNodeInput>)}
+        onChange={(v) => p("color", parseInt(v, 10))}
       />
     </>
   );
@@ -618,7 +627,7 @@ function StickyNoteForm({
 function FallbackForm({ node }: { node: WorkflowNodeInput }) {
   return (
     <p className="text-xs text-muted-foreground">
-      Configuration panel for <span className="font-mono">{node.kind}</span> is coming soon.
+      Configuration panel for <span className="font-mono">{node.type}</span> is coming soon.
     </p>
   );
 }
@@ -630,7 +639,7 @@ function KindForm({
   node: WorkflowNodeInput;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
-  switch (node.kind) {
+  switch (node.type) {
     case "trigger.manual":
       return <ManualTriggerForm />;
     case "trigger.cron":
@@ -665,10 +674,11 @@ export function NodeInspector({ node, validationErrors, onUpdate, onClose }: Nod
     <div className="w-72 flex h-full shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-background">
       {/* Header */}
       <div className="gap-2 p-3 flex items-center border-b border-border">
-        <NodeIcon kind={node.kind} size={14} />
+        <NodeIcon kind={node.type} size={14} />
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold truncate">{node.name}</div>
-          <div className="text-[10px] text-muted-foreground">{node.kind}</div>
+          <div className="text-xs font-semibold truncate font-mono text-muted-foreground">
+            {node.type}
+          </div>
         </div>
         <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={onClose}>
           <X className="size-3" />
@@ -686,38 +696,10 @@ export function NodeInspector({ node, validationErrors, onUpdate, onClose }: Nod
         </div>
       )}
 
-      {/* Node name */}
-      <div className="px-3 pt-3">
-        <TextInput
-          label="Name"
-          value={node.name}
-          onChange={(v) => onUpdate({ name: v } as Partial<WorkflowNodeInput>)}
-        />
-      </div>
-
-      {/* Divider */}
-      <div className="mx-3 my-3 border-t border-border" />
-
       {/* Kind-specific form */}
-      <div className="min-h-0 px-3 pb-3 flex-1 overflow-y-auto">
+      <div className="min-h-0 px-3 py-3 flex-1 overflow-y-auto">
         <div className="gap-3 flex flex-col">
           <KindForm node={node} onUpdate={onUpdate} />
-
-          {/* Common fields */}
-          <div className="pt-3 border-t border-border">
-            <ToggleInput
-              label="Disabled"
-              value={node.disabled}
-              onChange={(v) => onUpdate({ disabled: v } as Partial<WorkflowNodeInput>)}
-            />
-            <div className="mt-2">
-              <ToggleInput
-                label="Continue on fail"
-                value={node.continueOnFail}
-                onChange={(v) => onUpdate({ continueOnFail: v } as Partial<WorkflowNodeInput>)}
-              />
-            </div>
-          </div>
         </div>
       </div>
     </div>

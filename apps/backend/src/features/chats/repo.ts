@@ -306,6 +306,19 @@ export async function filterUnconnectedSlugs(
   return slugs.filter((s) => !activeSet.has(s));
 }
 
+export async function isConnectionRequestResolved(
+  db: Database,
+  connectionRequestId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ status: schema.connectionRequests.status })
+    .from(schema.connectionRequests)
+    .where(eq(schema.connectionRequests.id, connectionRequestId))
+    .limit(1);
+  if (!row) return false;
+  return row.status === "completed";
+}
+
 export async function getLatestInterruptForChat(db: Database, chatId: string) {
   const [row] = await db
     .select({ payload: chatEvents.payload })

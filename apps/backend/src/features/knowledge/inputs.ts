@@ -1,9 +1,9 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 export const createKbInput = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
-  source: z.enum(["manual", "mirropilot"]).optional().default("manual"),
+  source: z.enum(["manual", "mirrorpilot"]).optional().default("manual"),
   chatSessionId: z.string().max(128).optional(),
 });
 

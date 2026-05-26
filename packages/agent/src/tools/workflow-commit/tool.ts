@@ -41,7 +41,7 @@ export function makeWorkflowCommitTool(deps: WorkflowCommitDeps) {
       const modelId = deps.builderModel ?? DEFAULT_BUILDER_MODEL;
       try {
         const existing = await getLatestVersionForChat(deps.db, deps.chatId, deps.workspaceId);
-        const document = await buildWorkflowDocument(modelId, intent, deps.onProgress, {
+        const { document, kind } = await buildWorkflowDocument(modelId, intent, deps.onProgress, {
           existingDocument: existing?.document ?? null,
         });
         const persisted = await persistWorkflow({
@@ -50,6 +50,7 @@ export function makeWorkflowCommitTool(deps: WorkflowCommitDeps) {
           userId: deps.userId,
           chatId: deps.chatId,
           document,
+          kind,
           summary,
         });
 
@@ -58,8 +59,9 @@ export function makeWorkflowCommitTool(deps: WorkflowCommitDeps) {
           workflowId: persisted.workflowId,
           workflowVersionId: persisted.workflowVersionId,
           versionNumber: persisted.versionNumber,
-          title: document.metadata.title,
-          kind: document.kind,
+          title: document.name,
+          kind,
+          document,
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

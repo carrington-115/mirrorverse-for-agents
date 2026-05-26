@@ -1,4 +1,4 @@
-import type { Tool, UIMessage } from "ai";
+﻿import type { Tool, UIMessage } from "ai";
 import type { Database } from "@mirrorverse/db";
 
 import type { StepUsageBreakdown } from "../billing";
@@ -29,7 +29,7 @@ export interface FinishEvent {
   readonly messages: UIMessage[];
 }
 
-export interface RunMirropilotDeps {
+export interface RunMirrorpilotDeps {
   readonly db: Database;
   readonly userId: string;
   readonly workspaceId: string;
@@ -45,6 +45,6 @@ export interface RunMirropilotDeps {
   readonly onFinish?: (event: FinishEvent) => Promise<void> | void;
 }
 
-export interface RunMirropilotResult {
+export interface RunMirrorpilotResult {
   readonly response: Response;
 }

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+﻿import { createHash } from "node:crypto";
 
 import {
   and,
@@ -23,7 +23,7 @@ export async function createKb(
   userId: string,
   name: string,
   description: string | undefined,
-  source: "manual" | "mirropilot" = "manual",
+  source: "manual" | "mirrorpilot" = "manual",
   chatSessionId?: string,
 ) {
   const [row] = await db
@@ -175,8 +175,8 @@ export async function listDocuments(db: Database, kbId: string, limit: number) {
     .limit(limit);
 }
 
-// Knowledge bases a Mirropilot chat can see: every manually-created KB in the
-// workspace plus the session's own upload bucket (source = "mirropilot" tied to
+// Knowledge bases a Mirrorpilot chat can see: every manually-created KB in the
+// workspace plus the session's own upload bucket (source = "mirrorpilot" tied to
 // this chat). Other chats' upload buckets are intentionally excluded.
 const chatAccessibleKbWhere = (workspaceId: string, chatSessionId: string) =>
   and(
@@ -229,12 +229,12 @@ export interface ChatAccessibleKb {
   id: string;
   name: string;
   description: string | null;
-  source: "manual" | "mirropilot";
+  source: "manual" | "mirrorpilot";
   documentCount: number;
   readyDocumentCount: number;
 }
 
-// Existing knowledge bases a chat can reuse, with document counts so Mirropilot
+// Existing knowledge bases a chat can reuse, with document counts so Mirrorpilot
 // can pick one to bind to an agent instead of creating a new KB and re-ingesting.
 export async function listChatAccessibleKbsWithCounts(
   db: Database,
@@ -272,7 +272,7 @@ export interface ResolvedSelectedDocument {
 
 // Resolve the document ids the user picked in the chat to their owning knowledge
 // bases, scoped to the workspace so a stale or tampered id can never reveal
-// another tenant's KB. Used to let Mirropilot reuse the existing KB id(s) for
+// another tenant's KB. Used to let Mirrorpilot reuse the existing KB id(s) for
 // those documents instead of creating a brand-new knowledge base.
 export async function resolveSelectedDocumentKbs(
   db: Database,

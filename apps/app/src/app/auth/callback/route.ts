@@ -1,10 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server";
+﻿import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/mirropilot";
+  const next = searchParams.get("next") ?? "/mirrorpilot";
 
   if (!code) {
     return NextResponse.redirect(new URL("/sign-in?error=missing_code", origin));

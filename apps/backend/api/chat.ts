@@ -1,9 +1,10 @@
+﻿import "../src/lib/tracing.js"; // must be first — registers OTel before any spans
 import {
   DEFAULT_CHAT_LIMITS,
   describeChatLimitBreach,
   generateChatTitle,
   isSupportedModel,
-  runMirropilot,
+  runMirrorpilot,
 } from "@mirrorverse/agent";
 import { randomUUID } from "node:crypto";
 import {
@@ -12,6 +13,7 @@ import {
   tool,
   type Tool,
 } from "ai";
+import { z } from "zod";
 
 import { env } from "@mirrorverse/env/backend";
 import { getDb } from "@mirrorverse/db";
@@ -33,6 +35,10 @@ import { ensureUserWorkspace } from "../src/features/tenancy/repo";
 import { listWorkspaceWebhooks } from "../src/features/webhooks/repo";
 import { recordChatUsage } from "../src/features/billing/repo";
 import {
+  checkQuota,
+  QuotaExceededError,
+} from "../src/features/billing/enforcement";
+import {
   firstUserText,
   lifecycleToChatEventPayload,
   uiMessageToContentBlocks,
@@ -49,15 +55,18 @@ import { chatsService } from "../src/features/chats/service";
 import {
   isComposioConfigured,
   listComposioTools,
+  listConnectedApps,
   getComposioAuthRedirectUrl,
   lookupComposioMcpServerId,
 } from "../src/mcp/composio/client";
+import { listWorkspaceMcpServers } from "../src/features/tools/repo";
 import {
   NeedsAuthError,
   invokeComposioTool,
 } from "../src/mcp/composio/dispatcher";
 import { createConnectionRequest } from "../src/mcp/composio/auth";
 import { runPreflightCheck } from "../src/mcp/composio/preflight";
+import { flushTracing } from "../src/lib/tracing.js";
 import type { Database } from "@mirrorverse/db";
 
 async function safeAppendChatEvent(
@@ -181,6 +190,71 @@ async function buildComposioTools(
   return result;
 }
 
+async function buildIntrospectionTools(
+  db: Database,
+  workspaceId: string,
+): Promise<Record<string, Tool>> {
+  return {
+    list_connected_apps: tool({
+      description:
+        "List the external apps and services the user has connected to their workspace (e.g. Gmail, Slack, GitHub). Call this when the user asks what apps they have connected, or when you need to verify a connection before building a workflow.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const apps = await listConnectedApps(workspaceId).catch(() => []);
+        return { apps };
+      },
+    }),
+    list_mcp_servers: tool({
+      description:
+        "List the custom MCP servers configured in the user's workspace. Call this when the user references a custom MCP tool and you need the real server ID to include in the workflow intent.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const rows = await listWorkspaceMcpServers(db, workspaceId).catch(
+          () => [],
+        );
+        const servers = rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          slug: r.slug,
+          url: r.url ?? null,
+        }));
+        return { servers };
+      },
+    }),
+  };
+}
+
+const submitPlanInputSchema = z.object({
+  kind: z.enum(["automation", "voice-agent", "chat-agent", "code"]),
+  title: z.string().min(1).max(200),
+  trigger: z
+    .string()
+    .describe("Human-readable trigger description, e.g. 'Daily at 9am UTC'"),
+  steps: z.array(
+    z.object({
+      step: z.number(),
+      description: z.string(),
+      nodeType: z.string(),
+      integration: z.string().optional(),
+    }),
+  ),
+  requirements: z.array(
+    z.object({
+      type: z.enum(["app", "phone", "kb", "mcp"]),
+      name: z.string(),
+    }),
+  ),
+});
+
+function buildSubmitPlanTool(): Tool {
+  return tool({
+    description:
+      "Announce the workflow plan to the user before building. Call once after understanding the request and before gathering requirements or calling workflow_commit. The user sees this as a structured plan card in the chat.",
+    inputSchema: submitPlanInputSchema,
+    execute: async (input) => ({ ok: true as const, plan: input }),
+  });
+}
+
 interface ChatRequestBody {
   readonly id?: string;
   readonly chatId?: string;
@@ -199,7 +273,7 @@ function resolveRagDocumentIds(body: ChatRequestBody): string[] {
   );
 }
 
-// When the user has picked existing documents in the chat, tell Mirropilot the
+// When the user has picked existing documents in the chat, tell Mirrorpilot the
 // REAL knowledge base id(s) those documents already live in, so it reuses them
 // for any agent/workflow it builds instead of creating a new KB and re-ingesting
 // (which wastes embedding cost and time).
@@ -372,11 +446,17 @@ export async function POST(req: Request): Promise<Response> {
     chatId: chat.id,
     ragDocumentIds,
   });
+  const introspectionTools = await buildIntrospectionTools(
+    db,
+    workspaceId,
+  ).catch(() => ({}) as Record<string, Tool>);
 
   const additionalTools = {
     ...composioTools,
     ...phoneTools,
     ...knowledgeTools,
+    ...introspectionTools,
+    submit_plan: buildSubmitPlanTool(),
   };
 
   const webhookContextLines = workspaceWebhooks.map((w) => {
@@ -420,7 +500,26 @@ export async function POST(req: Request): Promise<Response> {
     return createUIMessageStreamResponse({ stream });
   }
 
-  return runMirropilot({
+  try {
+    await checkQuota(db, workspaceId, "llm_input");
+  } catch (err) {
+    if (err instanceof QuotaExceededError) {
+      console.warn(
+        `[chat] 402 quota exceeded workspaceId=${workspaceId} kind=${err.kind} used=${err.used} limit=${err.limit}`,
+      );
+      return jsonError(
+        402,
+        "You have exceeded your plan's token quota. Please upgrade your plan to continue.",
+      );
+    }
+    // Non-fatal: quota read failure should not block LLM calls
+    console.warn(
+      "[chat] quota check failed, proceeding:",
+      err instanceof Error ? err.message : err,
+    );
+  }
+
+  return runMirrorpilot({
     additionalTools,
     db,
     userId: user.id,
@@ -475,6 +574,8 @@ export async function POST(req: Request): Promise<Response> {
           console.error("[chat] failed to persist assistant message:", err);
         }
       }
+      // Flush Langfuse spans before the serverless function terminates.
+      await flushTracing();
     },
   });
 }

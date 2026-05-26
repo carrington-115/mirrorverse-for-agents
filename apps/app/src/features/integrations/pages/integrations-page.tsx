@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MoreVertical, Shapes, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,15 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import {
-  useDirectoryListQuery,
-  useDirectoryEntryQuery,
-} from "@/features/mcp-directory/api/queries";
-import { DirectoryGrid } from "@/features/mcp-directory/components/directory-grid";
-import type { DirectoryEntry } from "@/features/mcp-directory/api/types";
-import {
-  AddIntegrationSheet,
+  ComposioIntegrationsDialog,
   IntegrationsEmpty,
-  ManageIntegrationsDialog,
 } from "@/features/integrations/components/integration";
 import { AddWebhookSheet } from "@/features/webhooks/components/add-webhook-sheet";
 import {
@@ -31,8 +24,19 @@ import {
   type DateFilter,
   type TypeFilter,
 } from "@/features/integrations/components/integrations-table-toolbar";
-import { useConnectionsQuery } from "@/features/integrations/api/queries";
+import {
+  useConnectionsQuery,
+  useComposioIntegrationsQuery,
+} from "@/features/integrations/api/queries";
 import { useRevokeConnectionMutation } from "@/features/integrations/api/mutations";
+import {
+  ComposioIntegrationCard,
+  ComposioIntegrationCardSkeleton,
+  type ComposioIntegrationItem,
+} from "@/features/integrations/components/composio-integration-card";
+import { ComposioIntegrationSheet } from "@/features/integrations/components/composio-integration-sheet";
+
+const RECOMMENDED_LIMIT = 4;
 
 function connectionToRow(c: {
   id: string;
@@ -54,34 +58,39 @@ function connectionToRow(c: {
 
 export function IntegrationsPage() {
   const { data: connectionsData, isLoading: connectionsLoading } = useConnectionsQuery();
+  const { data: composioIntegrations, isLoading: composioLoading } = useComposioIntegrationsQuery();
   const revokeConnection = useRevokeConnectionMutation();
+
   const liveIntegrations: ConnectedIntegration[] = useMemo(
     () => (connectionsData ?? []).filter((c) => c.status === "active").map(connectionToRow),
     [connectionsData],
   );
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<DirectoryEntry | null>(null);
-  const [slugToView, setSlugToView] = useState<string | null>(null);
-  const { data: entryToView } = useDirectoryEntryQuery(slugToView);
-  const [browseOpen, setBrowseOpen] = useState(false);
-  const [webhookOpen, setWebhookOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-
-  const { data, isLoading } = useDirectoryListQuery({ limit: 24 });
-  // Only active connections count as "already added" — a revoked connection
-  // leaves the table (which is active-only) and should reappear here.
   const connectedSlugs = useMemo(
     () =>
       new Set((connectionsData ?? []).filter((c) => c.status === "active").map((c) => c.appSlug)),
     [connectionsData],
   );
-  const entries = useMemo(
-    () => (data?.items ?? []).filter((e) => !connectedSlugs.has(e.slug)).slice(0, 8),
-    [data, connectedSlugs],
+
+  const composioItems = useMemo(
+    () => (composioIntegrations ?? []).filter((i) => !connectedSlugs.has(i.slug)),
+    [composioIntegrations, connectedSlugs],
   );
+
+  const recommendedItems = useMemo(
+    () => composioItems.slice(0, RECOMMENDED_LIMIT),
+    [composioItems],
+  );
+
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [webhookOpen, setWebhookOpen] = useState(false);
+  const [composioSheetOpen, setComposioSheetOpen] = useState(false);
+  const [selectedComposioItem, setSelectedComposioItem] = useState<ComposioIntegrationItem | null>(
+    null,
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const filteredIntegrations = useMemo(() => {
     return liveIntegrations.filter((i) => {
@@ -108,9 +117,18 @@ export function IntegrationsPage() {
 
   const hasIntegrations = liveIntegrations.length > 0;
 
-  function handleSelect(entry: DirectoryEntry) {
-    setSelectedEntry(entry);
-    setSheetOpen(true);
+  function openComposioSheet(item: ComposioIntegrationItem) {
+    setSelectedComposioItem(item);
+    setComposioSheetOpen(true);
+  }
+
+  function handleViewDetails(id: string) {
+    const connection = (connectionsData ?? []).find((c) => c.id === id);
+    if (!connection) return;
+    const composioItem = (composioIntegrations ?? []).find(
+      (i) => i.slug.toLowerCase() === connection.appSlug.toLowerCase(),
+    );
+    if (composioItem) openComposioSheet(composioItem);
   }
 
   function handleRemove(id: string) {
@@ -119,19 +137,6 @@ export function IntegrationsPage() {
 
   function handleReset(id: string) {
     revokeConnection.mutate({ connectionId: id });
-  }
-
-  useEffect(() => {
-    if (entryToView) {
-      setSelectedEntry(entryToView);
-      setSheetOpen(true);
-      setSlugToView(null);
-    }
-  }, [entryToView]);
-
-  function handleViewDetails(id: string) {
-    const connection = (connectionsData ?? []).find((c) => c.id === id);
-    if (connection) setSlugToView(connection.appSlug);
   }
 
   function handleReorder(_reordered: ConnectedIntegration[]) {
@@ -227,14 +232,44 @@ export function IntegrationsPage() {
         </div>
       )}
 
-      {/* Suggested apps — always visible */}
-      <div className="gap-4 flex w-full flex-col">
-        <h2 className="text-sm font-medium text-muted-foreground">Suggested</h2>
-        <DirectoryGrid entries={entries} loading={isLoading} onViewDetails={handleSelect} />
-      </div>
+      {/* Recommended — top 4 unconnected Composio apps */}
+      {(composioLoading || recommendedItems.length > 0) && (
+        <div className="gap-4 flex w-full flex-col">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground">Recommended</h2>
+            {!composioLoading && composioItems.length > RECOMMENDED_LIMIT && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs cursor-pointer"
+                onClick={() => setBrowseOpen(true)}
+              >
+                See all
+              </Button>
+            )}
+          </div>
+          <div className="gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 grid w-full grid-cols-1">
+            {composioLoading
+              ? Array.from({ length: RECOMMENDED_LIMIT }).map((_, i) => (
+                  <ComposioIntegrationCardSkeleton key={i} />
+                ))
+              : recommendedItems.map((item) => (
+                  <ComposioIntegrationCard
+                    key={item.slug}
+                    item={item}
+                    onViewDetails={openComposioSheet}
+                  />
+                ))}
+          </div>
+        </div>
+      )}
 
-      <AddIntegrationSheet open={sheetOpen} onOpenChange={setSheetOpen} entry={selectedEntry} />
-      <ManageIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
+      <ComposioIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
+      <ComposioIntegrationSheet
+        open={composioSheetOpen}
+        onOpenChange={setComposioSheetOpen}
+        item={selectedComposioItem}
+      />
       <AddWebhookSheet open={webhookOpen} onOpenChange={setWebhookOpen} />
     </div>
   );

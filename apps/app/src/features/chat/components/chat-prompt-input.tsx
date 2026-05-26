@@ -391,7 +391,7 @@ function ChatModelPicker({
                 : "text-muted-foreground",
             )}
           >
-            <Grid2x2 className="size-5 md:size-4 shrink-0" />
+            <Grid2x2 className="size-4 md:size-4 shrink-0" />
             <span className="md:inline hidden">All</span>
           </button>
           {PROVIDERS.map(({ chef, slug }) => (
@@ -411,7 +411,7 @@ function ChatModelPicker({
                   : "text-muted-foreground",
               )}
             >
-              <ModelSelectorLogo provider={slug} className="size-5 md:size-4 shrink-0" />
+              <ModelSelectorLogo provider={slug} className="size-4 md:size-4 shrink-0" />
               <span className="md:inline hidden">{chef}</span>
             </button>
           ))}

@@ -153,241 +153,167 @@ export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
   },
 ];
 
-const TYPE_PREFIX = "mirrorverse.";
-
 interface DefaultNodeArgs {
   readonly kind: string;
   readonly id: string;
-  readonly name: string;
   readonly position: { readonly x: number; readonly y: number };
 }
 
-function baseNode({ kind, id, name, position }: DefaultNodeArgs) {
-  return {
-    id,
-    name,
-    position,
-    type: `${TYPE_PREFIX}${kind}`,
-    typeVersion: 1,
-    notes: null,
-    disabled: false,
-    continueOnFail: false,
-    kind,
-  };
-}
-
 // Returns a minimum-valid node for the given kind. Returns null for kinds
-// the catalog doesn't cover yet; callers should treat that as "not in the
-// palette."
+// the catalog doesn't cover yet; callers should treat that as "not in the palette."
 export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | null {
-  const base = baseNode(args);
+  const base = { id: args.id, type: args.kind, position: args.position };
   switch (args.kind) {
     case "trigger.manual":
-      return { ...base, kind: "trigger.manual" } as WorkflowNodeInput;
+      return { ...base, params: {} };
     case "trigger.cron":
-      return {
-        ...base,
-        kind: "trigger.cron",
-        expression: "0 9 * * *",
-        timezone: "UTC",
-      } as WorkflowNodeInput;
+      return { ...base, params: { expression: "0 9 * * *", timezone: "UTC" } };
     case "trigger.webhook":
       return {
         ...base,
-        kind: "trigger.webhook",
-        endpointSlug: `webhook-${args.id.slice(0, 6)}`,
-        method: "POST",
-        verifySignature: false,
-        responseMode: "on_received",
-        webhookId: `wh-${args.id.slice(0, 6)}`,
-      } as WorkflowNodeInput;
+        params: {
+          method: "POST",
+          verifySignature: false,
+          responseMode: "on_received",
+          endpointSlug: `webhook-${args.id.slice(0, 6)}`,
+        },
+      };
     case "trigger.chat_message":
-      return {
-        ...base,
-        kind: "trigger.chat_message",
-        channels: [{ kind: "web" }],
-      } as WorkflowNodeInput;
+      return { ...base, params: { channels: [{ kind: "web" }] } };
     case "core.http_request":
       return {
         ...base,
-        kind: "core.http_request",
-        method: "GET",
-        url: { mode: "static", value: "https://example.com" },
-        headers: {},
-        query: {},
-        body: null,
-        authentication: { kind: "none" },
-        retry: { maxAttempts: 1, backoff: "none", initialDelayMs: 0 },
-      } as WorkflowNodeInput;
+        params: {
+          method: "GET",
+          url: "https://example.com",
+          headers: {},
+          query: {},
+          body: null,
+        },
+      };
     case "core.code":
       return {
         ...base,
-        kind: "core.code",
-        language: "typescript",
-        source: "return { message: 'hello' };",
-        timeoutSec: 10,
-        memoryMb: 128,
-        networkAllowlist: [],
-      } as WorkflowNodeInput;
+        params: {
+          language: "typescript",
+          source: "return { message: 'hello' };",
+          timeoutSec: 10,
+          memoryMb: 128,
+        },
+      };
     case "core.tool_call":
       return {
         ...base,
-        kind: "core.tool_call",
-        mcpServerId: "mcp_placeholder",
-        toolName: "tool",
-        parameters: {},
-        toolMode: false,
-        retry: { maxAttempts: 1, backoff: "none", initialDelayMs: 0 },
-      } as WorkflowNodeInput;
+        params: { mcpServerId: "mcp_placeholder", toolName: "tool", parameters: {} },
+      };
     case "ai.agent":
       return {
         ...base,
-        kind: "ai.agent",
-        systemPrompt: "You are a helpful assistant.",
-        userPromptTemplate: { mode: "expression", expr: "{{ $json.text }}" },
-        maxIterations: 5,
-        outputMode: "text",
-        outputSchema: null,
-      } as WorkflowNodeInput;
+        params: {
+          systemPrompt: "You are a helpful assistant.",
+          userPromptTemplate: "{{ $json.text }}",
+          maxIterations: 5,
+          outputMode: "text",
+        },
+      };
     case "ai.language_model":
       return {
         ...base,
-        kind: "ai.language_model",
-        provider: "anthropic",
-        model: "claude-haiku-4-5",
-        options: {
+        params: {
+          provider: "anthropic",
+          model: "claude-haiku-4-5",
           temperature: 0.7,
           maxTokens: 1024,
-          topP: null,
-          stopSequences: [],
         },
-      } as WorkflowNodeInput;
+      };
     case "ai.memory":
       return {
         ...base,
-        kind: "ai.memory",
-        strategy: "buffer_window",
-        contextWindowLength: 5,
-        sessionKeyExpression: null,
-      } as WorkflowNodeInput;
+        params: { strategy: "buffer_window", contextWindowLength: 5, sessionKeyExpression: null },
+      };
     case "flow.if":
       return {
         ...base,
-        kind: "flow.if",
-        conditions: [
-          {
-            id: `cond_${args.id.slice(0, 6)}`,
-            leftValue: { mode: "expression", expr: "{{ $json.x }}" },
-            operator: "equals",
-            rightValue: { mode: "static", value: true },
-          },
-        ],
-        combinator: "and",
-      } as WorkflowNodeInput;
+        params: {
+          conditions: [
+            {
+              id: `cond_${args.id.slice(0, 6)}`,
+              leftValue: "{{ $json.x }}",
+              operator: "equals",
+              rightValue: true,
+            },
+          ],
+          combinator: "and",
+        },
+      };
     case "flow.switch":
       return {
         ...base,
-        kind: "flow.switch",
-        mode: "expression",
-        cases: [{ when: "{{ $json.x === 'a' }}", outputIndex: 0 }],
-        defaultOutputIndex: 1,
-      } as WorkflowNodeInput;
+        params: {
+          mode: "expression",
+          cases: [{ when: "{{ $json.x === 'a' }}", outputIndex: 0 }],
+          defaultOutputIndex: 1,
+        },
+      };
     case "flow.loop":
       return {
         ...base,
-        kind: "flow.loop",
-        mode: "for_each",
-        iterableExpression: "{{ $json.items }}",
-        batchSize: 1,
-      } as WorkflowNodeInput;
+        params: { mode: "for_each", iterableExpression: "{{ $json.items }}", batchSize: 1 },
+      };
     case "flow.merge":
-      return {
-        ...base,
-        kind: "flow.merge",
-        strategy: "append",
-        keyExpression: null,
-      } as WorkflowNodeInput;
+      return { ...base, params: { strategy: "append", keyExpression: null } };
     case "flow.wait":
-      return {
-        ...base,
-        kind: "flow.wait",
-        until: { mode: "duration", ms: 5000 },
-      } as WorkflowNodeInput;
+      return { ...base, params: { until: { mode: "duration", ms: 5000 } } };
     case "flow.noop":
-      return { ...base, kind: "flow.noop" } as WorkflowNodeInput;
+      return { ...base, params: {} };
     case "transform":
-      return {
-        ...base,
-        kind: "transform",
-        op: "edit_fields",
-        config: {},
-      } as WorkflowNodeInput;
+      return { ...base, params: { op: "edit_fields", config: {} } };
     case "ai.voice_agent":
       return {
         ...base,
-        kind: "ai.voice_agent",
-        direction: "inbound",
-        firstMessage: "Hello, how can I help you today?",
-        endCallPhrases: ["goodbye", "bye"],
-        maxDurationSec: 300,
-        silenceTimeoutSec: 30,
-        interruptionEnabled: true,
-        recordingEnabled: false,
-        voiceEntry: {
-          provider: "elevenlabs",
-          voiceId: "21m00Tcm4TlvDq8ikWAM",
-          model: "eleven_turbo_v2",
+        params: {
+          direction: "inbound",
+          firstMessage: "Hello, how can I help you today?",
+          endCallPhrases: ["goodbye", "bye"],
+          maxDurationSec: 300,
+          silenceTimeoutSec: 30,
+          interruptionEnabled: true,
+          recordingEnabled: false,
+          voiceEntry: {
+            provider: "elevenlabs",
+            voiceId: "21m00Tcm4TlvDq8ikWAM",
+            model: "eleven_turbo_v2",
+          },
+          modelConnection: {
+            provider: "anthropic",
+            model: "claude-haiku-4-5",
+            systemPrompt: "You are a helpful voice assistant.",
+          },
+          toolsEndpoint: {
+            tools: [],
+            serverUrl: "https://placeholder.mirrorverse.io/api/voice/webhook",
+          },
+          knowledgeBaseIds: [],
         },
-        modelConnection: {
-          provider: "anthropic",
-          model: "claude-haiku-4-5",
-          systemPrompt: "You are a helpful voice assistant.",
-        },
-        toolsEndpoint: {
-          tools: [],
-          serverUrl: "https://example.com/tools",
-        },
-        knowledgeBaseIds: [],
-      } as WorkflowNodeInput;
+      };
     case "ai.retriever":
-      return {
-        ...base,
-        kind: "ai.retriever",
-        knowledgeBaseId: "",
-        topK: 6,
-        minScore: null,
-      } as WorkflowNodeInput;
+      return { ...base, params: { knowledgeBaseId: "", topK: 6, minScore: null } };
     case "ai.output_parser":
-      return {
-        ...base,
-        kind: "ai.output_parser",
-        strategy: "auto_fix",
-        schema: null,
-        autoFix: true,
-      } as WorkflowNodeInput;
+      return { ...base, params: { strategy: "auto_fix", schema: null, autoFix: true } };
     case "human.review":
       return {
         ...base,
-        kind: "human.review",
-        channel: { kind: "chat" },
-        promptTemplate: {
-          mode: "static",
-          value: "Please review and approve to continue.",
+        params: {
+          channel: { kind: "chat" },
+          promptTemplate: "Please review and approve to continue.",
+          responseSchema: null,
+          timeoutSec: 3600,
+          onTimeout: "abort",
+          defaultValue: null,
         },
-        responseSchema: null,
-        timeoutSec: 3600,
-        onTimeout: "abort",
-        defaultValue: null,
-      } as WorkflowNodeInput;
+      };
     case "editor.sticky_note":
-      return {
-        ...base,
-        kind: "editor.sticky_note",
-        content: "",
-        width: 200,
-        height: 120,
-        color: 0,
-      } as WorkflowNodeInput;
+      return { ...base, params: { content: "", width: 200, height: 120, color: 0 } };
     default:
       return null;
   }

@@ -12,15 +12,9 @@ import {
 import { WORKFLOW_DOCUMENT_BUILDER_PROMPT } from "../../system-prompt";
 import { summarizeZodIssues } from "../_shared/zod-errors";
 
-import {
-  DEFAULT_WORKFLOW_SETTINGS,
-  MAX_BUILDER_ATTEMPTS,
-  MAX_BUILDER_STEPS,
-  MAX_TITLE_LENGTH,
-  WORKFLOW_DOCUMENT_SCHEMA_VERSION,
-  WORKFLOW_KINDS,
-} from "./constants";
+import { MAX_BUILDER_ATTEMPTS, MAX_BUILDER_STEPS, MAX_TITLE_LENGTH } from "./constants";
 import type { BuilderState, WorkflowCommitProgressEmitter } from "./types";
+import type { WorkflowKind } from "./constants";
 
 const narration = z
   .string()
@@ -34,22 +28,20 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
   return {
     set_metadata: tool({
       description:
-        "Set the workflow kind and metadata. Call exactly once, before adding nodes. For kind 'code', also pass entrypointNodeId (the id of the node execution starts from). Always include a one-sentence `narration` describing what you are doing for the end user.",
+        "Set the workflow kind and title. Call exactly once, before adding nodes. Always include a one-sentence `narration` describing what you are doing for the end user.",
       inputSchema: z.object({
-        kind: z.enum(WORKFLOW_KINDS),
+        kind: z.enum(["automation", "voice-agent", "chat-agent", "code"]),
         title: z.string().min(1).max(MAX_TITLE_LENGTH),
         description: z.string().nullish(),
         notes: z.string().nullish(),
-        entrypointNodeId: z.string().nullish(),
         narration,
       }),
-      execute: ({ kind, title, description, notes, entrypointNodeId, narration: msg }) => {
+      execute: ({ kind, title, description, notes, narration: msg }) => {
         state.meta = {
           kind,
           title,
           description: description ?? null,
           notes: notes ?? null,
-          entrypointNodeId: entrypointNodeId ?? null,
         };
         onProgress?.(msg);
         return { ok: true as const };
@@ -57,7 +49,7 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
     }),
     add_node: tool({
       description:
-        "Add one workflow node. `node` is a complete node object matching the node-kind schema in the system prompt. Always include a one-sentence `narration` describing what this node does for the end user. Returns { ok: false, error } when the node is invalid; read the error and call add_node again with a corrected node.",
+        "Add one workflow node. `node` must have: `id` (unique string), `type` (the node kind, e.g. `trigger.webhook`), `position: { x, y }`, and `params` (an object with all kind-specific configuration). Always include a one-sentence `narration`. Returns { ok: false, error } when the node is invalid; read the error and call add_node again with a corrected node.",
       inputSchema: z.object({ node: jsonObject, narration }),
       execute: ({ node, narration: msg }) => {
         const parsed = workflowNode.safeParse(node);
@@ -74,7 +66,7 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
     }),
     add_connection: tool({
       description:
-        "Add one edge between two already-added nodes. `connection` matches the connection schema. Always include a one-sentence `narration` describing the wiring for the end user. Returns { ok: false, error } when invalid; fix and call again.",
+        "Add one edge between two already-added nodes. `connection` must have: `from` (source node id), `fromPort` (port name, e.g. 'main'), `to` (target node id), `toPort` (port name). Always include a one-sentence `narration`. Returns { ok: false, error } when invalid; fix and call again.",
       inputSchema: z.object({ connection: jsonObject, narration }),
       execute: ({ connection, narration: msg }) => {
         const parsed = workflowConnection.safeParse(connection);
@@ -82,16 +74,16 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
           return { ok: false as const, error: summarizeZodIssues(parsed.error) };
         }
         const ids = new Set(state.nodes.map((n) => n.id));
-        if (!ids.has(parsed.data.fromNodeId)) {
+        if (!ids.has(parsed.data.from)) {
           return {
             ok: false as const,
-            error: `fromNodeId "${parsed.data.fromNodeId}" has no matching node; add that node first.`,
+            error: `from "${parsed.data.from}" has no matching node; add that node first.`,
           };
         }
-        if (!ids.has(parsed.data.toNodeId)) {
+        if (!ids.has(parsed.data.to)) {
           return {
             ok: false as const,
-            error: `toNodeId "${parsed.data.toNodeId}" has no matching node; add that node first.`,
+            error: `to "${parsed.data.to}" has no matching node; add that node first.`,
           };
         }
         state.connections.push(parsed.data);
@@ -117,9 +109,7 @@ export function extractKnowledgeBaseIds(intent: string): string[] {
   return m?.[1] ? parseIdList(m[1]) : [];
 }
 
-// Optional per-document scoping, written as `knowledgeDocumentIds: [<id>]`. The
-// `document` token keeps this disjoint from the `base` token above, so the two
-// markers can never capture each other.
+// Optional per-document scoping, written as `knowledgeDocumentIds: [<id>]`.
 export function extractKnowledgeDocumentIds(intent: string): string[] {
   const m = intent.match(/knowledge[_\s]*document[_\s]*ids?\s*[:=]\s*\[([^\]]*)\]/i);
   return m?.[1] ? parseIdList(m[1]) : [];
@@ -130,44 +120,37 @@ function sameIds(a: readonly string[], b: readonly string[]): boolean {
 }
 
 // Reconciliation: if the intent supplied knowledge base id(s) but the builder
-// didn't put them (or put different ones) on the voice agent node, set them
-// from the intent so the deployed agent searches the right KBs. The optional
-// document-scoping ids are reconciled the same way, but only alongside KB ids
-// (document scoping is meaningless without a bound knowledge base, and the
-// compiler's RAG gate keys off knowledgeBaseIds).
+// didn't put them (or put different ones) on the voice agent node, patch them.
 function reconcileVoiceKnowledgeBases(intent: string, state: BuilderState): void {
   const kbIds = extractKnowledgeBaseIds(intent);
   if (kbIds.length === 0) return;
   const docIds = extractKnowledgeDocumentIds(intent);
-  for (const node of state.nodes) {
-    if (node.kind !== "ai.voice_agent") continue;
-    if (!sameIds(node.knowledgeBaseIds ?? [], kbIds)) {
-      node.knowledgeBaseIds = kbIds;
-    }
-    if (!sameIds(node.knowledgeDocumentIds ?? [], docIds)) {
-      node.knowledgeDocumentIds = docIds;
+  for (let i = 0; i < state.nodes.length; i++) {
+    const node = state.nodes[i];
+    if (node.type !== "ai.voice_agent") continue;
+    const currentKbIds = Array.isArray(node.params.knowledgeBaseIds)
+      ? (node.params.knowledgeBaseIds as string[])
+      : [];
+    const currentDocIds = Array.isArray(node.params.knowledgeDocumentIds)
+      ? (node.params.knowledgeDocumentIds as string[])
+      : [];
+    if (!sameIds(currentKbIds, kbIds) || !sameIds(currentDocIds, docIds)) {
+      state.nodes[i] = {
+        ...node,
+        params: { ...node.params, knowledgeBaseIds: kbIds, knowledgeDocumentIds: docIds },
+      };
     }
   }
 }
 
-function assembleDocument(state: BuilderState) {
+function assembleDocument(
+  state: BuilderState,
+): Omit<WorkflowDocumentInput, "id" | "version"> | null {
   if (!state.meta) return null;
   return {
-    kind: state.meta.kind,
-    schemaVersion: WORKFLOW_DOCUMENT_SCHEMA_VERSION,
-    metadata: {
-      title: state.meta.title,
-      description: state.meta.description,
-      notes: state.meta.notes,
-    },
-    settings: DEFAULT_WORKFLOW_SETTINGS,
+    name: state.meta.title,
     nodes: state.nodes,
     connections: state.connections,
-    variables: {},
-    staticData: null,
-    ...(state.meta.kind === "code" && state.meta.entrypointNodeId
-      ? { entrypointNodeId: state.meta.entrypointNodeId }
-      : {}),
   };
 }
 
@@ -180,7 +163,7 @@ export async function buildWorkflowDocument(
   intent: string,
   onProgress?: WorkflowCommitProgressEmitter,
   options?: BuildWorkflowOptions,
-): Promise<WorkflowDocumentInput> {
+): Promise<{ document: WorkflowDocumentInput; kind: WorkflowKind }> {
   let lastError: Error | null = null;
   let priorErrors: string | null = null;
 
@@ -232,7 +215,9 @@ export async function buildWorkflowDocument(
 
     const assembled = assembleDocument(state);
     const result = workflowDocumentSchema.safeParse(assembled);
-    if (result.success) return result.data;
+    if (result.success) {
+      return { document: result.data, kind: state.meta.kind };
+    }
 
     lastError = new Error(
       `Assembled workflow failed schema validation (attempt ${attempt}):\n${summarizeZodIssues(

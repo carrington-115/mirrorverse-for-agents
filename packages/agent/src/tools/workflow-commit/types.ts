@@ -12,7 +12,6 @@ export interface BuilderMeta {
   readonly title: string;
   readonly description: string | null;
   readonly notes: string | null;
-  readonly entrypointNodeId: string | null;
 }
 
 export interface BuilderState {
@@ -37,7 +36,7 @@ export interface SuccessfulWorkflowCommit {
   readonly workflowVersionId: string;
   readonly versionNumber: number;
   readonly title: string;
-  readonly kind: WorkflowDocumentInput["kind"];
+  readonly kind: WorkflowKind;
   readonly document: WorkflowDocumentInput;
 }
 
@@ -48,6 +47,7 @@ export type WorkflowCommitResult =
       readonly workflowVersionId: string;
       readonly versionNumber: number;
       readonly title: string;
-      readonly kind: WorkflowDocumentInput["kind"];
+      readonly kind: WorkflowKind;
+      readonly document: WorkflowDocumentInput;
     }
   | { readonly ok: false; readonly error: string };

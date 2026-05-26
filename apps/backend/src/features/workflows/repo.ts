@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+﻿import { createHash, randomUUID } from "node:crypto";
 
 import {
   and,
@@ -141,7 +141,7 @@ export async function getLatestVersion(
 }
 
 // Returns the generatedByChatId of the first (origin) version of a workflow.
-// Every workflow created through Mirropilot has this set; a null result means
+// Every workflow created through Mirrorpilot has this set; a null result means
 // the workflow was created outside the chat flow.
 export async function getOriginChatId(
   db: Database,
@@ -245,27 +245,30 @@ export async function saveWorkflowVersionForWorkspace(
       .limit(1);
     const nextVersionNumber = (latest?.versionNumber ?? 0) + 1;
     const versionId = randomUUID();
+    const docWithVersion: WorkflowDocumentInput = {
+      ...document,
+      id: workflowId,
+      version: nextVersionNumber,
+    };
 
     await tx.insert(workflowVersions).values({
       id: versionId,
       workspaceId,
       workflowId,
       versionNumber: nextVersionNumber,
-      document: document as unknown as WorkflowDocument,
+      document: docWithVersion as unknown as WorkflowDocument,
       compiledAgent: null,
       createdBy: userId,
       generatedByChatId: null,
       summary,
-      checksum: checksumDocument(document),
+      checksum: checksumDocument(docWithVersion),
     });
 
     await tx
       .update(workflows)
       .set({
         currentVersionId: versionId,
-        name: document.metadata.title,
-        description: document.metadata.description ?? null,
-        kind: document.kind,
+        name: document.name,
       })
       .where(
         and(

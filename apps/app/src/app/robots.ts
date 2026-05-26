@@ -1,4 +1,4 @@
-import type { MetadataRoute } from "next";
+﻿import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/seo/site";
 
 export default function robots(): MetadataRoute.Robots {
@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: ["/", "/sign-in", "/sign-up"],
         disallow: [
           "/onboarding/",
-          "/mirropilot/",
+          "/mirrorpilot/",
           "/workflows/",
           "/integrations/",
           "/deploy/",
