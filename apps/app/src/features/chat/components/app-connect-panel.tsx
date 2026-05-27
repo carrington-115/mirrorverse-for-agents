@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Image from "next/image";
-import { CheckCircle2, ExternalLink, Loader2, Plug, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Plug } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,10 +13,9 @@ type CardStatus = "idle" | "connecting" | "connected";
 interface AppConnectPanelProps {
   appSlugs: readonly string[];
   chatId: string;
-  onDismiss: () => void;
 }
 
-export function AppConnectPanel({ appSlugs, chatId, onDismiss }: AppConnectPanelProps) {
+export function AppConnectPanel({ appSlugs, chatId }: AppConnectPanelProps) {
   const trpc = useTRPC();
   const [cardStatuses, setCardStatuses] = useState<Record<string, CardStatus>>(() =>
     Object.fromEntries(appSlugs.map((s) => [s, "idle" as CardStatus])),
@@ -59,13 +58,10 @@ export function AppConnectPanel({ appSlugs, chatId, onDismiss }: AppConnectPanel
   return (
     <div className="w-full animate-in duration-200 fade-in">
       <div className="p-4 rounded-xl border border-border bg-card">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3">
           <p className="text-sm font-medium text-foreground">
             Connect {appSlugs.length === 1 ? "an app" : "apps"} to continue
           </p>
-          <Button variant="ghost" size="icon" className="size-7" onClick={onDismiss}>
-            <X className="size-4" />
-          </Button>
         </div>
 
         <div className="gap-3 flex flex-wrap">

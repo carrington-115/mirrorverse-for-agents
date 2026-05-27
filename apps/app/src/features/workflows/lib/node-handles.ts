@@ -118,10 +118,8 @@ export function getHandlesForKind(kind: string): readonly HandleDef[] {
     case "trigger.manual":
     case "trigger.cron":
     case "trigger.webhook":
-    case "trigger.chat_message":
     case "trigger.app_event":
-    case "trigger.form":
-    case "trigger.sub_workflow":
+    case "trigger.inbound_call":
       return [MAIN_OUT];
 
     case "flow.stop":

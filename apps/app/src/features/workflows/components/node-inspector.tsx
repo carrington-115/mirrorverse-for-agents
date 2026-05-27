@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { NodeIcon } from "@/features/workflows/lib/node-icon";
+import { APP_EVENT_CATALOG } from "@mirrorverse/agent/schemas";
 import type { WorkflowNodeInput } from "@mirrorverse/agent/schemas";
 
 interface NodeInspectorProps {
@@ -624,6 +625,139 @@ function StickyNoteForm({
   );
 }
 
+const APP_SLUG_OPTIONS = Object.entries(APP_EVENT_CATALOG).map(([slug, app]) => ({
+  value: slug,
+  label: app.name,
+}));
+
+function AppEventTriggerForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const appSlug = str(node.params, "appSlug", "github");
+  const appEntry = APP_EVENT_CATALOG[appSlug];
+  const eventOptions = (appEntry?.events ?? []).map((e) => ({
+    value: e.slug,
+    label: e.name,
+  }));
+  const eventSlug = str(node.params, "eventSlug", eventOptions[0]?.value ?? "");
+
+  function handleAppChange(newSlug: string) {
+    const first = APP_EVENT_CATALOG[newSlug]?.events[0];
+    onUpdate({
+      params: {
+        ...node.params,
+        appSlug: newSlug,
+        eventSlug: first?.slug ?? "",
+      },
+    });
+  }
+
+  const filters = asObj(node.params.filters);
+  const filterEntries = Object.entries(filters);
+
+  function addFilter() {
+    p("filters", { ...filters, "": "" });
+  }
+
+  function updateFilterKey(oldKey: string, newKey: string) {
+    const next: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(filters)) {
+      next[k === oldKey ? newKey : k] = v;
+    }
+    p("filters", next);
+  }
+
+  function updateFilterValue(key: string, value: string) {
+    p("filters", { ...filters, [key]: value });
+  }
+
+  function removeFilter(key: string) {
+    const next = { ...filters };
+    delete next[key];
+    p("filters", next);
+  }
+
+  return (
+    <>
+      <SelectInput
+        label="App"
+        value={appSlug}
+        options={APP_SLUG_OPTIONS}
+        onChange={handleAppChange}
+      />
+      <SelectInput
+        label="Event"
+        value={eventSlug}
+        options={eventOptions}
+        onChange={(v) => p("eventSlug", v)}
+      />
+      <Field label="Filters">
+        <div className="gap-1 flex flex-col">
+          {filterEntries.map(([k, v]) => (
+            <div key={k} className="gap-1 flex items-center">
+              <Input
+                className="h-6 text-xs flex-1"
+                placeholder="key"
+                value={k}
+                onChange={(e) => updateFilterKey(k, e.target.value)}
+              />
+              <Input
+                className="h-6 text-xs flex-1"
+                placeholder="value"
+                value={typeof v === "string" ? v : String(v)}
+                onChange={(e) => updateFilterValue(k, e.target.value)}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 shrink-0"
+                onClick={() => removeFilter(k)}
+              >
+                <Trash2 className="size-3" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-xs mt-1 w-full"
+            onClick={addFilter}
+          >
+            <Plus className="size-3 mr-1" />
+            Add filter
+          </Button>
+        </div>
+      </Field>
+    </>
+  );
+}
+
+function InboundCallTriggerForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const raw = node.params.phoneNumberId;
+  const value = typeof raw === "string" ? raw : "";
+
+  return (
+    <TextInput
+      label="Phone number ID"
+      value={value}
+      onChange={(v) => p("phoneNumberId", v.length > 0 ? v : null)}
+      placeholder="Any number (leave blank)"
+    />
+  );
+}
+
 function FallbackForm({ node }: { node: WorkflowNodeInput }) {
   return (
     <p className="text-xs text-muted-foreground">
@@ -646,6 +780,10 @@ function KindForm({
       return <CronTriggerForm node={node} onUpdate={onUpdate} />;
     case "trigger.webhook":
       return <WebhookTriggerForm node={node} onUpdate={onUpdate} />;
+    case "trigger.app_event":
+      return <AppEventTriggerForm node={node} onUpdate={onUpdate} />;
+    case "trigger.inbound_call":
+      return <InboundCallTriggerForm node={node} onUpdate={onUpdate} />;
     case "ai.agent":
       return <AgentForm node={node} onUpdate={onUpdate} />;
     case "ai.voice_agent":

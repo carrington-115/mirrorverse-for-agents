@@ -29,6 +29,7 @@ interface ChatRuntimeProps {
   initialMessages: UIMessage[];
   onWorkflowSelect?: (workflowId: string) => void;
   onFirstMessage?: () => void;
+  onStreamFinish?: () => void;
 }
 
 export function ChatRuntime({
@@ -36,12 +37,12 @@ export function ChatRuntime({
   initialMessages,
   onWorkflowSelect,
   onFirstMessage,
+  onStreamFinish,
 }: ChatRuntimeProps) {
   const trpc = useTRPC();
   const qc = useQueryClient();
   const [model, setModel] = useState<string>(DEFAULT_CHAT_MODEL);
   const [interruptDismissed, setInterruptDismissed] = useState(false);
-  const [credentialsDismissed, setCredentialsDismissed] = useState(false);
   const [streamFinished, setStreamFinished] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [webhookOpen, setWebhookOpen] = useState(false);
@@ -58,8 +59,8 @@ export function ChatRuntime({
     qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
     setStreamFinished(true);
     setInterruptDismissed(false);
-    setCredentialsDismissed(false);
-  }, [qc, trpc.chats.list, trpc.workflows.list]);
+    onStreamFinish?.();
+  }, [qc, trpc.chats.list, trpc.workflows.list, onStreamFinish]);
 
   const { messages, sendMessage, regenerate, setMessages, status, stop } = useChat({
     id: sessionId,
@@ -276,7 +277,6 @@ export function ChatRuntime({
       autoResumeRef.current &&
       !credentialsInterrupt &&
       !credentialInterrupt &&
-      !credentialsDismissed &&
       !interruptDismissed &&
       streamFinished
     ) {
@@ -289,7 +289,6 @@ export function ChatRuntime({
   }, [
     credentialsInterrupt,
     credentialInterrupt,
-    credentialsDismissed,
     interruptDismissed,
     streamFinished,
     regenerate,
@@ -303,12 +302,10 @@ export function ChatRuntime({
     if (id && id !== prevInterruptId.current) {
       prevInterruptId.current = id;
       setInterruptDismissed(false);
-      setCredentialsDismissed(false);
     }
   }, [credentialInterrupt, credentialsInterrupt]);
 
-  const inlineInterrupt =
-    credentialsInterrupt && !credentialsDismissed ? credentialsInterrupt : null;
+  const inlineInterrupt = credentialsInterrupt ?? null;
 
   if (isEmpty) {
     return (
@@ -335,7 +332,6 @@ export function ChatRuntime({
         showThinking={isSubmitted || (isStreaming && !lastMessageHasContent)}
         interrupt={inlineInterrupt}
         chatId={sessionId}
-        onDismissInterrupt={() => setCredentialsDismissed(true)}
         onEditUserMessage={handleEditUserMessage}
         onRetryAssistant={handleRetryAssistant}
         onWorkflowSelect={onWorkflowSelect}
