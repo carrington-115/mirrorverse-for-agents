@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatWorkflowSidePanel } from "@/features/chat/components/chat-workflow-side-panel";
+import { useTRPC } from "@/lib/trpc/client";
 
 import { ChatRuntime } from "../components/chat-runtime";
 
@@ -20,10 +23,36 @@ export function NewChatPage() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const dragState = useRef({ isDragging: false, startX: 0, startWidthPx: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
+  const [hasStartedChat, setHasStartedChat] = useState(false);
+  const isMountedRef = useRef(true);
+  const router = useRouter();
+  const qc = useQueryClient();
+  const trpc = useTRPC();
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleFirstMessage = useCallback(() => {
+    setHasStartedChat(true);
+    // Cosmetically update the browser URL so the sidebar active state is correct
+    // while streaming. After the stream finishes, router.replace syncs Next.js
+    // router state to prevent layout-tree divergence on subsequent navigation.
     window.history.replaceState(null, "", `/mirrorpilot/${sessionId}`);
   }, [sessionId]);
+
+  const handleStreamFinish = useCallback(() => {
+    if (!hasStartedChat) return;
+    void (async () => {
+      // Pre-fetch so ChatShell has data in cache on mount — no skeleton flash.
+      await qc.prefetchQuery(trpc.chats.get.queryOptions({ chatId: sessionId }));
+      if (isMountedRef.current) {
+        router.replace(`/mirrorpilot/${sessionId}`);
+      }
+    })();
+  }, [hasStartedChat, sessionId, router, qc, trpc.chats.get]);
 
   const handleWorkflowSelect = useCallback((workflowId: string) => {
     setSelectedWorkflowId(workflowId);
@@ -76,6 +105,7 @@ export function NewChatPage() {
           initialMessages={[]}
           onWorkflowSelect={handleWorkflowSelect}
           onFirstMessage={handleFirstMessage}
+          onStreamFinish={handleStreamFinish}
         />
       </div>
       {showPanel && !isMobile && (
@@ -91,7 +121,7 @@ export function NewChatPage() {
             className="md:flex hidden h-full shrink-0 flex-col"
             style={{ width: `${panelWidth}vw` }}
           >
-            <ChatWorkflowSidePanel workflowId={selectedWorkflowId} onClose={handlePanelClose} />
+            <ChatWorkflowSidePanel workflowId={selectedWorkflowId} />
           </div>
         </>
       )}
@@ -108,11 +138,7 @@ export function NewChatPage() {
             </DrawerHeader>
             <div className="min-h-0 flex-1">
               {selectedWorkflowId && (
-                <ChatWorkflowSidePanel
-                  workflowId={selectedWorkflowId}
-                  onClose={handlePanelClose}
-                  showControls={false}
-                />
+                <ChatWorkflowSidePanel workflowId={selectedWorkflowId} showControls={false} />
               )}
             </div>
           </DrawerContent>

@@ -1,7 +1,6 @@
 ﻿"use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpen,
@@ -31,7 +30,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
-import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 import { useChatsListQuery } from "@/features/chat/api/queries";
 import type { ChatListEntry } from "@/features/chat/api/server-types";
 import { ConversationSidebarItem } from "@/features/chat/components/conversation-sidebar-item";
@@ -95,16 +93,18 @@ function NewChatButton() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const pathname = usePathname();
 
   const handleNewChatClick = () => {
-    startTransition(async () => {
-      const sessionId = await generateSessionId();
-      router.push(`/mirrorpilot/${sessionId}`);
-    });
+    // When already on /mirrorpilot, the URL may have been silently updated via
+    // history.replaceState after the first message was sent. A full reload
+    // guarantees a clean component tree in either case (same as the header button).
+    if (pathname === "/mirrorpilot") {
+      window.location.href = "/mirrorpilot";
+    } else {
+      router.push("/mirrorpilot");
+    }
   };
-
-  const busy = isPending;
 
   if (isCollapsed) {
     return (
@@ -113,14 +113,9 @@ function NewChatButton() {
           <TooltipTrigger asChild>
             <SidebarMenuButton
               onClick={handleNewChatClick}
-              disabled={busy}
               className="flex cursor-pointer items-center justify-center"
             >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin shrink-0" />
-              ) : (
-                <MessageCirclePlus className="size-4 shrink-0" />
-              )}
+              <MessageCirclePlus className="size-4 shrink-0" />
             </SidebarMenuButton>
           </TooltipTrigger>
           <TooltipContent side="right">New chat</TooltipContent>
@@ -131,16 +126,8 @@ function NewChatButton() {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
-        onClick={handleNewChatClick}
-        disabled={busy}
-        className="w-full cursor-pointer"
-      >
-        {busy ? (
-          <Loader2 className="size-4 animate-spin shrink-0" />
-        ) : (
-          <MessageCirclePlus className="size-4 shrink-0" />
-        )}
+      <SidebarMenuButton onClick={handleNewChatClick} className="w-full cursor-pointer">
+        <MessageCirclePlus className="size-4 shrink-0" />
         <span>New chat</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -186,7 +173,7 @@ function ChannelsItem() {
 
 function titleFor(entry: ChatListEntry): string {
   if (entry.title && entry.title.trim().length > 0) return entry.title;
-  return "Untitled chat";
+  return "Greeting Exchange";
 }
 
 function ConversationsSection() {

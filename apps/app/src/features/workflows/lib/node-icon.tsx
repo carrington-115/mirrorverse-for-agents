@@ -39,9 +39,7 @@ const KIND_ICON: Record<string, string> = {
   cron: "lucide:clock",
   webhook: "lucide:webhook",
   app_event: "lucide:zap",
-  form: "lucide:clipboard-list",
-  chat_message: "lucide:message-square",
-  sub_workflow: "lucide:workflow",
+  inbound_call: "lucide:phone-incoming",
   tool_call: "lucide:wrench",
   http_request: "lucide:globe",
   code: "lucide:code-2",
@@ -142,7 +140,6 @@ const BRAND_ICONIFY_ID: Record<string, string> = {
 
 export interface NodeIconHints {
   readonly mcpServerId?: string | null;
-  readonly channelKind?: string | null;
   readonly modelId?: string | null;
 }
 
@@ -155,22 +152,10 @@ function readString(obj: RawNode, key: string): string | null {
 
 export function extractIconHints(node: RawNode): NodeIconHints | undefined {
   // Support both new schema (fields in params) and direct fields for backwards compat.
-  const nodeType = readString(node, "type") ?? readString(node, "kind") ?? "";
   const params =
     typeof node.params === "object" && node.params !== null ? (node.params as RawNode) : node;
 
-  const out: { mcpServerId?: string; channelKind?: string; modelId?: string } = {};
-
-  if (nodeType === "trigger.chat_message") {
-    const channels = params.channels ?? node.channels;
-    if (Array.isArray(channels) && channels.length > 0) {
-      const first = channels[0] as RawNode | null;
-      if (first && typeof first === "object") {
-        const ck = readString(first, "kind");
-        if (ck) out.channelKind = ck;
-      }
-    }
-  }
+  const out: { mcpServerId?: string; modelId?: string } = {};
 
   const mcpServerId = readString(params, "mcpServerId") ?? readString(node, "mcpServerId");
   if (mcpServerId) out.mcpServerId = mcpServerId;
@@ -214,10 +199,6 @@ function brandFromMcpServer(mcpServerId: string): string | null {
 
 export function resolveBrandIconId(hints: NodeIconHints | undefined): string | null {
   if (!hints) return null;
-  if (hints.channelKind) {
-    const id = BRAND_ICONIFY_ID[hints.channelKind];
-    if (id) return id;
-  }
   if (hints.modelId) {
     const slug = brandFromModel(hints.modelId);
     if (slug && BRAND_ICONIFY_ID[slug]) return BRAND_ICONIFY_ID[slug];

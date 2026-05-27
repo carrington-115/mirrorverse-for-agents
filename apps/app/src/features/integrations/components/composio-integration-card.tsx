@@ -15,6 +15,7 @@ export interface ComposioIntegrationItem {
   logoUrl: string | null;
   description: string | null;
   tools: readonly { slug: string; description: string }[];
+  triggers: readonly { slug: string; name: string; description: string }[];
 }
 
 interface ComposioIntegrationIconProps {

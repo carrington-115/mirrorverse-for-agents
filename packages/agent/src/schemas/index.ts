@@ -4,5 +4,5 @@
 // `postgres` driver, which only works in Node).
 export { jsonObject, workflowConnection, workflowDocumentSchema, workflowNode } from "./workflow";
 export type { WorkflowConnectionInput, WorkflowDocumentInput, WorkflowNodeInput } from "./workflow";
-export { PALETTE_ENTRIES, defaultNodeForKind } from "./node-defaults";
-export type { PaletteCategory, PaletteEntry } from "./node-defaults";
+export { APP_EVENT_CATALOG, PALETTE_ENTRIES, defaultNodeForKind } from "./node-defaults";
+export type { AppEventApp, AppEventEntry, PaletteCategory, PaletteEntry } from "./node-defaults";

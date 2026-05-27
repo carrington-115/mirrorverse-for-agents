@@ -41,9 +41,74 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 
-async function fetchAndParseUrl(url: string): Promise<string> {
+/**
+ * Normalise third-party sharing URLs before fetching:
+ * - Notion: fail fast — pages are JS-rendered SPAs with no static content.
+ * - Google Docs/Sheets: rewrite to plaintext/CSV export (works for public links).
+ * - Google Drive files: rewrite to direct download.
+ * - Dropbox: switch dl=0 preview to dl=1 direct download.
+ */
+function normalizeSourceUrl(rawUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error(`Invalid URL: ${rawUrl}`);
+  }
+
+  const host = parsed.hostname.toLowerCase();
+
+  if (
+    host === "notion.so" ||
+    host.endsWith(".notion.so") ||
+    host === "notion.site" ||
+    host.endsWith(".notion.site")
+  ) {
+    throw new Error(
+      "Notion pages cannot be fetched directly because they render in the browser. " +
+        "Export the page as a PDF (Share → Export → PDF) and upload it instead.",
+    );
+  }
+
+  if (host === "docs.google.com") {
+    const docId = parsed.pathname.match(/^\/document\/d\/([^/]+)/)?.[1];
+    if (docId)
+      return `https://docs.google.com/document/d/${docId}/export?format=txt`;
+
+    const sheetId = parsed.pathname.match(/^\/spreadsheets\/d\/([^/]+)/)?.[1];
+    if (sheetId)
+      return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+  }
+
+  if (host === "drive.google.com") {
+    const fileId = parsed.pathname.match(/^\/file\/d\/([^/]+)/)?.[1];
+    if (fileId)
+      return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+
+  if (host === "www.dropbox.com" || host === "dropbox.com") {
+    parsed.searchParams.set("dl", "1");
+    return parsed.toString();
+  }
+
+  return rawUrl;
+}
+
+async function fetchAndParseUrl(rawUrl: string): Promise<string> {
+  const url = normalizeSourceUrl(rawUrl);
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${url}`);
+
+  const contentType = resp.headers.get("content-type") ?? "";
+
+  // Plain-text responses (e.g. Google Docs/Sheets export, Dropbox text files)
+  if (
+    contentType.startsWith("text/plain") ||
+    contentType.startsWith("text/csv")
+  ) {
+    return (await resp.text()).replace(/\s+/g, " ").trim();
+  }
+
   const html = await resp.text();
   const dom = new JSDOM(html, { url });
   const reader = new Readability(dom.window.document);

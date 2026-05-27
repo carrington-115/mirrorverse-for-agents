@@ -127,12 +127,19 @@ export interface ComposioIntegrationTool {
   readonly description: string;
 }
 
+export interface ComposioIntegrationTrigger {
+  readonly slug: string;
+  readonly name: string;
+  readonly description: string;
+}
+
 export interface ComposioIntegration {
   readonly slug: string;
   readonly name: string;
   readonly logoUrl: string | null;
   readonly description: string | null;
   readonly tools: readonly ComposioIntegrationTool[];
+  readonly triggers: readonly ComposioIntegrationTrigger[];
 }
 
 export async function listComposioIntegrations(): Promise<
@@ -167,9 +174,10 @@ export async function listComposioIntegrations(): Promise<
 
   const results = await Promise.allSettled(
     toolkitSlugs.map(async (slug): Promise<ComposioIntegration> => {
-      const [tk, rawTools] = await Promise.all([
+      const [tk, rawTools, rawTriggers] = await Promise.all([
         composio.toolkits.get(slug),
         composio.tools.getRawComposioTools({ toolkits: [slug] }),
+        composio.triggers.listTypes({ toolkits: [slug] }),
       ]);
       const meta = tk.meta as
         | { logo?: string; description?: string }
@@ -179,6 +187,13 @@ export async function listComposioIntegrations(): Promise<
       )
         .map((t) => ({ slug: t.slug ?? "", description: t.description ?? "" }))
         .filter((t) => t.slug.length > 0);
+      const triggers: ComposioIntegrationTrigger[] = (rawTriggers.items ?? [])
+        .map((t) => ({
+          slug: t.slug,
+          name: t.name,
+          description: t.description,
+        }))
+        .filter((t) => t.slug.length > 0);
 
       return {
         slug,
@@ -186,6 +201,7 @@ export async function listComposioIntegrations(): Promise<
         logoUrl: meta?.logo ?? null,
         description: meta?.description ?? null,
         tools,
+        triggers,
       };
     }),
   );

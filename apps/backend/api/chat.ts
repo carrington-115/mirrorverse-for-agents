@@ -6,6 +6,7 @@ import {
   isSupportedModel,
   runMirrorpilot,
 } from "@mirrorverse/agent";
+import { APP_EVENT_CATALOG } from "@mirrorverse/agent/schemas";
 import { randomUUID } from "node:crypto";
 import {
   createUIMessageStream,
@@ -219,6 +220,24 @@ async function buildIntrospectionTools(
           url: r.url ?? null,
         }));
         return { servers };
+      },
+    }),
+    list_app_event_catalog: tool({
+      description:
+        "List the supported app-event trigger apps and their available event slugs. Call this when building a trigger.app_event node and you need the exact eventSlug for an app.",
+      inputSchema: z.object({
+        appSlug: z
+          .string()
+          .optional()
+          .describe(
+            "Filter to a single app, e.g. 'github'. Omit to get the full catalog.",
+          ),
+      }),
+      execute: async ({ appSlug }) => {
+        const catalog = appSlug
+          ? { [appSlug]: APP_EVENT_CATALOG[appSlug] ?? null }
+          : APP_EVENT_CATALOG;
+        return { catalog };
       },
     }),
   };

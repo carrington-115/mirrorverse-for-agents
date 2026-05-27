@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   BarChart3Icon,
@@ -61,7 +61,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { signOutAction } from "@/features/auth/actions/sign-out";
 import { useSettingsModal } from "@/features/settings/hooks/use-settings-modal";
-import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 
 interface DashboardHeaderProps {
   title: string;
@@ -300,6 +299,7 @@ function AppearanceSubmenu() {
 function HeaderCommand() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { openSettings } = useSettingsModal();
   const [isPending, startTransition] = React.useTransition();
@@ -322,10 +322,11 @@ function HeaderCommand() {
 
   const handleNewChat = () => {
     setOpen(false);
-    startTransition(async () => {
-      const sessionId = await generateSessionId();
-      router.push(`/mirrorpilot/${sessionId}`);
-    });
+    if (pathname === "/mirrorpilot") {
+      window.location.href = "/mirrorpilot";
+    } else {
+      router.push("/mirrorpilot");
+    }
   };
 
   const handleSignOut = () => {

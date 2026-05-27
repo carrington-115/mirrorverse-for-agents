@@ -70,6 +70,7 @@ const TOOL_META: Record<string, { label: string; icon: LucideIcon }> = {
   "tool-submit_plan": { label: "Planning workflow", icon: ListTodo },
   "tool-list_connected_apps": { label: "Checking connected apps", icon: PlugZap },
   "tool-list_mcp_servers": { label: "Checking MCP servers", icon: Server },
+  "tool-list_app_event_catalog": { label: "Looking up app events", icon: PlugZap },
 };
 
 /**
@@ -90,6 +91,7 @@ const REASONING_BEFORE_TOOL_ICON: Record<string, LucideIcon> = {
   [KB_VIEW_TOOL_TYPE]: BookOpen,
   "tool-list_connected_apps": PlugZap,
   "tool-list_mcp_servers": Server,
+  "tool-list_app_event_catalog": PlugZap,
 };
 
 /** Fallback label for a tool we don't have explicit copy for (e.g. future tools). */

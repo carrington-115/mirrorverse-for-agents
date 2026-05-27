@@ -104,6 +104,8 @@ export function IngestDialog({ kbId, children }: { kbId: string; children: React
     }
   };
 
+  const isNotionUrl = /notion\.(so|site)(\/|$)/i.test(url);
+
   const isPending = mutation.isPending || uploading;
   const canSubmit =
     (tab === "text" && text.trim().length > 0) ||
@@ -152,6 +154,12 @@ export function IngestDialog({ kbId, children }: { kbId: string; children: React
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com/article"
                 />
+                {isNotionUrl && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Notion pages can&apos;t be fetched directly. Export the page as a PDF (Share →
+                    Export → PDF) and upload it using the PDF tab.
+                  </p>
+                )}
               </div>
             </TabsContent>
             <TabsContent value="pdf" className="mt-3">

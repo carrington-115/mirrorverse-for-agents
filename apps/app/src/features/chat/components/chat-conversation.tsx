@@ -22,7 +22,6 @@ interface ChatConversationProps {
   showThinking: boolean;
   interrupt?: CredentialsInterrupt | null;
   chatId?: string;
-  onDismissInterrupt?: () => void;
   onEditUserMessage: (messageId: string, newText: string) => void;
   onRetryAssistant: () => void;
   onWorkflowSelect?: (workflowId: string) => void;
@@ -39,7 +38,6 @@ export function ChatConversation({
   showThinking,
   interrupt,
   chatId,
-  onDismissInterrupt,
   onEditUserMessage,
   onRetryAssistant,
   onWorkflowSelect,
@@ -84,12 +82,8 @@ export function ChatConversation({
               />
             ))}
           {showThinking ? <ThinkingRow /> : null}
-          {interrupt && !isStreaming && chatId && onDismissInterrupt && (
-            <AppConnectPanel
-              appSlugs={interrupt.appSlugs}
-              chatId={chatId}
-              onDismiss={onDismissInterrupt}
-            />
+          {interrupt && !isStreaming && chatId && (
+            <AppConnectPanel appSlugs={interrupt.appSlugs} chatId={chatId} />
           )}
         </div>
       </ConversationContent>

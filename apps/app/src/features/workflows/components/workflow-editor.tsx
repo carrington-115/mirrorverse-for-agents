@@ -144,7 +144,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
 
   const hasValidationErrors = validationErrors.size > 0;
 
-  const workflowName = displayDoc?.name ?? latestData?.workflow?.name ?? "Untitled workflow";
+  const workflowName = displayDoc?.name ?? latestData?.workflow?.name ?? "New Workflow";
   const workflowKind = latestData?.workflow?.kind ?? null;
   const workflowStatus = latestData?.workflow?.status ?? null;
   const updatedAt = latestData?.workflow?.updatedAt ?? null;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -20,10 +21,14 @@ interface ChatShellProps {
 }
 
 export function ChatShell({ sessionId }: ChatShellProps) {
-  const { data, isLoading } = useChatQuery(sessionId);
+  const { data, isLoading, isError } = useChatQuery(sessionId);
+  const router = useRouter();
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (isError) router.replace("/mirrorpilot");
+  }, [isError, router]);
   const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_VW);
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const dragState = useRef({ isDragging: false, startX: 0, startWidthPx: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
@@ -35,12 +40,6 @@ export function ChatShell({ sessionId }: ChatShellProps) {
 
   const handleWorkflowSelect = useCallback((workflowId: string) => {
     setSelectedWorkflowId(workflowId);
-    setIsPanelOpen(true);
-  }, []);
-
-  const handlePanelClose = useCallback(() => {
-    setIsPanelOpen(false);
-    setSelectedWorkflowId(null);
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -78,12 +77,13 @@ export function ChatShell({ sessionId }: ChatShellProps) {
 
   const chatWorkflowId = data.chat?.workflowId ?? null;
   const effectiveWorkflowId = selectedWorkflowId ?? chatWorkflowId;
-  const showPanel = isPanelOpen && !!effectiveWorkflowId;
+  const showPanel = !!effectiveWorkflowId;
 
   return (
     <div className="flex h-full w-full overflow-hidden">
       <div className="min-w-0 flex h-full flex-1 flex-col">
         <ChatRuntime
+          key={sessionId}
           sessionId={sessionId}
           initialMessages={initialMessages}
           onWorkflowSelect={handleWorkflowSelect}
@@ -102,28 +102,19 @@ export function ChatShell({ sessionId }: ChatShellProps) {
             className="md:flex hidden h-full shrink-0 flex-col"
             style={{ width: `${panelWidth}vw` }}
           >
-            <ChatWorkflowSidePanel workflowId={effectiveWorkflowId} onClose={handlePanelClose} />
+            <ChatWorkflowSidePanel workflowId={effectiveWorkflowId} />
           </div>
         </>
       )}
       {isMobile && (
-        <Drawer
-          open={showPanel}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) handlePanelClose();
-          }}
-        >
+        <Drawer open={showPanel} dismissible={false}>
           <DrawerContent className="h-[85vh]">
             <DrawerHeader className="sr-only">
               <DrawerTitle>Workflow details</DrawerTitle>
             </DrawerHeader>
             <div className="min-h-0 flex-1">
               {effectiveWorkflowId && (
-                <ChatWorkflowSidePanel
-                  workflowId={effectiveWorkflowId}
-                  onClose={handlePanelClose}
-                  showControls={false}
-                />
+                <ChatWorkflowSidePanel workflowId={effectiveWorkflowId} showControls={false} />
               )}
             </div>
           </DrawerContent>
