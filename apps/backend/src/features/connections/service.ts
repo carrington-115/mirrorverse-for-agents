@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 import { env } from "@mirrorverse/env/backend";
-import { schema } from "@mirrorverse/db";
+import { eq, getDb, schema } from "@mirrorverse/db";
 
 import { appError, ErrCode } from "../../lib/errors";
 import { getChatForUser } from "../chats/repo";
@@ -87,29 +87,41 @@ export const connectionsService = {
       return { redirectUrl: null, connectionRequestId: null };
     }
 
-    // Pre-generate so we can embed the id in the Composio callback URL before it is persisted.
     const connectionRequestId = randomUUID();
     const callbackBase =
       env.COMPOSIO_OAUTH_CALLBACK_URL ??
       `http://localhost:${env.PORT}/api/connections/callback`;
     const callbackUrl = `${callbackBase}?requestId=${connectionRequestId}`;
 
-    const redirectUrl = await getComposioAuthRedirectUrl(
-      ctx.workspaceId,
-      input.appSlug,
-      callbackUrl,
-    );
-    if (!redirectUrl)
-      throw appError(ErrCode.Internal, "Could not initiate connection");
-
-    const connectionReq = await createConnectionRequest(ctx.db, {
+    // Persist the request BEFORE calling Composio. For some apps Composio
+    // calls our callbackUrl server-to-server during link() processing; the
+    // insert must be committed (not just in an open transaction) by then.
+    // getDb() is the privileged connection whose writes commit immediately.
+    const connectionReq = await createConnectionRequest(getDb(), {
       id: connectionRequestId,
       workspaceId: ctx.workspaceId,
       chatId: input.chatId,
       mcpServerId,
       appSlug: input.appSlug,
-      redirectUrl,
+      redirectUrl: callbackUrl,
     });
+
+    let redirectUrl: string;
+    try {
+      const url = await getComposioAuthRedirectUrl(
+        ctx.workspaceId,
+        input.appSlug,
+        callbackUrl,
+      );
+      if (!url) throw new Error("no redirectUrl");
+      redirectUrl = url;
+    } catch {
+      await getDb()
+        .update(schema.connectionRequests)
+        .set({ status: "expired" })
+        .where(eq(schema.connectionRequests.id, connectionRequestId));
+      throw appError(ErrCode.Internal, "Could not initiate connection");
+    }
 
     return {
       redirectUrl,

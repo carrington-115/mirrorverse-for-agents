@@ -88,7 +88,21 @@ export function ChatPromptInput({
         <PromptInputFooter>
           <PromptInputTools>
             <PromptInputActionMenu>
-              <PromptInputActionMenuTrigger />
+              <PromptInputActionMenuTrigger
+                tooltip={{
+                  content: (
+                    <div className="space-y-1.5">
+                      <p className="font-medium text-xs">Attach &amp; connect</p>
+                      <ul className="space-y-0.5 text-xs text-muted-foreground">
+                        <li>Images, screenshots &amp; documents</li>
+                        <li>Phone numbers</li>
+                        <li>Webhooks &amp; integrations</li>
+                      </ul>
+                    </div>
+                  ),
+                  side: "top",
+                }}
+              />
               <PromptInputActionMenuContent className="w-56">
                 <UploadFileMenuItem />
                 <PromptInputActionAddScreenshot className="py-2.5 px-3" />

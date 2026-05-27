@@ -66,6 +66,8 @@ export function makeBillingAggregatorFunction(
           try {
             await stripe.billing.meterEvents.create({
               event_name: meterName,
+              // Deterministic key so Stripe deduplicates on Inngest retry.
+              identifier: `${row.workspaceId}-${row.kind}-${hourAgo.getTime()}`,
               payload: {
                 value: String(row.totalQuantity),
                 stripe_customer_id: sub.stripeCustomerId,

@@ -38,6 +38,7 @@ export interface RunMirrorpilotDeps {
   readonly model?: string;
   readonly builderModel?: string;
   readonly maxSteps?: number;
+  readonly maxTokens?: number;
   readonly additionalTools?: Record<string, Tool>;
   readonly systemPromptSuffix?: string;
   readonly onUsage?: (event: UsageEvent) => Promise<void> | void;

@@ -29,13 +29,15 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
     set_metadata: tool({
       description:
         "Set the workflow kind and title. Call exactly once, before adding nodes. Always include a one-sentence `narration` describing what you are doing for the end user.",
-      inputSchema: z.object({
-        kind: z.enum(["automation", "voice-agent", "chat-agent", "code"]),
-        title: z.string().min(1).max(MAX_TITLE_LENGTH),
-        description: z.string().nullish(),
-        notes: z.string().nullish(),
-        narration,
-      }),
+      inputSchema: z
+        .object({
+          kind: z.enum(["automation", "voice-agent", "chat-agent", "code"]),
+          title: z.string().min(1).max(MAX_TITLE_LENGTH),
+          description: z.string().nullish(),
+          notes: z.string().nullish(),
+          narration,
+        })
+        .strict(),
       execute: ({ kind, title, description, notes, narration: msg }) => {
         state.meta = {
           kind,
@@ -50,7 +52,7 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
     add_node: tool({
       description:
         "Add one workflow node. `node` must have: `id` (unique string), `type` (the node kind, e.g. `trigger.webhook`), `position: { x, y }`, and `params` (an object with all kind-specific configuration). Always include a one-sentence `narration`. Returns { ok: false, error } when the node is invalid; read the error and call add_node again with a corrected node.",
-      inputSchema: z.object({ node: jsonObject, narration }),
+      inputSchema: z.object({ node: jsonObject, narration }).strict(),
       execute: ({ node, narration: msg }) => {
         const parsed = workflowNode.safeParse(node);
         if (!parsed.success) {
@@ -67,7 +69,7 @@ function makeBuilderTools(state: BuilderState, onProgress?: WorkflowCommitProgre
     add_connection: tool({
       description:
         "Add one edge between two already-added nodes. `connection` must have: `from` (source node id), `fromPort` (port name, e.g. 'main'), `to` (target node id), `toPort` (port name). Always include a one-sentence `narration`. Returns { ok: false, error } when invalid; fix and call again.",
-      inputSchema: z.object({ connection: jsonObject, narration }),
+      inputSchema: z.object({ connection: jsonObject, narration }).strict(),
       execute: ({ connection, narration: msg }) => {
         const parsed = workflowConnection.safeParse(connection);
         if (!parsed.success) {
@@ -188,6 +190,7 @@ export async function buildWorkflowDocument(
         system: WORKFLOW_DOCUMENT_BUILDER_PROMPT,
         prompt: intent + editContext + repairContext,
         tools: makeBuilderTools(state, onProgress),
+        temperature: 0,
         stopWhen: stepCountIs(MAX_BUILDER_STEPS),
       });
     } catch (err) {

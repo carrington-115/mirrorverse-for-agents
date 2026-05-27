@@ -13,22 +13,24 @@ import {
 import { getLatestVersionForChat, persistWorkflow } from "./persistence";
 import type { WorkflowCommitDeps, WorkflowCommitResult } from "./types";
 
-const inputSchema = z.object({
-  summary: z
-    .string()
-    .min(1)
-    .max(MAX_SUMMARY_LENGTH)
-    .describe("One-paragraph summary of what this workflow does, for the version log."),
-  intent: z
-    .string()
-    .min(1)
-    .max(MAX_INTENT_LENGTH)
-    .describe(
-      `Plain-English description of the workflow to build. Include: kind (${WORKFLOW_KINDS.join(
-        " / ",
-      )}), trigger, every step in order with the integration/tool involved, any branches/loops/human-review, and any concrete values the user provided (schedules, channels, repo names, prompts). The more specific, the better.`,
-    ),
-});
+const inputSchema = z
+  .object({
+    summary: z
+      .string()
+      .min(1)
+      .max(MAX_SUMMARY_LENGTH)
+      .describe("One-paragraph summary of what this workflow does, for the version log."),
+    intent: z
+      .string()
+      .min(1)
+      .max(MAX_INTENT_LENGTH)
+      .describe(
+        `Plain-English description of the workflow to build. Include: kind (${WORKFLOW_KINDS.join(
+          " / ",
+        )}), trigger, every step in order with the integration/tool involved, any branches/loops/human-review, and any concrete values the user provided (schedules, channels, repo names, prompts). The more specific, the better.`,
+      ),
+  })
+  .strict();
 
 const TOOL_DESCRIPTION =
   "Commit a workflow generated from the user's request. Pass a natural-language `intent` describing what the workflow should do (triggers, steps, branches, integrations) and a short `summary` for the version log. A document builder will generate the validated WorkflowDocument JSON. Call this once when you have enough detail.";

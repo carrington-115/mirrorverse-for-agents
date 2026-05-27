@@ -57,8 +57,8 @@ export function AppConnectPanel({ appSlugs, chatId, onDismiss }: AppConnectPanel
     }));
 
   return (
-    <div className="px-3 pb-3 mx-auto w-full max-w-[780px] animate-in duration-200 slide-in-from-bottom-4">
-      <div className="p-4 shadow-sm rounded-xl border border-border bg-card">
+    <div className="w-full animate-in duration-200 fade-in">
+      <div className="p-4 rounded-xl border border-border bg-card">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-medium text-foreground">
             Connect {appSlugs.length === 1 ? "an app" : "apps"} to continue

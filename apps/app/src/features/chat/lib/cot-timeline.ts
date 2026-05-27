@@ -1,4 +1,4 @@
-import { isReasoningUIPart, isToolUIPart, type UIMessage } from "ai";
+import { isReasoningUIPart, isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertCircle,
@@ -53,6 +53,7 @@ export type CotStep =
       readonly label: string;
       readonly icon: LucideIcon;
       readonly status: ActingStatus;
+      readonly part: ToolUIPart;
     };
 
 export type CotPhase = "thinking" | "working" | "done";
@@ -133,14 +134,21 @@ export function buildCotTimeline(message: UIMessage): { steps: CotStep[]; hasAny
     }
 
     if (isToolUIPart(part)) {
-      const meta = TOOL_META[part.type] ?? { label: humanizeToolName(part.type), icon: Wrench };
-      const status = toActingStatus(part.state);
+      // DynamicToolUIPart has type "dynamic-tool" (not tool-${string}) and won't match
+      // any of our named tool types, so casting to ToolUIPart is safe here.
+      const toolPart = part as ToolUIPart;
+      const meta = TOOL_META[toolPart.type] ?? {
+        label: humanizeToolName(toolPart.type),
+        icon: Wrench,
+      };
+      const status = toActingStatus(toolPart.state);
       steps.push({
         kind: "acting",
         key,
         label: meta.label,
         icon: status === "error" ? AlertCircle : meta.icon,
         status,
+        part: toolPart,
       });
     }
   }

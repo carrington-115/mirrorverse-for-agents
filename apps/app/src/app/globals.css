@@ -3,3 +3,20 @@
 
 @source "../../../../packages/ui/src";
 @source "../";
+
+@theme {
+  --animate-thinking-dot: thinking-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes thinking-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translateY(-5px) scale(1);
+    opacity: 1;
+  }
+}

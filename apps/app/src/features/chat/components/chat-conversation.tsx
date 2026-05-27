@@ -6,13 +6,23 @@ import {
   ConversationScrollButton,
 } from "@mirrorverse/ui/ai-elements/conversation";
 
+import { AppConnectPanel } from "./app-connect-panel";
 import { MessageRow } from "./message-row";
 import { ThinkingRow } from "./thinking-row";
+
+interface CredentialsInterrupt {
+  kind: string;
+  id: string;
+  appSlugs: string[];
+}
 
 interface ChatConversationProps {
   messages: UIMessage[];
   isStreaming: boolean;
   showThinking: boolean;
+  interrupt?: CredentialsInterrupt | null;
+  chatId?: string;
+  onDismissInterrupt?: () => void;
   onEditUserMessage: (messageId: string, newText: string) => void;
   onRetryAssistant: () => void;
   onWorkflowSelect?: (workflowId: string) => void;
@@ -27,6 +37,9 @@ export function ChatConversation({
   messages,
   isStreaming,
   showThinking,
+  interrupt,
+  chatId,
+  onDismissInterrupt,
   onEditUserMessage,
   onRetryAssistant,
   onWorkflowSelect,
@@ -47,24 +60,37 @@ export function ChatConversation({
     <Conversation className="flex-1">
       <ConversationContent className="px-0 py-4 w-full">
         <div className="gap-8 px-4 mx-auto flex w-full max-w-[780px] flex-col">
-          {messages.map((message, index) => (
-            <MessageRow
-              key={message.id}
-              message={message}
-              isLast={index === messages.length - 1}
-              isStreaming={isStreaming}
-              canRetry={index === lastAssistantIndex && !isStreaming}
-              onEdit={(text) => onEditUserMessage(message.id, text)}
-              onRetry={onRetryAssistant}
-              onWorkflowSelect={onWorkflowSelect}
-              onPhoneSelect={onPhoneSelect}
-              onPhoneNumberForVoiceAgent={onPhoneNumberForVoiceAgent}
-              onGetManagedNumber={onGetManagedNumber}
-              onByoTwilio={onByoTwilio}
-              onConfirmDocuments={onConfirmDocuments}
-            />
-          ))}
+          {messages
+            .filter((m, i) => {
+              if (!showThinking) return true;
+              if (i !== messages.length - 1) return true;
+              return !(m.role === "assistant" && m.parts.length === 0);
+            })
+            .map((message, index, arr) => (
+              <MessageRow
+                key={message.id}
+                message={message}
+                isLast={index === arr.length - 1}
+                isStreaming={isStreaming}
+                canRetry={index === lastAssistantIndex && !isStreaming}
+                onEdit={(text) => onEditUserMessage(message.id, text)}
+                onRetry={onRetryAssistant}
+                onWorkflowSelect={onWorkflowSelect}
+                onPhoneSelect={onPhoneSelect}
+                onPhoneNumberForVoiceAgent={onPhoneNumberForVoiceAgent}
+                onGetManagedNumber={onGetManagedNumber}
+                onByoTwilio={onByoTwilio}
+                onConfirmDocuments={onConfirmDocuments}
+              />
+            ))}
           {showThinking ? <ThinkingRow /> : null}
+          {interrupt && !isStreaming && chatId && onDismissInterrupt && (
+            <AppConnectPanel
+              appSlugs={interrupt.appSlugs}
+              chatId={chatId}
+              onDismiss={onDismissInterrupt}
+            />
+          )}
         </div>
       </ConversationContent>
       <ConversationScrollButton />

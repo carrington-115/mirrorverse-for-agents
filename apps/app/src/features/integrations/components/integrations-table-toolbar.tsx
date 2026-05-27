@@ -93,6 +93,7 @@ export function IntegrationsTableToolbar({
           <button
             type="button"
             aria-label="Filters"
+            suppressHydrationWarning
             className="h-10 w-10 shadow-xs md:hidden inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <MoreHorizontal className="size-4" />
@@ -146,6 +147,7 @@ function FilterPill({ label, active, options, value, onSelect }: FilterPillProps
       <DropdownMenuTrigger asChild>
         <button
           type="button"
+          suppressHydrationWarning
           className={cn(
             "gap-1 px-2 py-0.5 text-xs font-semibold shadow-xs inline-flex cursor-pointer items-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
             active && "border-foreground/30 bg-muted",

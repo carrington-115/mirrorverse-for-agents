@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Plug } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,43 +49,58 @@ export function ComposioIntegrationSheet({
   item,
 }: ComposioIntegrationSheetProps) {
   const trpc = useTRPC();
-  const connectMutation = useMutation(
-    trpc.connections.initiateAppConnection.mutationOptions({
-      onSuccess: ({ redirectUrl }) => {
-        if (redirectUrl) {
-          window.open(redirectUrl, "_blank", "noopener,noreferrer,width=600,height=700");
-        }
+  const queryClient = useQueryClient();
+  const popupRef = useRef<Window | null>(null);
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (!event.data || typeof event.data !== "object" || event.data.type !== "oauth_callback")
+        return;
+
+      const { status } = event.data as { status: string };
+      popupRef.current = null;
+
+      if (status === "success" || status === "already_resolved") {
+        void queryClient.invalidateQueries(trpc.tools.listConnections.queryFilter());
+        toast.success(`${item?.name ?? "Integration"} connected successfully.`);
         onOpenChange(false);
-      },
-      onError: () => {
+      } else {
         toast.error(
-          `Could not connect ${item?.name ?? "this integration"}. Please check your Composio dashboard.`,
+          `Could not complete the connection for ${item?.name ?? "this integration"}. Please try again.`,
         );
-      },
-    }),
-  );
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [item, onOpenChange, queryClient, trpc]);
+
+  const connectMutation = useMutation(trpc.connections.initiateAppConnection.mutationOptions());
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-sm">
+      <SheetContent
+        side="right"
+        className="sm:w-[50vw] sm:max-w-none flex flex-col overflow-hidden"
+      >
         <SheetHeader>
-          <SheetTitle>Integration details</SheetTitle>
+          <SheetTitle>{item?.name ?? "Integration details"}</SheetTitle>
         </SheetHeader>
 
-        <Tabs defaultValue="tools" className="px-4">
+        <Tabs defaultValue="about" className="min-h-0 px-4 flex flex-1 flex-col">
           <TabsList variant="line">
-            <TabsTrigger value="tools">Tools</TabsTrigger>
             <TabsTrigger value="about">About</TabsTrigger>
+            <TabsTrigger value="tools">Tools</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tools" className="mt-4 gap-2 flex flex-col">
+          <TabsContent value="tools" className="mt-4 gap-2 flex flex-1 flex-col overflow-y-auto">
             {item && item.tools.length > 0 ? (
               <ul className="gap-3 flex flex-col">
                 {item.tools.map((tool) => (
-                  <li key={tool.slug} className="gap-0.5 flex flex-col">
-                    <span className="text-xs font-medium font-mono text-foreground">
+                  <li key={tool.slug} className="gap-1.5 flex flex-col">
+                    <Badge variant="secondary" className="text-xs w-fit font-mono">
                       {tool.slug}
-                    </span>
+                    </Badge>
                     {tool.description && (
                       <span className="text-xs text-muted-foreground">{tool.description}</span>
                     )}
@@ -100,7 +116,7 @@ export function ComposioIntegrationSheet({
             )}
           </TabsContent>
 
-          <TabsContent value="about" className="mt-4">
+          <TabsContent value="about" className="mt-4 overflow-y-auto">
             {item ? (
               <div className="gap-3 flex flex-col">
                 <div className="gap-3 flex items-center">
@@ -123,12 +139,31 @@ export function ComposioIntegrationSheet({
           </TabsContent>
         </Tabs>
 
-        <div className="p-4 mt-auto">
+        <div className="p-4">
           <Button
             className="w-full cursor-pointer"
             disabled={!item || connectMutation.isPending}
             onClick={() => {
-              if (item) connectMutation.mutate({ appSlug: item.slug });
+              if (!item) return;
+              connectMutation.mutate(
+                { appSlug: item.slug },
+                {
+                  onSuccess: ({ redirectUrl }) => {
+                    if (redirectUrl) {
+                      popupRef.current = window.open(redirectUrl, "_blank", "width=600,height=700");
+                    } else {
+                      void queryClient.invalidateQueries(trpc.tools.listConnections.queryFilter());
+                      toast.success(`${item.name} connected successfully.`);
+                    }
+                    onOpenChange(false);
+                  },
+                  onError: () => {
+                    toast.error(
+                      `Could not connect ${item.name}. Please check your Composio dashboard.`,
+                    );
+                  },
+                },
+              );
             }}
           >
             {connectMutation.isPending ? "Connecting..." : "Connect"}

@@ -1,25 +1,27 @@
-﻿"use client";
+"use client";
 
-import { useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2, Plus } from "lucide-react";
+import { type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
-import { generateSessionId } from "@/features/chat/actions/generate-session-id";
 
 export function ChatSessionLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const pathname = usePathname();
 
   const handleNewSession = () => {
-    startTransition(async () => {
-      const newSessionId = await generateSessionId();
-      router.push(`/mirrorpilot/${newSessionId}`);
-    });
+    // If Next.js thinks the current route is /mirrorpilot, the browser URL may
+    // have been silently updated via history.replaceState after the first
+    // message was sent. Use a full navigation to guarantee a fresh component
+    // tree regardless of that divergence.
+    if (pathname === "/mirrorpilot") {
+      window.location.href = "/mirrorpilot";
+    } else {
+      router.push("/mirrorpilot");
+    }
   };
-
-  const busy = isPending;
 
   return (
     <DashboardLayout
@@ -29,8 +31,8 @@ export function ChatSessionLayout({ children }: { children: ReactNode }) {
           title="Mirrorpilot"
           actions={
             <div className="flex gap-(--sm)">
-              <Button onClick={handleNewSession} disabled={busy} className="cursor-pointer">
-                {busy ? <Loader2 className="animate-spin" /> : <Plus />}
+              <Button onClick={handleNewSession} className="cursor-pointer">
+                <Plus />
                 New Chat
               </Button>
             </div>
