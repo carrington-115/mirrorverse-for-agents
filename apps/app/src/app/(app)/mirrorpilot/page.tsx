@@ -1,7 +1,13 @@
-﻿import { redirect } from "next/navigation";
-import { generateSessionId } from "@/features/chat/actions/generate-session-id";
+import type { Metadata } from "next";
+import { NewChatPage } from "@/features/chat/pages/new-chat-page";
+import { buildMetadata } from "@/lib/seo/metadata";
 
-export default async function MirrorpilotIndexPage() {
-  const sessionId = await generateSessionId();
-  redirect(`/mirrorpilot/${sessionId}`);
+export const metadata: Metadata = buildMetadata({
+  title: "Mirrorpilot",
+  description: "Chat with Mirrorpilot to design, debug, and deploy agents.",
+  noIndex: true,
+});
+
+export default function MirrorpilotIndexPage() {
+  return <NewChatPage />;
 }

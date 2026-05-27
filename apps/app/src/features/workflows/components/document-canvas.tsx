@@ -94,6 +94,18 @@ function makeEdgeId(from: string, fromPort: string, to: string, toPort: string):
   return `${from}|${fromPort}|${to}|${toPort}`;
 }
 
+// Workflow JSON stores bare port names ("main", "ai_languageModel") but React
+// Flow handle IDs carry a "-out" / "-in" direction suffix. Normalise here so
+// edges attach to the right handle regardless of which form is stored.
+function toSourceHandle(port: string): string {
+  if (port.endsWith("-out") || port.endsWith("-in")) return port;
+  return `${port}-out`;
+}
+function toTargetHandle(port: string): string {
+  if (port.endsWith("-in") || port.endsWith("-out")) return port;
+  return `${port}-in`;
+}
+
 // --- Workflow node (all types except sticky) ---
 
 interface WorkflowNodeData extends Record<string, unknown> {
@@ -296,9 +308,9 @@ export function DocumentCanvas({
         return {
           id: makeEdgeId(c.from, c.fromPort, c.to, c.toPort),
           source: c.from,
-          sourceHandle: c.fromPort,
+          sourceHandle: toSourceHandle(c.fromPort),
           target: c.to,
-          targetHandle: c.toPort,
+          targetHandle: toTargetHandle(c.toPort),
           type: edgeType,
           ...(color ? { style: { stroke: color } } : {}),
         };

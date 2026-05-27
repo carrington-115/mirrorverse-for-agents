@@ -1,1 +1,5 @@
-export { ChatSessionLayout as default } from "@/features/chat/components/chat-session-layout";
+import type { ReactNode } from "react";
+
+export default function SessionLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}

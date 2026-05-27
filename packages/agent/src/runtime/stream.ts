@@ -15,7 +15,12 @@ import { sanitizeToolCallHistory } from "../sanitize-history";
 import { MIRRORPILOT_SYSTEM_PROMPT } from "../system-prompt";
 import { makeWorkflowCommitTool, WORKFLOW_COMMIT_TOOL_NAME } from "../tools/workflow-commit";
 
-import { DEFAULT_MAX_STEPS, DEFAULT_MIRRORPILOT_MODEL, LOG_PREFIX } from "./constants";
+import {
+  DEFAULT_MAX_STEPS,
+  DEFAULT_MAX_TOKENS,
+  DEFAULT_MIRRORPILOT_MODEL,
+  LOG_PREFIX,
+} from "./constants";
 import { makeLifecycleEmitter } from "./lifecycle";
 import { buildProviderOptions } from "./provider-options";
 import type { RunMirrorpilotDeps } from "./types";
@@ -59,13 +64,30 @@ export async function runMirrorpilot(deps: RunMirrorpilotDeps): Promise<Response
       }
     },
     execute: async ({ writer }) => {
-      // Builder progress streams as reasoning parts so it surfaces in the
-      // existing collapsible Reasoning UI alongside any native model reasoning.
+      // All builder narrations are accumulated into ONE reasoning part so the
+      // COT collapsible shows a single "Thought" step instead of one per node.
+      let progressReasoningId: string | null = null;
+      let progressFirstDelta = true;
+
       const emitProgress = (message: string) => {
-        const id = `progress-${randomUUID()}`;
-        writer.write({ type: "reasoning-start", id });
-        writer.write({ type: "reasoning-delta", id, delta: message });
-        writer.write({ type: "reasoning-end", id });
+        if (!progressReasoningId) {
+          progressReasoningId = `progress-${randomUUID()}`;
+          progressFirstDelta = true;
+          writer.write({ type: "reasoning-start", id: progressReasoningId });
+        }
+        if (!progressFirstDelta) {
+          writer.write({ type: "reasoning-delta", id: progressReasoningId, delta: "\n" });
+        }
+        progressFirstDelta = false;
+        writer.write({ type: "reasoning-delta", id: progressReasoningId, delta: message });
+      };
+
+      const finalizeProgress = () => {
+        if (progressReasoningId) {
+          writer.write({ type: "reasoning-end", id: progressReasoningId });
+          progressReasoningId = null;
+          progressFirstDelta = true;
+        }
       };
 
       const tools = {
@@ -96,6 +118,8 @@ export async function runMirrorpilot(deps: RunMirrorpilotDeps): Promise<Response
             system,
             messages: modelMessages,
             tools,
+            temperature: 0,
+            maxOutputTokens: deps.maxTokens ?? DEFAULT_MAX_TOKENS,
             stopWhen: stepCountIs(deps.maxSteps ?? DEFAULT_MAX_STEPS),
             providerOptions: buildProviderOptions(modelId),
             experimental_telemetry: {
@@ -115,6 +139,11 @@ export async function runMirrorpilot(deps: RunMirrorpilotDeps): Promise<Response
               });
             },
             experimental_onToolCallFinish: async ({ toolCall, error }) => {
+              // Close the builder narration reasoning part before the tool result
+              // lands so the COT shows the part as complete.
+              if (toolCall.toolName === WORKFLOW_COMMIT_TOOL_NAME) {
+                finalizeProgress();
+              }
               await emit({
                 kind: "tool_use_completed",
                 messageId: assistantMessageId,

@@ -5,9 +5,11 @@ import { ChainOfThoughtStep } from "@mirrorverse/ui/ai-elements/chain-of-thought
 import { Message, MessageContent, MessageResponse } from "@mirrorverse/ui/ai-elements/message";
 import {
   Reasoning,
-  ReasoningContent,
+  ReasoningContentRaw,
   ReasoningTrigger,
 } from "@mirrorverse/ui/ai-elements/reasoning";
+import { Shimmer } from "@mirrorverse/ui/ai-elements/shimmer";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -108,27 +110,46 @@ export function MessageRow({
     <Message from={message.role}>
       <MessageContent className="sm:text-[14.6px] text-[13px]">
         {hasAny ? (
-          <div className="not-prose space-y-3 w-full">
-            {steps.map((step, i) => {
-              const isLastStep = i === steps.length - 1;
-              if (step.kind === "reasoning") {
-                return (
-                  <Reasoning key={step.key} isStreaming={isLive && isLastStep} className="!mb-0">
-                    <ReasoningTrigger icon={step.icon} />
-                    <ReasoningContent>{step.text}</ReasoningContent>
-                  </Reasoning>
-                );
-              }
-              return (
-                <ChainOfThoughtStep
-                  key={step.key}
-                  icon={step.icon}
-                  label={step.label}
-                  status={step.status === "error" ? "complete" : step.status}
-                  className={step.status === "error" ? "text-destructive" : undefined}
-                />
-              );
-            })}
+          <div className="not-prose space-y-2 w-full">
+            <Reasoning isStreaming={isLive} className="!mb-0">
+              <ReasoningTrigger />
+              <ReasoningContentRaw>
+                <div className="space-y-2">
+                  {steps.map((step, i) => {
+                    const isActive = isLive && i === steps.length - 1;
+                    if (step.kind === "reasoning") {
+                      return (
+                        <div
+                          key={step.key}
+                          className="gap-2 flex animate-in items-center fade-in-0 slide-in-from-top-2"
+                        >
+                          <step.icon className="size-3.5 shrink-0" />
+                          {isActive ? (
+                            <Shimmer duration={1.5}>Thinking...</Shimmer>
+                          ) : (
+                            <span className="opacity-50">Thought</span>
+                          )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <ChainOfThoughtStep
+                        key={step.key}
+                        icon={step.icon}
+                        label={
+                          isActive ? <Shimmer duration={1.5}>{step.label}</Shimmer> : step.label
+                        }
+                        status={step.status === "error" ? "complete" : step.status}
+                        className={cn(
+                          "text-xs",
+                          step.status === "error" ? "text-destructive" : undefined,
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+              </ReasoningContentRaw>
+            </Reasoning>
           </div>
         ) : null}
         {isEditing && message.role === "user" ? (

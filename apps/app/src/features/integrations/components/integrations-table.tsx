@@ -343,6 +343,7 @@ export function IntegrationsTable({
                 <TableHead className="px-2">
                   <button
                     type="button"
+                    suppressHydrationWarning
                     onClick={() => handleSort("name")}
                     className="gap-1.5 text-sm font-medium flex cursor-pointer items-center text-foreground hover:text-foreground/80"
                   >
@@ -353,6 +354,7 @@ export function IntegrationsTable({
                 <TableHead className="px-2">
                   <button
                     type="button"
+                    suppressHydrationWarning
                     onClick={() => handleSort("type")}
                     className="gap-1.5 text-sm font-medium flex cursor-pointer items-center text-foreground hover:text-foreground/80"
                   >

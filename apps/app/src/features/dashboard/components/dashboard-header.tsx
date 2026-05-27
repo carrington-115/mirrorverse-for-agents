@@ -108,6 +108,7 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
             <button
               className="cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="User menu"
+              suppressHydrationWarning
             >
               <ProfileAvatarWithRing src={displayImage} fallback={initials} pct={0.75} />
             </button>

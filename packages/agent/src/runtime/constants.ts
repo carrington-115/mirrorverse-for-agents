@@ -1,10 +1,14 @@
-﻿import { DEFAULT_HAIKU_MODEL } from "../models/constants";
+﻿import { DEFAULT_SONNET_MODEL } from "../models/constants";
 
 export const LOG_PREFIX = "[mirrorpilot]";
 
-export const DEFAULT_MIRRORPILOT_MODEL = DEFAULT_HAIKU_MODEL;
+export const DEFAULT_MIRRORPILOT_MODEL = DEFAULT_SONNET_MODEL;
 
 export const DEFAULT_MAX_STEPS = 8;
+
+// Hard per-execution token ceiling. Prevents runaway loops from exhausting
+// quota in a single chat turn regardless of step count.
+export const DEFAULT_MAX_TOKENS = 32_000;
 
 export const ANTHROPIC_THINKING_BUDGET_TOKENS = 8000;
 

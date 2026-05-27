@@ -21,7 +21,7 @@ export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const requestId = url.searchParams.get("requestId");
 
-  if (!requestId) return jsonError(400, "Missing requestId");
+  if (!requestId) return closePopup("invalid");
   if (!isComposioConfigured()) return jsonError(503, "Composio not configured");
 
   // The pending request is keyed by the random requestId, before any tenant
@@ -31,7 +31,13 @@ export async function GET(req: Request): Promise<Response> {
     requestId,
   );
 
-  if (!connectionRequest) return jsonError(404, "Connection request not found");
+  if (!connectionRequest) {
+    console.error(
+      "[connections/callback] request not found for requestId:",
+      requestId,
+    );
+    return closePopup("not_found");
+  }
   if (connectionRequest.status !== "pending") {
     return closePopup("already_resolved");
   }

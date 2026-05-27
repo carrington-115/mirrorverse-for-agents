@@ -19,7 +19,6 @@ import { useMirrorpilotFileUpload } from "@/features/knowledge/hooks/use-mirrorp
 import { ComposioIntegrationsDialog } from "@/features/integrations/components/integration";
 import { AddWebhookSheet } from "@/features/webhooks/components/add-webhook-sheet";
 
-import { AppConnectPanel } from "./app-connect-panel";
 import { ChatConversation } from "./chat-conversation";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatPromptInput } from "./chat-prompt-input";
@@ -29,9 +28,15 @@ interface ChatRuntimeProps {
   sessionId: string;
   initialMessages: UIMessage[];
   onWorkflowSelect?: (workflowId: string) => void;
+  onFirstMessage?: () => void;
 }
 
-export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: ChatRuntimeProps) {
+export function ChatRuntime({
+  sessionId,
+  initialMessages,
+  onWorkflowSelect,
+  onFirstMessage,
+}: ChatRuntimeProps) {
   const trpc = useTRPC();
   const qc = useQueryClient();
   const [model, setModel] = useState<string>(DEFAULT_CHAT_MODEL);
@@ -78,6 +83,7 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
       const files = message.files ?? [];
       if (!text && files.length === 0) return;
 
+      if (messages.length === 0) onFirstMessage?.();
       setStreamFinished(false);
 
       const imageFiles = files.filter((f) => f.mediaType.startsWith("image/"));
@@ -106,15 +112,16 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
         { body },
       );
     },
-    [sendMessage, model, uploadFiles],
+    [sendMessage, model, uploadFiles, messages.length, onFirstMessage],
   );
 
   const handleStarter = useCallback(
     (prompt: string) => {
+      if (messages.length === 0) onFirstMessage?.();
       setStreamFinished(false);
       sendMessage({ text: prompt }, { body: { model, ragDocumentIds: ragDocumentIdsRef.current } });
     },
-    [sendMessage, model],
+    [sendMessage, model, messages.length, onFirstMessage],
   );
 
   const handlePhoneSelect = useCallback(
@@ -300,6 +307,9 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
     }
   }, [credentialInterrupt, credentialsInterrupt]);
 
+  const inlineInterrupt =
+    credentialsInterrupt && !credentialsDismissed ? credentialsInterrupt : null;
+
   if (isEmpty) {
     return (
       <>
@@ -309,13 +319,6 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
             appSlug={credentialInterrupt.appSlug}
             redirectUrl={credentialInterrupt.redirectUrl}
             onDismiss={() => setInterruptDismissed(true)}
-          />
-        )}
-        {credentialsInterrupt && !credentialsDismissed && (
-          <AppConnectPanel
-            appSlugs={credentialsInterrupt.appSlugs}
-            chatId={sessionId}
-            onDismiss={() => setCredentialsDismissed(true)}
           />
         )}
         <ComposioIntegrationsDialog open={browseOpen} onOpenChange={setBrowseOpen} />
@@ -330,6 +333,9 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
         messages={messages}
         isStreaming={isStreaming}
         showThinking={isSubmitted || (isStreaming && !lastMessageHasContent)}
+        interrupt={inlineInterrupt}
+        chatId={sessionId}
+        onDismissInterrupt={() => setCredentialsDismissed(true)}
         onEditUserMessage={handleEditUserMessage}
         onRetryAssistant={handleRetryAssistant}
         onWorkflowSelect={onWorkflowSelect}
@@ -339,13 +345,6 @@ export function ChatRuntime({ sessionId, initialMessages, onWorkflowSelect }: Ch
         onByoTwilio={handleByoTwilio}
         onConfirmDocuments={handleConfirmDocuments}
       />
-      {credentialsInterrupt && !credentialsDismissed && (
-        <AppConnectPanel
-          appSlugs={credentialsInterrupt.appSlugs}
-          chatId={sessionId}
-          onDismiss={() => setCredentialsDismissed(true)}
-        />
-      )}
       <div className="p-3">
         <div className="mx-auto w-full max-w-[780px]">{inputBlock}</div>
       </div>
