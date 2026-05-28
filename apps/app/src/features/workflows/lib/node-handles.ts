@@ -70,49 +70,6 @@ const AGENT_BOTTOM_HANDLES: readonly HandleDef[] = [
   },
 ];
 
-const VOICE_AGENT_BOTTOM_HANDLES: readonly HandleDef[] = [
-  {
-    id: "ai_languageModel-in",
-    type: "target",
-    position: "Bottom",
-    connectionKind: "ai_languageModel",
-    label: "Model",
-    style: { left: "15%" },
-  },
-  {
-    id: "ai_memory-in",
-    type: "target",
-    position: "Bottom",
-    connectionKind: "ai_memory",
-    label: "Memory",
-    style: { left: "30%" },
-  },
-  {
-    id: "ai_tool-in",
-    type: "target",
-    position: "Bottom",
-    connectionKind: "ai_tool",
-    label: "Tools",
-    style: { left: "45%" },
-  },
-  {
-    id: "ai_retriever-in",
-    type: "target",
-    position: "Bottom",
-    connectionKind: "ai_retriever",
-    label: "KB",
-    style: { left: "60%" },
-  },
-  {
-    id: "voice-in",
-    type: "target",
-    position: "Bottom",
-    connectionKind: "voice",
-    label: "Voice",
-    style: { left: "80%" },
-  },
-];
-
 export function getHandlesForKind(kind: string): readonly HandleDef[] {
   switch (kind) {
     case "trigger.manual":
@@ -129,7 +86,7 @@ export function getHandlesForKind(kind: string): readonly HandleDef[] {
       return [MAIN_IN, MAIN_OUT, ...AGENT_BOTTOM_HANDLES];
 
     case "ai.voice_agent":
-      return [MAIN_IN, MAIN_OUT, ...VOICE_AGENT_BOTTOM_HANDLES];
+      return [MAIN_IN, MAIN_OUT];
 
     case "ai.language_model":
       return [

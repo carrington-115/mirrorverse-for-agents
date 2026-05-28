@@ -8,6 +8,10 @@
     "api/chat.ts": {
       "runtime": "nodejs22.x",
       "maxDuration": 300
+    },
+    "api/webhooks/[slug].ts": {
+      "runtime": "nodejs22.x",
+      "maxDuration": 30
     }
   }
 }

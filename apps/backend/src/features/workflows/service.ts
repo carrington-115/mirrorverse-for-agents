@@ -2,6 +2,10 @@ import type { Database } from "@mirrorverse/db";
 
 import { appError, ErrCode } from "../../lib/errors";
 
+import {
+  createOrReactivateEndpoint,
+  disableEndpointsByWorkflowId,
+} from "../webhooks/webhook-endpoints-repo";
 import * as repo from "./repo";
 import type {
   DeleteWorkflowInput,
@@ -110,5 +114,69 @@ export const workflowsService = {
     );
     if (!result) throw appError(ErrCode.NotFound, "Workflow not found");
     return result;
+  },
+
+  async activate(ctx: WorkspaceCtx, input: { workflowId: string }) {
+    const [workflow, version] = await Promise.all([
+      repo.getWorkflowForWorkspace(ctx.db, input.workflowId, ctx.workspaceId),
+      repo.getLatestVersion(ctx.db, input.workflowId, ctx.workspaceId),
+    ]);
+    if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+
+    const webhookNodes = (version?.document.nodes ?? []).filter(
+      (n) => n.type === "trigger.webhook",
+    );
+
+    const endpoints = await Promise.all(
+      webhookNodes.map((node) => {
+        const slug =
+          typeof node.params.endpointSlug === "string"
+            ? node.params.endpointSlug
+            : "";
+        const verifySignature = node.params.verifySignature === true;
+        if (!slug) return null;
+        return createOrReactivateEndpoint(
+          ctx.db,
+          ctx.workspaceId,
+          input.workflowId,
+          node.id,
+          slug,
+          verifySignature,
+        );
+      }),
+    );
+
+    await repo.setWorkflowStatus(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+      "active",
+    );
+
+    return {
+      workflowId: input.workflowId,
+      endpoints: endpoints.filter(Boolean),
+    };
+  },
+
+  async deactivate(ctx: WorkspaceCtx, input: { workflowId: string }) {
+    const workflow = await repo.getWorkflowForWorkspace(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+    );
+    if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+
+    await Promise.all([
+      disableEndpointsByWorkflowId(ctx.db, ctx.workspaceId, input.workflowId),
+      repo.setWorkflowStatus(
+        ctx.db,
+        input.workflowId,
+        ctx.workspaceId,
+        "paused",
+      ),
+    ]);
+
+    return { workflowId: input.workflowId };
   },
 };

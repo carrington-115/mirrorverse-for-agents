@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { useWorkflowQuery } from "@/features/workflows/api/queries";
 import { DocumentCanvas } from "@/features/workflows/components/document-canvas";
 import { extractIconHints, type NodeIconHints } from "@/features/workflows/lib/node-icon";
@@ -10,6 +11,7 @@ import { extractIconHints, type NodeIconHints } from "@/features/workflows/lib/n
 interface ChatWorkflowSidePanelProps {
   workflowId: string;
   showControls?: boolean;
+  onClose?: () => void;
 }
 
 interface WorkflowDocumentShape {
@@ -31,6 +33,7 @@ interface WorkflowDocumentShape {
 export function ChatWorkflowSidePanel({
   workflowId,
   showControls = true,
+  onClose,
 }: ChatWorkflowSidePanelProps) {
   const { data, isLoading } = useWorkflowQuery(workflowId);
 
@@ -64,9 +67,17 @@ export function ChatWorkflowSidePanel({
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="border-b border-border px-(--md,16px) py-(--sm,8px)">
-        <span className="text-sm font-medium text-foreground">{data.workflow.name}</span>
-        <span className="text-xs block text-muted-foreground">{data.workflow.kind}</span>
+      <div className="flex items-center justify-between border-b border-border px-(--md,16px) py-(--sm,8px)">
+        <div className="min-w-0 flex-1">
+          <span className="text-sm font-medium text-foreground">{data.workflow.name}</span>
+          <span className="text-xs block text-muted-foreground">{data.workflow.kind}</span>
+        </div>
+        {onClose && (
+          <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={onClose}>
+            <X className="size-4" />
+            <span className="sr-only">Close panel</span>
+          </Button>
+        )}
       </div>
       <div className="min-h-0 flex-1">
         <DocumentCanvas

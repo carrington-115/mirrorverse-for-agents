@@ -64,6 +64,13 @@
       "when": 1779791673945,
       "tag": "0008_bright_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779925547594,
+      "tag": "0009_square_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

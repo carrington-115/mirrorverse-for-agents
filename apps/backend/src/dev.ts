@@ -17,6 +17,7 @@ import { GET as connectionsCallbackGet } from "../api/connections/callback";
 import { POST as speechHandler } from "../api/speech";
 import { vapiWebhookHandler } from "./features/voice/webhook";
 import { handleStripeWebhook } from "./features/billing/webhooks/stripe";
+import { inboundWebhookHandler } from "./features/webhooks/inbound-handler";
 import {
   GET as inngestGet,
   POST as inngestPost,
@@ -114,6 +115,15 @@ const server = createServer(async (req, res) => {
       const response = await handleStripeWebhook(request, getDb());
       await pipeResponse(res, response);
       return;
+    }
+
+    if (url.pathname.startsWith("/api/webhooks/")) {
+      const slug = url.pathname.slice("/api/webhooks/".length);
+      if (slug && slug !== "stripe") {
+        const response = await inboundWebhookHandler(request, slug);
+        await pipeResponse(res, response);
+        return;
+      }
     }
 
     if (url.pathname === "/api/chat") {

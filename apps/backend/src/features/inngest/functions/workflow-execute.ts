@@ -1,68 +1,125 @@
 import type { InngestFunction } from "inngest";
-import { eq, schema, type Database } from "@mirrorverse/db";
-import type { CostBreakdown } from "@mirrorverse/types";
+import { and, eq, schema, type Database } from "@mirrorverse/db";
+import type { CostBreakdown, WorkflowDocument } from "@mirrorverse/types";
 
 import { inngest } from "../client";
 import { workflowExecuteEvent } from "../events";
+import { CostTracker, ZERO_COST } from "../../workflows/runtime/cost-tracker";
+import { walkGraph } from "../../workflows/runtime/graph-walker";
+import { serializeError } from "../../workflows/runtime/step-writer";
 
-const { workflowRuns } = schema;
-
-const ZERO_COST: CostBreakdown = {
-  tokensIn: 0,
-  tokensInCached: 0,
-  tokensOut: 0,
-  costCents: 0,
-};
+const { workflowRuns, workflowVersions } = schema;
 
 export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
   return inngest.createFunction(
     {
       id: "workflow.execute",
-      name: "Workflow Execute (stub)",
+      name: "Workflow Execute",
       triggers: [workflowExecuteEvent],
+      retries: 1,
+      concurrency: [{ key: "event.data.workflowId", limit: 3 }],
     },
     async ({ event, step }) => {
-      const startedAt = new Date();
+      const {
+        workspaceId,
+        workflowId,
+        workflowVersionId,
+        triggerNodeId,
+        triggerKind,
+        triggerPayload,
+      } = event.data;
 
-      // Phase 1: stub interpreter. Records a workflow_runs row immediately as
-      // "succeeded" so the durable wire is proven end-to-end. Real per-node
-      // execution lands in Phase 4 (issue #17, follow-up PR).
-      const run = await step.run("record-run-start", async () => {
+      // Step 1: load the workflow document and create the run row atomically.
+      const init = await step.run("init", async () => {
+        const [version] = await db
+          .select({ document: workflowVersions.document })
+          .from(workflowVersions)
+          .where(
+            and(
+              eq(workflowVersions.id, workflowVersionId),
+              eq(workflowVersions.workspaceId, workspaceId),
+            ),
+          )
+          .limit(1);
+
+        if (!version) {
+          throw new Error(
+            `workflow.execute: version ${workflowVersionId} not found`,
+          );
+        }
+
         const [row] = await db
           .insert(workflowRuns)
           .values({
-            workspaceId: event.data.workspaceId,
-            workflowId: event.data.workflowId,
-            workflowVersionId: event.data.workflowVersionId,
-            status: "queued",
-            triggerNodeId: event.data.triggerNodeId,
-            triggerKind: event.data.triggerKind,
-            triggerPayload: event.data.triggerPayload,
-            startedAt,
+            workspaceId,
+            workflowId,
+            workflowVersionId,
+            status: "running",
+            triggerNodeId,
+            triggerKind,
+            triggerPayload,
+            startedAt: new Date(),
             cost: ZERO_COST,
             inngestRunId: null,
           })
           .returning({ id: workflowRuns.id });
-        return row;
+
+        if (!row) throw new Error("workflow.execute: failed to insert run row");
+
+        return {
+          runId: row.id,
+          document: version.document as WorkflowDocument,
+        };
       });
 
-      if (!run) {
-        throw new Error("Failed to record workflow_run row");
-      }
+      const { runId, document } = init;
+      const costTracker = new CostTracker();
 
-      await step.run("mark-run-succeeded", async () => {
+      // Steps 2..N: walk the graph. Each node executes as its own Inngest step.
+      const walkResult = await walkGraph(
+        document,
+        triggerNodeId,
+        triggerPayload,
+        {
+          db,
+          workspaceId,
+          runId,
+          costTracker,
+        },
+        step,
+      ).catch((err) => ({
+        status: "failed" as const,
+        totalCost: costTracker.getTotal(),
+        error: serializeError(err, null),
+      }));
+
+      // Final step: write the run completion status.
+      await step.run("finish", async () => {
         const finishedAt = new Date();
+
+        const [startRow] = await db
+          .select({ startedAt: workflowRuns.startedAt })
+          .from(workflowRuns)
+          .where(eq(workflowRuns.id, runId))
+          .limit(1);
+
+        const durationMs = startRow
+          ? finishedAt.getTime() - startRow.startedAt.getTime()
+          : null;
+
         await db
           .update(workflowRuns)
           .set({
-            status: "succeeded",
+            status: walkResult.status,
             finishedAt,
-            durationMs: finishedAt.getTime() - startedAt.getTime(),
+            durationMs,
+            cost: walkResult.totalCost as CostBreakdown,
+            error: walkResult.error ?? null,
           })
-          .where(eq(workflowRuns.id, run.id));
+          .where(eq(workflowRuns.id, runId));
       });
 
-      return { runId: run.id, status: "succeeded" as const };
+      return { runId, status: walkResult.status };
     },
   );
 }

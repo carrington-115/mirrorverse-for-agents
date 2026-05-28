@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { router } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
 
@@ -12,6 +14,8 @@ import {
   saveWorkflowVersionInput,
 } from "./inputs";
 import { workflowsService } from "./service";
+
+const workflowIdInput = z.object({ workflowId: z.string().min(1).max(128) });
 
 export const workflowsRouter = router({
   list: workspaceProc
@@ -81,6 +85,24 @@ export const workflowsRouter = router({
     .input(reorderWorkflowsInput)
     .mutation(({ ctx, input }) =>
       workflowsService.reorder(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
+
+  activate: workspaceProc
+    .input(workflowIdInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.activate(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
+
+  deactivate: workspaceProc
+    .input(workflowIdInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.deactivate(
         { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),

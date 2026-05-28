@@ -223,12 +223,6 @@ export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
     description: "Call an external HTTP endpoint.",
   },
   {
-    kind: "core.code",
-    label: "Code",
-    category: "Core",
-    description: "Run a TypeScript snippet in a sandbox.",
-  },
-  {
     kind: "core.tool_call",
     label: "Tool call",
     category: "Core",
@@ -377,16 +371,6 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
           body: null,
         },
       };
-    case "core.code":
-      return {
-        ...base,
-        params: {
-          language: "typescript",
-          source: "return { message: 'hello' };",
-          timeoutSec: 10,
-          memoryMb: 128,
-        },
-      };
     case "core.tool_call":
       return {
         ...base,
@@ -409,7 +393,7 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
           provider: "anthropic",
           model: "claude-haiku-4-5",
           temperature: 0.7,
-          maxTokens: 1024,
+          maxOutputTokens: 1024,
         },
       };
     case "ai.memory":
@@ -436,8 +420,13 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
       return {
         ...base,
         params: {
-          mode: "expression",
-          cases: [{ when: "{{ $json.x === 'a' }}", outputIndex: 0 }],
+          cases: [
+            {
+              conditions: [{ leftValue: "{{ $json.x }}", operator: "equals", rightValue: "a" }],
+              combinator: "and",
+              outputIndex: 0,
+            },
+          ],
           defaultOutputIndex: 1,
         },
       };
@@ -468,7 +457,8 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
           voiceEntry: {
             provider: "elevenlabs",
             voiceId: "21m00Tcm4TlvDq8ikWAM",
-            model: "eleven_turbo_v2",
+            model: "eleven_turbo_v2_5",
+            voiceMode: "conversational",
           },
           modelConnection: {
             provider: "anthropic",

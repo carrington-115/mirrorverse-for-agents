@@ -10,7 +10,7 @@ import {
   type Database,
 } from "@mirrorverse/db";
 import type { WorkflowDocumentInput } from "@mirrorverse/agent";
-import type { WorkflowDocument } from "@mirrorverse/types";
+import type { WorkflowDocument, WorkflowStatus } from "@mirrorverse/types";
 
 const { workflows, workflowVersions } = schema;
 
@@ -203,6 +203,22 @@ export async function getVersionByNumber(
       ),
     )
     .limit(1);
+  return row ?? null;
+}
+
+export async function setWorkflowStatus(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+  status: WorkflowStatus,
+) {
+  const [row] = await db
+    .update(workflows)
+    .set({ status })
+    .where(
+      and(eq(workflows.id, workflowId), eq(workflows.workspaceId, workspaceId)),
+    )
+    .returning({ id: workflows.id, status: workflows.status });
   return row ?? null;
 }
 

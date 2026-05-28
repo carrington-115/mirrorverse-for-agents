@@ -464,6 +464,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         {editable && selectedNode ? (
           <NodeInspector
             node={selectedNode}
+            workflowId={workflowId}
             validationErrors={validationErrors.get(selectedNode.id)}
             onUpdate={handleNodeUpdate}
             onClose={() => setSelectedNodeId(null)}

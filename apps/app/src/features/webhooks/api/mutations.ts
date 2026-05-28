@@ -26,3 +26,15 @@ export function useDeleteWebhookMutation() {
     }),
   );
 }
+
+export function useRegenerateWebhookSecretMutation() {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  return useMutation(
+    trpc.webhooks.regenerateSecret.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries(trpc.webhooks.listEndpoints.queryFilter());
+      },
+    }),
+  );
+}

@@ -35,3 +35,13 @@ export interface KnowledgeIngestEventData extends Record<string, unknown> {
 export const knowledgeIngestEvent = eventType("knowledge/ingest", {
   schema: staticSchema<KnowledgeIngestEventData>(),
 });
+
+export interface HumanReviewRespondedEventData extends Record<string, unknown> {
+  readonly runId: string;
+  readonly nodeId: string;
+  readonly response: unknown;
+}
+
+export const humanReviewRespondedEvent = eventType("human.review.responded", {
+  schema: staticSchema<HumanReviewRespondedEventData>(),
+});

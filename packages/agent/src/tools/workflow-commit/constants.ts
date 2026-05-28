@@ -8,10 +8,10 @@ export const WORKFLOW_KINDS = ["automation", "voice-agent", "chat-agent", "code"
 
 export type WorkflowKind = (typeof WORKFLOW_KINDS)[number];
 
-export const MAX_BUILDER_ATTEMPTS = 2;
-export const MAX_BUILDER_STEPS = 50;
+export const MAX_BUILDER_ATTEMPTS = 3;
+export const MAX_BUILDER_STEPS = 80;
 
-export const DEFAULT_BUILDER_MODEL = "claude-sonnet-4-5";
+export const DEFAULT_BUILDER_MODEL = "claude-sonnet-4-6";
 
 export const INITIAL_WORKFLOW_STATUS: WorkflowStatus = "draft";
 export const INITIAL_VERSION_NUMBER = 1;
