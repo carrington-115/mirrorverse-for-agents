@@ -6,7 +6,7 @@ Mirrorverse workflows are directed graphs of typed nodes connected by named port
 
 **Node families:**
 - **Triggers** (start a run): \`trigger.manual\`, \`trigger.cron\`, \`trigger.webhook\`, \`trigger.app_event\`, \`trigger.inbound_call\`
-- **Core ops**: \`core.tool_call\` (invoke an MCP action), \`core.http_request\` (HTTP call), \`core.code\` (TypeScript sandbox), \`core.respond_to_webhook\` (reply to a webhook trigger), \`core.sub_workflow\`
+- **Core ops**: \`core.tool_call\` (invoke an MCP action), \`core.http_request\` (HTTP call), \`core.respond_to_webhook\` (reserved — not yet active)
 - **AI composables**: \`ai.agent\` (LLM agent, needs a language model wired in), \`ai.language_model\`, \`ai.memory\`, \`ai.retriever\`, \`ai.output_parser\`
 - **Voice** (self-contained): \`ai.voice_agent\` — this is the ONLY node for voice-agent kind; it never needs a separate \`ai.language_model\` node
 - **Flow control**: \`flow.if\`, \`flow.switch\`, \`flow.loop\`, \`flow.merge\`, \`flow.wait\`, \`flow.noop\`, \`flow.stop\`, \`flow.filter\`
@@ -21,9 +21,8 @@ Mirrorverse workflows are directed graphs of typed nodes connected by named port
   - Connection direction: FROM the subcomponent node TO the ai.agent (e.g. \`lm_1 → agent_1 via ai_languageModel\`)
 
 **What each workflow kind contains:**
-- \`automation\`: one trigger + sequence of core.tool_call / core.http_request / core.code nodes + optional flow.if / flow.switch branches + optional core.respond_to_webhook at the end
+- \`automation\`: one trigger + sequence of core.tool_call / core.http_request nodes + optional flow.if / flow.switch branches (core.respond_to_webhook is reserved for a future release)
 - \`voice-agent\`: exactly one ai.voice_agent node — no trigger, no connections, all config in params
-- \`code\`: trigger.cron + core.code
 
 ## Operating pipeline
 
@@ -254,7 +253,7 @@ AI slot port names: \`"ai_languageModel"\` | \`"ai_memory"\` | \`"ai_tool"\` | \
 ## Node-type cheat sheet
 
 - Triggers: \`trigger.manual\`, \`trigger.cron\`, \`trigger.webhook\`, \`trigger.app_event\`, \`trigger.inbound_call\`
-- Core ops: \`core.tool_call\`, \`core.http_request\`, \`core.code\`, \`core.sub_workflow\`, \`core.respond_to_webhook\`
+- Core ops: \`core.tool_call\`, \`core.http_request\`, \`core.respond_to_webhook\` (scaffold only — no runtime effect yet)
 - AI composables: \`ai.agent\`, \`ai.language_model\`, \`ai.memory\`, \`ai.output_parser\`, \`ai.retriever\`
 - Voice agent: \`ai.voice_agent\` — self-contained; does NOT need separate \`ai.language_model\` connections
 - Flow control: \`flow.if\`, \`flow.switch\`, \`flow.loop\`, \`flow.merge\`, \`flow.filter\`, \`flow.wait\`, \`flow.stop\`, \`flow.noop\`
@@ -346,7 +345,7 @@ Then wire the language model: \`{ "from": "lm_1", "fromPort": "ai_languageModel"
   "id": "lm_1",
   "type": "ai.language_model",
   "position": { "x": 240, "y": 120 },
-  "params": { "provider": "anthropic", "model": "claude-haiku-4-5", "temperature": 0.7, "maxTokens": 1024 }
+  "params": { "provider": "anthropic", "model": "claude-haiku-4-5", "temperature": 0.7, "maxOutputTokens": 1024 }
 }
 \`\`\`
 
@@ -366,17 +365,45 @@ Then wire the language model: \`{ "from": "lm_1", "fromPort": "ai_languageModel"
   "id": "sw_1",
   "type": "flow.switch",
   "position": { "x": 480, "y": 0 },
-  "params": { "mode": "expression", "cases": [{ "when": "{{ $json.tier === 'pro' }}", "outputIndex": 0 }], "defaultOutputIndex": 1 }
+  "params": {
+    "cases": [
+      {
+        "conditions": [{ "leftValue": "{{ $json.tier }}", "operator": "equals", "rightValue": "pro" }],
+        "combinator": "and",
+        "outputIndex": 0
+      }
+    ],
+    "defaultOutputIndex": 1
+  }
 }
 \`\`\`
 
-\`transform\`:
+\`transform\` (rename keys):
 \`\`\`json
 {
   "id": "xf_1",
   "type": "transform",
   "position": { "x": 720, "y": 0 },
   "params": { "op": "rename_keys", "config": { "mapping": { "firstName": "first_name" } } }
+}
+\`\`\`
+
+\`transform\` (map — apply field templates to each array item):
+\`\`\`json
+{
+  "id": "xf_map",
+  "type": "transform",
+  "position": { "x": 720, "y": 0 },
+  "params": {
+    "op": "map",
+    "config": {
+      "fields": {
+        "title": "{{ $json.title }}",
+        "url": "{{ $json.html_url }}",
+        "author": "{{ $json.user.login }}"
+      }
+    }
+  }
 }
 \`\`\`
 

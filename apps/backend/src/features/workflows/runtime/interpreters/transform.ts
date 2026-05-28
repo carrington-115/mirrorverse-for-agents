@@ -16,6 +16,22 @@ interface AggregateConfig {
   readonly op?: "sum" | "count" | "min" | "max" | "first" | "last";
 }
 
+interface MapConfig {
+  readonly fields?: Record<string, unknown>;
+}
+
+function applyMap(
+  data: JsonValue,
+  config: MapConfig,
+  state: RunState,
+): JsonValue {
+  const fields = config.fields ?? {};
+  const arr = Array.isArray(data) ? data : [data];
+  return arr.map(
+    (item) => state.resolveParams(fields, item as JsonValue) as JsonValue,
+  ) as JsonValue;
+}
+
 function isJsonObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
@@ -83,13 +99,9 @@ export function interpretTransform(
     case "rename_keys":
       output = applyRenameKeys(input, config as RenameKeysConfig);
       break;
-    case "map": {
-      // Basic pass-through map; expression evaluation beyond template vars
-      // requires a safe evaluator (future work).
-      const arr = Array.isArray(input) ? input : [input];
-      output = arr as JsonValue;
+    case "map":
+      output = applyMap(input, config as MapConfig, state);
       break;
-    }
     case "aggregate":
       output = applyAggregate(input, config as AggregateConfig) as JsonValue;
       break;

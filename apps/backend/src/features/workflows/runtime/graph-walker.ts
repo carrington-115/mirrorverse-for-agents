@@ -19,7 +19,6 @@ import {
 import { interpretTrigger } from "./interpreters/trigger";
 import { interpretHttpRequest } from "./interpreters/http-request";
 import { interpretToolCall } from "./interpreters/tool-call";
-import { interpretCode } from "./interpreters/code";
 import { interpretTransform } from "./interpreters/transform";
 import {
   LOOP_SIGNAL,
@@ -145,8 +144,15 @@ async function executeNode(
           interpreted = await interpretToolCall(node, input, state, ctx);
           break;
 
-        case "core.code":
-          interpreted = interpretCode(node, input);
+        case "core.respond_to_webhook":
+          // Plumbing not yet active — pass input through so downstream nodes fire.
+          interpreted = { output: input, nextPorts: ["main"] };
+          break;
+
+        case "ai.voice_agent":
+          // Voice-agent workflows run via a separate VAPI pathway; halt the branch
+          // if one somehow reaches the automation walker.
+          interpreted = { output: input, nextPorts: [] };
           break;
 
         case "flow.if":

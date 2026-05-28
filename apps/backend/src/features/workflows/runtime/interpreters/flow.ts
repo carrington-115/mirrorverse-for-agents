@@ -65,12 +65,12 @@ interface IfParams {
 // ─── Switch ───────────────────────────────────────────────────────────────────
 
 interface SwitchCase {
-  readonly when: string;
+  readonly conditions: Condition[];
+  readonly combinator?: "and" | "or";
   readonly outputIndex: number;
 }
 
 interface SwitchParams {
-  readonly mode?: "expression";
   readonly cases?: SwitchCase[];
   readonly defaultOutputIndex?: number;
 }
@@ -132,19 +132,19 @@ export function interpretFlowSwitch(
   const defaultIndex = params.defaultOutputIndex ?? 0;
 
   for (const switchCase of cases) {
-    // Evaluate the `when` string as a boolean after template resolution.
-    const resolved = state.resolveParams({ when: switchCase.when }, input);
-    const whenValue = resolved.when;
-    // Accept truthy resolved values or the literal string "true".
-    const matches =
-      whenValue === true ||
-      whenValue === "true" ||
-      (typeof whenValue === "number" && whenValue !== 0);
-    if (matches) {
-      return {
-        output: input,
-        nextPorts: [String(switchCase.outputIndex)],
-      };
+    const combinator = switchCase.combinator ?? "and";
+    const results = (switchCase.conditions ?? []).map((c) => {
+      const left = state.resolveParams({ v: c.leftValue }, input);
+      const right =
+        c.rightValue !== undefined
+          ? state.resolveParams({ v: c.rightValue }, input)
+          : {};
+      return evalCondition({ ...c, leftValue: left.v, rightValue: right.v });
+    });
+    const passed =
+      combinator === "and" ? results.every(Boolean) : results.some(Boolean);
+    if (passed) {
+      return { output: input, nextPorts: [String(switchCase.outputIndex)] };
     }
   }
 
