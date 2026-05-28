@@ -145,6 +145,29 @@ function reconcileVoiceKnowledgeBases(intent: string, state: BuilderState): void
   }
 }
 
+// Types that legitimately have no connections: annotation notes and self-contained voice agents
+const STANDALONE_NODE_TYPES = new Set(["editor.sticky_note", "ai.voice_agent"]);
+
+// Returns a list of human-readable problems, or empty array if the graph looks complete.
+function checkGraphCompleteness(state: BuilderState): string[] {
+  const problems: string[] = [];
+  const connectedIds = new Set<string>();
+  for (const c of state.connections) {
+    connectedIds.add(c.from);
+    connectedIds.add(c.to);
+  }
+  const isolated = state.nodes.filter(
+    (n) => !STANDALONE_NODE_TYPES.has(n.type) && !connectedIds.has(n.id),
+  );
+  if (isolated.length > 0) {
+    problems.push(
+      `Isolated nodes (no connections): ${isolated.map((n) => `${n.id} (${n.type})`).join(", ")}. ` +
+        `Every non-annotation node must be wired into the graph.`,
+    );
+  }
+  return problems;
+}
+
 function assembleDocument(
   state: BuilderState,
 ): Omit<WorkflowDocumentInput, "id" | "version"> | null {
@@ -215,6 +238,14 @@ export async function buildWorkflowDocument(
     }
 
     reconcileVoiceKnowledgeBases(intent, state);
+
+    const completenessProblems = checkGraphCompleteness(state);
+    if (completenessProblems.length > 0) {
+      const msg = `Workflow graph is incomplete (attempt ${attempt}):\n${completenessProblems.join("\n")}`;
+      lastError = new Error(msg);
+      priorErrors = msg;
+      continue;
+    }
 
     const assembled = assembleDocument(state);
     const result = workflowDocumentSchema.safeParse(assembled);

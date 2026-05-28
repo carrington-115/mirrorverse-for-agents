@@ -14,11 +14,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { NodeIcon } from "@/features/workflows/lib/node-icon";
+import { WebhookConfig } from "@/features/webhooks/components/webhook-config";
+import { useKbsQuery } from "@/features/knowledge/api/queries";
 import { APP_EVENT_CATALOG } from "@mirrorverse/agent/schemas";
 import type { WorkflowNodeInput } from "@mirrorverse/agent/schemas";
 
 interface NodeInspectorProps {
   readonly node: WorkflowNodeInput;
+  readonly workflowId?: string;
   readonly validationErrors?: readonly string[];
   readonly onUpdate: (patch: Partial<WorkflowNodeInput>) => void;
   readonly onClose: () => void;
@@ -193,17 +196,20 @@ function CronTriggerForm({
 
 function WebhookTriggerForm({
   node,
+  workflowId,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  workflowId?: string;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
+  const endpointSlug = str(node.params, "endpointSlug");
   return (
     <>
       <TextInput
         label="Endpoint slug"
-        value={str(node.params, "endpointSlug")}
+        value={endpointSlug}
         onChange={(v) => p("endpointSlug", v)}
         placeholder="my-webhook"
       />
@@ -224,6 +230,13 @@ function WebhookTriggerForm({
         value={bool(node.params, "verifySignature", false)}
         onChange={(v) => p("verifySignature", v)}
       />
+      {endpointSlug && workflowId && (
+        <WebhookConfig
+          workflowId={workflowId}
+          triggerNodeId={node.id}
+          endpointSlug={endpointSlug}
+        />
+      )}
     </>
   );
 }
@@ -282,6 +295,19 @@ function VoiceAgentForm({
 }) {
   const p = useParamUpdater(node, onUpdate);
   const mc = asObj(node.params.modelConnection);
+  const ve = asObj(node.params.voiceEntry);
+  const phrases = Array.isArray(node.params.endCallPhrases)
+    ? (node.params.endCallPhrases as string[])
+    : [];
+  const kbIds = Array.isArray(node.params.knowledgeBaseIds)
+    ? (node.params.knowledgeBaseIds as string[])
+    : [];
+  const te = asObj(node.params.toolsEndpoint);
+  const tools = Array.isArray(te.tools)
+    ? (te.tools as Array<{ toolName: string; mcpServerName: string }>)
+    : [];
+  const { data: kbs } = useKbsQuery();
+
   return (
     <>
       <SelectInput
@@ -318,6 +344,33 @@ function VoiceAgentForm({
         ]}
         onChange={(v) => p("modelConnection", { ...mc, model: v })}
       />
+      <TextInput
+        label="Voice ID"
+        value={str(ve, "voiceId", "21m00Tcm4TlvDq8ikWAM")}
+        onChange={(v) => p("voiceEntry", { ...ve, voiceId: v })}
+        placeholder="21m00Tcm4TlvDq8ikWAM"
+      />
+      <SelectInput
+        label="TTS model"
+        value={str(ve, "model", "eleven_turbo_v2_5")}
+        options={[
+          { value: "eleven_turbo_v2_5", label: "Turbo v2.5" },
+          { value: "eleven_turbo_v2", label: "Turbo v2" },
+        ]}
+        onChange={(v) => p("voiceEntry", { ...ve, model: v })}
+      />
+      <SelectInput
+        label="Voice mode"
+        value={str(ve, "voiceMode", "conversational")}
+        options={[
+          { value: "conversational", label: "Conversational" },
+          { value: "narrative", label: "Narrative" },
+          { value: "emotional", label: "Emotional" },
+          { value: "advertisement", label: "Advertisement" },
+          { value: "entertainment", label: "Entertainment" },
+        ]}
+        onChange={(v) => p("voiceEntry", { ...ve, voiceMode: v })}
+      />
       <Field label="Max duration (seconds)">
         <Input
           className="h-7 text-xs"
@@ -332,6 +385,162 @@ function VoiceAgentForm({
         value={bool(node.params, "recordingEnabled", false)}
         onChange={(v) => p("recordingEnabled", v)}
       />
+      <Field label="End call phrases">
+        <div className="gap-1 flex flex-col">
+          {phrases.map((ph, i) => (
+            <div key={i} className="gap-1 flex items-center">
+              <Input
+                className="h-7 text-xs flex-1"
+                value={ph}
+                placeholder="e.g. goodbye"
+                onChange={(e) =>
+                  p(
+                    "endCallPhrases",
+                    phrases.map((x, idx) => (idx === i ? e.target.value : x)),
+                  )
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() =>
+                  p(
+                    "endCallPhrases",
+                    phrases.filter((_, idx) => idx !== i),
+                  )
+                }
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs w-full"
+            onClick={() => p("endCallPhrases", [...phrases, ""])}
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            Add phrase
+          </Button>
+        </div>
+      </Field>
+      <Field label="Knowledge bases">
+        <div className="gap-1 flex flex-col">
+          {kbIds.map((id) => {
+            const kb = kbs?.find((k) => k.id === id);
+            return (
+              <div key={id} className="gap-1 flex items-center">
+                <span className="rounded-sm px-2 py-1 text-xs flex-1 truncate bg-muted">
+                  {kb?.name ?? id}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() =>
+                    p(
+                      "knowledgeBaseIds",
+                      kbIds.filter((x) => x !== id),
+                    )
+                  }
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            );
+          })}
+          <Select
+            value=""
+            onValueChange={(v) => {
+              if (v && !kbIds.includes(v)) {
+                p("knowledgeBaseIds", [...kbIds, v]);
+              }
+            }}
+          >
+            <SelectTrigger className="h-7 text-xs">
+              <SelectValue placeholder="Add knowledge base…" />
+            </SelectTrigger>
+            <SelectContent>
+              {kbs && kbs.length > 0 ? (
+                kbs
+                  .filter((kb) => !kbIds.includes(kb.id))
+                  .map((kb) => (
+                    <SelectItem key={kb.id} value={kb.id} className="text-xs">
+                      {kb.name}
+                    </SelectItem>
+                  ))
+              ) : (
+                <SelectItem value="__none__" disabled className="text-xs">
+                  No knowledge bases yet
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </Field>
+      <Field label="Tools">
+        <div className="gap-1 flex flex-col">
+          {tools.map((tool, i) => (
+            <div key={i} className="gap-1 flex items-center">
+              <Input
+                className="h-7 text-xs flex-1"
+                value={tool.toolName}
+                placeholder="Tool name"
+                onChange={(e) =>
+                  p("toolsEndpoint", {
+                    ...te,
+                    tools: tools.map((t, idx) =>
+                      idx === i ? { ...t, toolName: e.target.value } : t,
+                    ),
+                  })
+                }
+              />
+              <Input
+                className="h-7 text-xs flex-1"
+                value={tool.mcpServerName}
+                placeholder="Server"
+                onChange={(e) =>
+                  p("toolsEndpoint", {
+                    ...te,
+                    tools: tools.map((t, idx) =>
+                      idx === i ? { ...t, mcpServerName: e.target.value } : t,
+                    ),
+                  })
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() =>
+                  p("toolsEndpoint", {
+                    ...te,
+                    tools: tools.filter((_, idx) => idx !== i),
+                  })
+                }
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs w-full"
+            onClick={() =>
+              p("toolsEndpoint", {
+                ...te,
+                tools: [...tools, { toolName: "", mcpServerName: "" }],
+              })
+            }
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            Add tool
+          </Button>
+        </div>
+      </Field>
     </>
   );
 }
@@ -768,9 +977,11 @@ function FallbackForm({ node }: { node: WorkflowNodeInput }) {
 
 function KindForm({
   node,
+  workflowId,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  workflowId?: string;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   switch (node.type) {
@@ -779,7 +990,7 @@ function KindForm({
     case "trigger.cron":
       return <CronTriggerForm node={node} onUpdate={onUpdate} />;
     case "trigger.webhook":
-      return <WebhookTriggerForm node={node} onUpdate={onUpdate} />;
+      return <WebhookTriggerForm node={node} workflowId={workflowId} onUpdate={onUpdate} />;
     case "trigger.app_event":
       return <AppEventTriggerForm node={node} onUpdate={onUpdate} />;
     case "trigger.inbound_call":
@@ -807,7 +1018,13 @@ function KindForm({
   }
 }
 
-export function NodeInspector({ node, validationErrors, onUpdate, onClose }: NodeInspectorProps) {
+export function NodeInspector({
+  node,
+  workflowId,
+  validationErrors,
+  onUpdate,
+  onClose,
+}: NodeInspectorProps) {
   return (
     <div className="w-72 flex h-full shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-background">
       {/* Header */}
@@ -837,7 +1054,7 @@ export function NodeInspector({ node, validationErrors, onUpdate, onClose }: Nod
       {/* Kind-specific form */}
       <div className="min-h-0 px-3 py-3 flex-1 overflow-y-auto">
         <div className="gap-3 flex flex-col">
-          <KindForm node={node} onUpdate={onUpdate} />
+          <KindForm node={node} workflowId={workflowId} onUpdate={onUpdate} />
         </div>
       </div>
     </div>

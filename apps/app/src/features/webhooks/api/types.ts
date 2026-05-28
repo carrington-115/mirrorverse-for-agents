@@ -18,3 +18,18 @@ export interface Webhook {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface WebhookEndpoint {
+  id: string;
+  workspaceId: string;
+  workflowId: string;
+  triggerNodeId: string;
+  slug: string;
+  secret: string;
+  verifySignature: boolean;
+  enabled: boolean;
+  lastCalledAt: string | null;
+  callsLast24h: number;
+  createdAt: string;
+  updatedAt: string;
+}

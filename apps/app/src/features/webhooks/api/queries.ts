@@ -7,3 +7,8 @@ export function useWebhooksQuery() {
   const trpc = useTRPC();
   return useQuery(trpc.webhooks.list.queryOptions());
 }
+
+export function useWebhookEndpointsQuery() {
+  const trpc = useTRPC();
+  return useQuery(trpc.webhooks.listEndpoints.queryOptions());
+}

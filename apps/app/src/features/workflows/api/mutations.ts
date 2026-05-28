@@ -54,3 +54,29 @@ export function useRenameWorkflowMutation() {
     },
   });
 }
+
+export function useActivateWorkflowMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.workflows.activate.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.get.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.webhooks.listEndpoints.queryKey() });
+    },
+  });
+}
+
+export function useDeactivateWorkflowMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.workflows.deactivate.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.get.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.webhooks.listEndpoints.queryKey() });
+    },
+  });
+}

@@ -1,7 +1,13 @@
+import { z } from "zod";
+
 import { router } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
 import { createWebhookInput, deleteWebhookInput } from "./inputs";
 import { createWebhook, deleteWebhook, listWorkspaceWebhooks } from "./repo";
+import {
+  listEndpointsByWorkspace,
+  regenerateEndpointSecret,
+} from "./webhook-endpoints-repo";
 
 export const webhooksRouter = router({
   list: workspaceProc.query(({ ctx }) =>
@@ -18,5 +24,15 @@ export const webhooksRouter = router({
     .input(deleteWebhookInput)
     .mutation(({ ctx, input }) =>
       deleteWebhook(ctx.db, input.webhookId, ctx.workspaceId),
+    ),
+
+  listEndpoints: workspaceProc.query(({ ctx }) =>
+    listEndpointsByWorkspace(ctx.db, ctx.workspaceId),
+  ),
+
+  regenerateSecret: workspaceProc
+    .input(z.object({ endpointId: z.string().min(1) }))
+    .mutation(({ ctx, input }) =>
+      regenerateEndpointSecret(ctx.db, ctx.workspaceId, input.endpointId),
     ),
 });

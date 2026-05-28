@@ -468,7 +468,8 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
           voiceEntry: {
             provider: "elevenlabs",
             voiceId: "21m00Tcm4TlvDq8ikWAM",
-            model: "eleven_turbo_v2",
+            model: "eleven_turbo_v2_5",
+            voiceMode: "conversational",
           },
           modelConnection: {
             provider: "anthropic",

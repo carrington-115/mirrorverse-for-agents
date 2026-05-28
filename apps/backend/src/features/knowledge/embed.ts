@@ -19,14 +19,17 @@ export interface EmbedResult {
 
 export async function embedTexts(texts: string[]): Promise<EmbedResult> {
   if (texts.length === 0) return { embeddings: [], tokens: 0 };
-  const embeddings: number[][] = [];
-  let tokens = 0;
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
-    const res = await embedMany({ model: MODEL, values: batch });
-    embeddings.push(...res.embeddings);
-    tokens += res.usage?.tokens ?? 0;
-  }
+
+  const batches: string[][] = [];
+  for (let i = 0; i < texts.length; i += BATCH_SIZE)
+    batches.push(texts.slice(i, i + BATCH_SIZE));
+
+  const results = await Promise.all(
+    batches.map((batch) => embedMany({ model: MODEL, values: batch })),
+  );
+
+  const embeddings = results.flatMap((r) => r.embeddings);
+  const tokens = results.reduce((sum, r) => sum + (r.usage?.tokens ?? 0), 0);
   return { embeddings, tokens };
 }
 

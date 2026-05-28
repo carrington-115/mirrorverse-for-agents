@@ -1,9 +1,8 @@
-﻿import { createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import type { InngestFunction } from "inngest";
+import { load } from "cheerio";
 import { schema, type Database } from "@mirrorverse/db";
-import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
 import { PDFParse } from "pdf-parse";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -24,6 +23,9 @@ const CHARS_PER_TOKEN = 4;
 const CHUNK_TARGET_CHARS = 400 * CHARS_PER_TOKEN; // 1600
 const CHUNK_OVERLAP_CHARS = 50 * CHARS_PER_TOKEN; // 200
 
+// Timeout for all external HTTP fetches — caps worst-case step duration.
+const FETCH_TIMEOUT_MS = 12_000;
+
 export function chunkText(text: string): string[] {
   const chunks: string[] = [];
   let start = 0;
@@ -43,10 +45,11 @@ function estimateTokens(text: string): number {
 
 /**
  * Normalise third-party sharing URLs before fetching:
- * - Notion: fail fast — pages are JS-rendered SPAs with no static content.
  * - Google Docs/Sheets: rewrite to plaintext/CSV export (works for public links).
  * - Google Drive files: rewrite to direct download.
  * - Dropbox: switch dl=0 preview to dl=1 direct download.
+ * - OneDrive: rewrite shared links to direct download.
+ * - Notion: pass through (handled by Jina Reader).
  */
 function normalizeSourceUrl(rawUrl: string): string {
   let parsed: URL;
@@ -57,18 +60,6 @@ function normalizeSourceUrl(rawUrl: string): string {
   }
 
   const host = parsed.hostname.toLowerCase();
-
-  if (
-    host === "notion.so" ||
-    host.endsWith(".notion.so") ||
-    host === "notion.site" ||
-    host.endsWith(".notion.site")
-  ) {
-    throw new Error(
-      "Notion pages cannot be fetched directly because they render in the browser. " +
-        "Export the page as a PDF (Share → Export → PDF) and upload it instead.",
-    );
-  }
 
   if (host === "docs.google.com") {
     const docId = parsed.pathname.match(/^\/document\/d\/([^/]+)/)?.[1];
@@ -91,17 +82,77 @@ function normalizeSourceUrl(rawUrl: string): string {
     return parsed.toString();
   }
 
+  if (host === "onedrive.live.com") {
+    // Shared file preview → direct download
+    parsed.searchParams.set("download", "1");
+    return parsed.toString();
+  }
+
+  if (host === "1drv.ms" || host === "onedrive.live.com") {
+    // Short links are resolved at fetch time via redirect following.
+    // Mark them with a special param so fetchAndParseUrl knows to resolve first.
+    return rawUrl;
+  }
+
   return rawUrl;
 }
 
+/**
+ * Extract body text from HTML using cheerio (lightweight — no CSS/script parse).
+ * Targets article/main/[role=main] before falling back to body.
+ */
+function extractTextFromHtml(html: string): string {
+  const $ = load(html);
+  $("script, style, noscript, nav, footer, header, aside").remove();
+  const main =
+    $("article").text() ||
+    $("main").text() ||
+    $('[role="main"]').text() ||
+    $("body").text();
+  const extracted = main.replace(/\s+/g, " ").trim();
+  if (!extracted) throw new Error("Could not extract text content from page");
+  return extracted;
+}
+
+/**
+ * 3-layer URL fetch strategy:
+ *
+ * Layer 1 — Jina Reader (fast, handles JS-rendered pages including Notion):
+ *   GET https://r.jina.ai/{encodedUrl} — returns clean Markdown in ~1–3s.
+ *   Falls through if non-200 or response too short.
+ *
+ * Layer 2 — Local fetch + Cheerio (lightweight HTML parser, 10–20× faster than JSDOM):
+ *   Plain-text/CSV responses are returned directly.
+ *   HTML is parsed with cheerio targeting semantic content elements.
+ *
+ * Both layers use AbortSignal.timeout(FETCH_TIMEOUT_MS) to cap worst-case duration.
+ */
 async function fetchAndParseUrl(rawUrl: string): Promise<string> {
   const url = normalizeSourceUrl(rawUrl);
-  const resp = await fetch(url);
+
+  // Layer 1: Jina Reader
+  try {
+    const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+    const resp = await fetch(jinaUrl, {
+      headers: { Accept: "text/plain" },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (resp.ok) {
+      const text = (await resp.text()).replace(/\s+/g, " ").trim();
+      if (text.length >= 100) return text;
+    }
+  } catch {
+    // fall through to local parse
+  }
+
+  // Layer 2: Local fetch + Cheerio
+  const resp = await fetch(url, {
+    redirect: "follow",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${url}`);
 
   const contentType = resp.headers.get("content-type") ?? "";
-
-  // Plain-text responses (e.g. Google Docs/Sheets export, Dropbox text files)
   if (
     contentType.startsWith("text/plain") ||
     contentType.startsWith("text/csv")
@@ -110,16 +161,13 @@ async function fetchAndParseUrl(rawUrl: string): Promise<string> {
   }
 
   const html = await resp.text();
-  const dom = new JSDOM(html, { url });
-  const reader = new Readability(dom.window.document);
-  const article = reader.parse();
-  if (!article?.textContent)
-    throw new Error("Readability could not extract content");
-  return article.textContent.replace(/\s+/g, " ").trim();
+  return extractTextFromHtml(html);
 }
 
 async function fetchAndParsePdf(storageKeyOrUrl: string): Promise<string> {
-  const resp = await fetch(storageKeyOrUrl);
+  const resp = await fetch(storageKeyOrUrl, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching PDF`);
   const buffer = Buffer.from(await resp.arrayBuffer());
   const parser = new PDFParse({ data: buffer });
@@ -140,7 +188,9 @@ const OFFICE_XLSX =
 const VISION_MODEL = openai("gpt-4o-mini");
 
 async function fetchBuffer(url: string): Promise<Buffer> {
-  const resp = await fetch(url);
+  const resp = await fetch(url, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching file`);
   return Buffer.from(await resp.arrayBuffer());
 }
@@ -201,7 +251,9 @@ async function extractFileText(
   fileName: string,
 ): Promise<string> {
   if (looksLikeText(mediaType, fileName)) {
-    const resp = await fetch(url);
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
     if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching file`);
     return (await resp.text()).replace(/\s+/g, " ").trim();
   }
