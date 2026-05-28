@@ -432,7 +432,7 @@ function VoiceAgentForm({
             const kb = kbs?.find((k) => k.id === id);
             return (
               <div key={id} className="gap-1 flex items-center">
-                <span className="rounded-sm px-2 py-1 text-xs flex-1 truncate bg-muted">
+                <span className="px-2 py-1 text-xs flex-1 truncate rounded-sm bg-muted">
                   {kb?.name ?? id}
                 </span>
                 <Button
