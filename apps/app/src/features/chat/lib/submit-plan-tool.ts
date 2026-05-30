@@ -1,6 +1,15 @@
 import type { ToolUIPart } from "ai";
+import { Lightbulb, ListTodo } from "lucide-react";
+
+import { registerTool } from "./tool-registry";
 
 export const SUBMIT_PLAN_TOOL_TYPE = "tool-submit_plan" as const;
+
+registerTool(SUBMIT_PLAN_TOOL_TYPE, {
+  label: "Planning workflow",
+  icon: ListTodo,
+  beforeToolIcon: Lightbulb,
+});
 
 export type SubmitPlanToolPart = ToolUIPart & { type: typeof SUBMIT_PLAN_TOOL_TYPE };
 

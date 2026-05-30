@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { UIMessage } from "ai";
+import { isToolUIPart, type UIMessage } from "ai";
 import { toast } from "sonner";
 import type { PromptInputMessage } from "@mirrorverse/ui/ai-elements/prompt-input";
 
@@ -18,11 +18,22 @@ import {
 import { useMirrorpilotFileUpload } from "@/features/knowledge/hooks/use-mirrorpilot-file-upload";
 import { ComposioIntegrationsDialog } from "@/features/integrations/components/integration";
 import { AddWebhookSheet } from "@/features/webhooks/components/add-webhook-sheet";
+import {
+  isSubmitPlanPart,
+  readSubmitPlanOutput,
+  type SubmitPlanToolPart,
+  type WorkflowPlan,
+} from "@/features/chat/lib/submit-plan-tool";
+import {
+  isWorkflowCommitPart,
+  readWorkflowCommitResult,
+} from "@/features/chat/lib/workflow-commit-tool";
 
 import { ChatConversation } from "./chat-conversation";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatPromptInput } from "./chat-prompt-input";
 import { CredentialInterruptDialog } from "./credential-interrupt-dialog";
+import type { PlanProgressStep } from "./plan-progress-bar";
 
 interface ChatRuntimeProps {
   sessionId: string;
@@ -68,6 +79,58 @@ export function ChatRuntime({
     messages: initialMessages,
     onFinish,
   });
+
+  const { planSteps, sessionTriggerCount } = useMemo(() => {
+    let foundPlan: WorkflowPlan | null = null;
+    let planMsgIndex = -1;
+    let hasCommit = false;
+    const triggerTypes = new Set<string>();
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg.role !== "assistant") continue;
+      for (const part of msg.parts) {
+        if (!isToolUIPart(part)) continue;
+        if (isSubmitPlanPart(part)) {
+          const plan = readSubmitPlanOutput(part as SubmitPlanToolPart);
+          if (plan && plan.steps.length > 3) {
+            foundPlan = plan;
+            planMsgIndex = i;
+          }
+        }
+        if (isWorkflowCommitPart(part)) {
+          const result = readWorkflowCommitResult(part);
+          if (result) {
+            hasCommit = true;
+            const rawNodes = (result.document as { nodes?: unknown[] } | null)?.nodes;
+            const nodes = Array.isArray(rawNodes) ? rawNodes : [];
+            for (const node of nodes) {
+              if (typeof node !== "object" || !node) continue;
+              const n = node as Record<string, unknown>;
+              const type = typeof n.type === "string" ? n.type : "";
+              if (type.startsWith("trigger.")) triggerTypes.add(type);
+            }
+          }
+        }
+      }
+    }
+
+    const sessionTriggerCount = triggerTypes.size;
+
+    if (hasCommit || !foundPlan || planMsgIndex < 0) {
+      return { planSteps: [] as PlanProgressStep[], sessionTriggerCount };
+    }
+
+    const userMsgsAfter = messages.slice(planMsgIndex + 1).filter((m) => m.role === "user").length;
+
+    const planSteps: PlanProgressStep[] = foundPlan.steps.map((s, idx) => ({
+      step: s.step,
+      title: s.description,
+      completed: idx < userMsgsAfter,
+    }));
+
+    return { planSteps, sessionTriggerCount };
+  }, [messages]);
 
   const { data: pendingInterrupt } = useQuery({
     ...trpc.chats.pendingInterrupt.queryOptions({ chatId: sessionId }),
@@ -244,6 +307,8 @@ export function ChatRuntime({
       onModelChange={setModel}
       onConnectApp={() => setBrowseOpen(true)}
       onConnectWebhook={() => setWebhookOpen(true)}
+      planSteps={planSteps}
+      sessionTriggerCount={sessionTriggerCount}
     />
   );
 
@@ -343,6 +408,17 @@ export function ChatRuntime({
       />
       <div className="p-3">
         <div className="mx-auto w-full max-w-[780px]">{inputBlock}</div>
+        <p className="mt-1.5 text-xs md:text-xs text-center text-muted-foreground/60">
+          Mirrorpilot can make mistakes. By using Mirrorpilot, you agree to our{" "}
+          <a
+            href="https://mirrorverse.ai/terms-of-service"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-muted-foreground"
+          >
+            Terms and Conditions
+          </a>
+        </p>
       </div>
       {credentialInterrupt && !interruptDismissed && (
         <CredentialInterruptDialog

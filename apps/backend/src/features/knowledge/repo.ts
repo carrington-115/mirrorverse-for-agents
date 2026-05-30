@@ -178,7 +178,10 @@ export async function listDocuments(db: Database, kbId: string, limit: number) {
 // Knowledge bases a Mirrorpilot chat can see: every manually-created KB in the
 // workspace plus the session's own upload bucket (source = "mirrorpilot" tied to
 // this chat). Other chats' upload buckets are intentionally excluded.
-const chatAccessibleKbWhere = (workspaceId: string, chatSessionId: string) =>
+export const chatAccessibleKbWhere = (
+  workspaceId: string,
+  chatSessionId: string,
+) =>
   and(
     eq(knowledgeBases.workspaceId, workspaceId),
     or(
@@ -259,6 +262,37 @@ export async function listChatAccessibleKbsWithCounts(
     .groupBy(knowledgeBases.id)
     .orderBy(asc(knowledgeBases.name));
   return rows;
+}
+
+export async function findChatAccessibleKbByName(
+  db: Database,
+  workspaceId: string,
+  chatSessionId: string,
+  name: string,
+): Promise<ChatAccessibleKb | null> {
+  const [row] = await db
+    .select({
+      id: knowledgeBases.id,
+      name: knowledgeBases.name,
+      description: knowledgeBases.description,
+      source: knowledgeBases.source,
+      documentCount: sql<number>`count(${knowledgeDocuments.id})::int`,
+      readyDocumentCount: sql<number>`(count(${knowledgeDocuments.id}) filter (where ${knowledgeDocuments.status} = 'ready'))::int`,
+    })
+    .from(knowledgeBases)
+    .leftJoin(
+      knowledgeDocuments,
+      eq(knowledgeDocuments.kbId, knowledgeBases.id),
+    )
+    .where(
+      and(
+        chatAccessibleKbWhere(workspaceId, chatSessionId),
+        sql`lower(${knowledgeBases.name}) = lower(${name})`,
+      ),
+    )
+    .groupBy(knowledgeBases.id)
+    .limit(1);
+  return row ?? null;
 }
 
 export interface ResolvedSelectedDocument {

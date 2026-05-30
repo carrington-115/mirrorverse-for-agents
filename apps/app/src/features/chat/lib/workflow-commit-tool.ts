@@ -1,8 +1,16 @@
 import type { ToolUIPart } from "ai";
+import { PenLine, Workflow } from "lucide-react";
 
 import type { WorkflowKind } from "@/features/chat/config";
+import { registerTool } from "./tool-registry";
 
 export const WORKFLOW_COMMIT_TOOL_TYPE = "tool-workflow_commit" as const;
+
+registerTool(WORKFLOW_COMMIT_TOOL_TYPE, {
+  label: "Building workflow",
+  icon: Workflow,
+  beforeToolIcon: PenLine,
+});
 
 export type WorkflowCommitToolPart = ToolUIPart & { type: typeof WORKFLOW_COMMIT_TOOL_TYPE };
 

@@ -143,6 +143,20 @@ a voice agent that should search this knowledge base.`,
     }),
     execute: async ({ name, description }) => {
       try {
+        const existing = await repo.findChatAccessibleKbByName(
+          db,
+          workspaceId,
+          chatId,
+          name,
+        );
+        if (existing) {
+          return {
+            ok: true as const,
+            knowledgeBaseId: existing.id,
+            name: existing.name,
+            note: `Knowledge base "${existing.name}" already exists — reusing it instead of creating a duplicate.`,
+          };
+        }
         const kb = await knowledgeService.createKb(ctx, {
           name,
           description,

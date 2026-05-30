@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import {
   isSubmitPlanPart,
   readSubmitPlanOutput,
+  type SubmitPlanOutput,
   type SubmitPlanToolPart,
   type WorkflowPlanKind,
 } from "@/features/chat/lib/submit-plan-tool";
@@ -25,6 +26,11 @@ export function WorkflowPlanCard({ part }: WorkflowPlanCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (!isSubmitPlanPart(part)) return null;
+
+  const isError =
+    part.state === "output-error" ||
+    (part.state === "output-available" && !(part.output as SubmitPlanOutput | undefined)?.ok);
+  if (isError) return null;
 
   const plan = readSubmitPlanOutput(part);
   const isLoading = part.state !== "output-available";

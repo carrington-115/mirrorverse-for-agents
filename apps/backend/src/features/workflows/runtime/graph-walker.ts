@@ -218,6 +218,8 @@ async function executeNode(
             input,
             state,
             ctx.runId,
+            ctx.workspaceId,
+            ctx.db,
             step,
           );
           break;

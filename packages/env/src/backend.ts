@@ -50,6 +50,10 @@ export const env = createEnv({
     COMPOSIO_API_KEY: z.string().min(1).optional(),
     COMPOSIO_OAUTH_CALLBACK_URL: z.string().url().optional(),
 
+    RESEND_API_KEY: z.string().min(1).optional(),
+    RESEND_FROM_EMAIL: z.string().email().default("noreply@mirrorverse.ai"),
+    APP_URL: z.string().url().default("http://localhost:3000"),
+
     INNGEST_EVENT_KEY: z.string().min(1).optional(),
     INNGEST_SIGNING_KEY: z.string().min(1).optional(),
     INNGEST_SIGNING_KEY_FALLBACK: z.string().min(1).optional(),

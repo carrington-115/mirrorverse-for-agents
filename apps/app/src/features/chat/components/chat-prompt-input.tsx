@@ -47,6 +47,8 @@ import { cn } from "@/lib/utils";
 
 import { CHAT_MODELS, type ModelOption } from "@/features/chat/config";
 import { useSpeechToText } from "@/features/chat/hooks/use-speech-to-text";
+import { PlanProgressBar, type PlanProgressStep } from "./plan-progress-bar";
+import { TriggerPickerButton } from "./trigger-picker";
 
 export type ChatStatus = "submitted" | "streaming" | "ready" | "error";
 
@@ -58,6 +60,8 @@ interface ChatPromptInputProps {
   onModelChange: (model: string) => void;
   onConnectApp?: () => void;
   onConnectWebhook?: () => void;
+  planSteps?: PlanProgressStep[];
+  sessionTriggerCount?: number;
 }
 
 export function ChatPromptInput({
@@ -68,9 +72,12 @@ export function ChatPromptInput({
   onModelChange,
   onConnectApp,
   onConnectWebhook,
+  planSteps = [],
+  sessionTriggerCount = 0,
 }: ChatPromptInputProps) {
   return (
     <PromptInputProvider>
+      <PlanProgressBar steps={planSteps} />
       <PromptInput
         globalDrop
         multiple
@@ -146,6 +153,7 @@ export function ChatPromptInput({
             <ChatModelPicker selectedId={model} onSelect={onModelChange} />
           </PromptInputTools>
           <div className="gap-1 flex items-center">
+            <TriggerPickerButton triggerCount={sessionTriggerCount} />
             <MicButton />
             <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
           </div>
@@ -323,7 +331,6 @@ const ALL_PROVIDER = "All" as const;
 const PROVIDERS = [
   { chef: "Anthropic", slug: "anthropic" },
   { chef: "OpenAI", slug: "openai" },
-  { chef: "Google", slug: "google" },
 ] as const;
 
 function ChatModelPicker({

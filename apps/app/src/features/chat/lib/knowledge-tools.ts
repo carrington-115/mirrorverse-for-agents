@@ -1,6 +1,11 @@
 import type { ToolUIPart } from "ai";
+import { BookOpen } from "lucide-react";
+
+import { registerTool } from "./tool-registry";
 
 export const KB_VIEW_TOOL_TYPE = "tool-view_knowledge_bases" as const;
+
+registerTool(KB_VIEW_TOOL_TYPE, { label: "Reviewing knowledge base", icon: BookOpen });
 
 export type KbViewToolPart = ToolUIPart & { type: typeof KB_VIEW_TOOL_TYPE };
 
