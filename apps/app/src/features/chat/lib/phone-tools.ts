@@ -1,10 +1,25 @@
 import type { ToolUIPart } from "ai";
+import { ListOrdered, Mic, PhoneOutgoing, PlugZap, Search } from "lucide-react";
+
+import { registerTool } from "./tool-registry";
 
 export const PHONE_SEARCH_TOOL_TYPE = "tool-search_available_numbers" as const;
 export const PHONE_PROVISION_TOOL_TYPE = "tool-provision_phone_number" as const;
 export const PHONE_BYO_TOOL_TYPE = "tool-connect_byo_twilio" as const;
 export const UNASSIGNED_NUMBERS_TOOL_TYPE = "tool-list_unassigned_numbers" as const;
 export const VOICE_ACTIVATE_TOOL_TYPE = "tool-activate_voice_agent" as const;
+
+registerTool(PHONE_SEARCH_TOOL_TYPE, { label: "Searching available numbers", icon: Search });
+registerTool(PHONE_PROVISION_TOOL_TYPE, {
+  label: "Provisioning phone number",
+  icon: PhoneOutgoing,
+});
+registerTool(PHONE_BYO_TOOL_TYPE, { label: "Connecting your Twilio number", icon: PlugZap });
+registerTool(UNASSIGNED_NUMBERS_TOOL_TYPE, {
+  label: "Listing your phone numbers",
+  icon: ListOrdered,
+});
+registerTool(VOICE_ACTIVATE_TOOL_TYPE, { label: "Activating voice agent", icon: Mic });
 
 export type PhoneSearchToolPart = ToolUIPart & { type: typeof PHONE_SEARCH_TOOL_TYPE };
 export type PhoneProvisionToolPart = ToolUIPart & { type: typeof PHONE_PROVISION_TOOL_TYPE };

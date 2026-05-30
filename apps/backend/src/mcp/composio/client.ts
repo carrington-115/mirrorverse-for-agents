@@ -127,6 +127,19 @@ export interface ComposioIntegrationTool {
   readonly description: string;
 }
 
+export async function listComposioToolsForApp(
+  appSlug: string,
+): Promise<readonly ComposioIntegrationTool[]> {
+  if (!isComposioConfigured()) return [];
+  const composio = getComposioInstance();
+  const rawTools = await composio.tools.getRawComposioTools({
+    toolkits: [appSlug],
+  });
+  return (rawTools as Array<{ slug?: string; description?: string }>)
+    .filter((t) => t.slug)
+    .map((t) => ({ slug: t.slug!, description: t.description ?? "" }));
+}
+
 export interface ComposioIntegrationTrigger {
   readonly slug: string;
   readonly name: string;

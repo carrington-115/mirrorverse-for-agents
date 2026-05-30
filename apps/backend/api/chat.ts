@@ -56,6 +56,7 @@ import { chatsService } from "../src/features/chats/service";
 import {
   isComposioConfigured,
   listComposioTools,
+  listComposioToolsForApp,
   listConnectedApps,
   getComposioAuthRedirectUrl,
   lookupComposioMcpServerId,
@@ -238,6 +239,21 @@ async function buildIntrospectionTools(
           ? { [appSlug]: APP_EVENT_CATALOG[appSlug] ?? null }
           : APP_EVENT_CATALOG;
         return { catalog };
+      },
+    }),
+    list_integration_tools: tool({
+      description:
+        "List the available tool slugs and descriptions for a specific connected app. Call this when you need the exact Composio tool name to use in a workflow core.tool_call node or voice agent toolsEndpoint. Always call list_connected_apps first to confirm the app is connected, then call this to get real tool names.",
+      inputSchema: z.object({
+        appSlug: z
+          .string()
+          .describe(
+            "The app slug to fetch tools for, e.g. 'slack', 'gmail', 'github', 'googlesheets'.",
+          ),
+      }),
+      execute: async ({ appSlug }) => {
+        const tools = await listComposioToolsForApp(appSlug).catch(() => []);
+        return { tools };
       },
     }),
   };

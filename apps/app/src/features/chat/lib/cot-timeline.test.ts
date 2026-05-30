@@ -96,6 +96,18 @@ describe("buildCotTimeline", () => {
     expect(steps[0]).toMatchObject({ kind: "acting", icon: AlertCircle });
   });
 
+  it("shows 'Retrying to create plan' for a failed submit_plan, not an error", () => {
+    const { steps } = buildCotTimeline(
+      msg([{ type: "tool-submit_plan", toolCallId: "t1", state: "output-error" }]),
+    );
+    expect(steps[0]).toMatchObject({
+      kind: "acting",
+      label: "Retrying to create plan",
+      status: "complete",
+    });
+    expect(steps[0]).not.toMatchObject({ icon: AlertCircle });
+  });
+
   it("preserves chronological order across reasoning and acting", () => {
     const { steps } = buildCotTimeline(
       msg([

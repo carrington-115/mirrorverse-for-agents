@@ -301,6 +301,18 @@ export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
     description: "Pass-through placeholder.",
   },
   {
+    kind: "flow.filter",
+    label: "Filter",
+    category: "Flow",
+    description: "Keep only array items that match conditions.",
+  },
+  {
+    kind: "flow.stop",
+    label: "Stop",
+    category: "Flow",
+    description: "Halt execution — no downstream nodes will run.",
+  },
+  {
     kind: "transform",
     label: "Transform",
     category: "Transform",
@@ -374,7 +386,7 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
     case "core.tool_call":
       return {
         ...base,
-        params: { mcpServerId: "mcp_placeholder", toolName: "tool", parameters: {} },
+        params: { mcpServerId: "composio", toolName: "", parameters: {} },
       };
     case "ai.agent":
       return {
@@ -441,6 +453,23 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
       return { ...base, params: { until: { mode: "duration", ms: 5000 } } };
     case "flow.noop":
       return { ...base, params: {} };
+    case "flow.filter":
+      return {
+        ...base,
+        params: {
+          conditions: [
+            {
+              id: `cond_${args.id.slice(0, 6)}`,
+              leftValue: "{{ $json.x }}",
+              operator: "equals",
+              rightValue: true,
+            },
+          ],
+          combinator: "and",
+        },
+      };
+    case "flow.stop":
+      return { ...base, params: {} };
     case "transform":
       return { ...base, params: { op: "edit_fields", config: {} } };
     case "ai.voice_agent":
@@ -480,9 +509,8 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
       return {
         ...base,
         params: {
-          channel: { kind: "chat" },
+          channel: { kind: "email", email: "" },
           promptTemplate: "Please review and approve to continue.",
-          responseSchema: null,
           timeoutSec: 3600,
           onTimeout: "abort",
           defaultValue: null,

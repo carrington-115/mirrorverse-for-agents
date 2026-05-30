@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { isTextUIPart, isToolUIPart, type UIMessage } from "ai";
+import { isTextUIPart, isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
 
 import { ChainOfThoughtStep } from "@mirrorverse/ui/ai-elements/chain-of-thought";
 import { Message, MessageContent, MessageResponse } from "@mirrorverse/ui/ai-elements/message";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { AssistantAvatar } from "./assistant-avatar";
 import { MessageActions } from "./message-actions";
+import { UnknownToolCard } from "./unknown-tool-card";
 import { WorkflowCommitCard } from "./workflow-commit-card";
 import { WorkflowPlanCard } from "./workflow-plan-card";
 import { PhoneNumberSelectionCard } from "./phone-number-selection-card";
@@ -22,6 +23,7 @@ import { PhoneNumberProvisionCard } from "./phone-number-provision-card";
 import { UnassignedPhoneNumbersCard } from "./unassigned-phone-numbers-card";
 import { VoiceAgentActivateCard } from "./voice-agent-activate-card";
 import { KnowledgeBaseCard } from "./knowledge-base-card";
+import { ToolErrorBoundary } from "@/features/chat/lib/tool-error-boundary";
 import { isWorkflowCommitPart } from "@/features/chat/lib/workflow-commit-tool";
 import { isSubmitPlanPart, type SubmitPlanToolPart } from "@/features/chat/lib/submit-plan-tool";
 import { buildCotTimeline } from "@/features/chat/lib/cot-timeline";
@@ -183,55 +185,44 @@ export function MessageRow({
           message.parts.map((part, i) => {
             const key = `${message.id}-${i}`;
             if (isTextUIPart(part)) return <MessageResponse key={key}>{part.text}</MessageResponse>;
-            if (isToolUIPart(part) && isSubmitPlanPart(part)) {
-              return <WorkflowPlanCard key={key} part={part as SubmitPlanToolPart} />;
-            }
-            if (isToolUIPart(part) && isWorkflowCommitPart(part)) {
-              return (
-                <WorkflowCommitCard key={key} part={part} onWorkflowSelect={onWorkflowSelect} />
-              );
-            }
-            if (isToolUIPart(part) && isPhoneSearchPart(part)) {
-              return (
-                <PhoneNumberSelectionCard
-                  key={key}
-                  part={part as PhoneSearchToolPart}
-                  onPhoneSelect={isLast && !isStreaming ? onPhoneSelect : undefined}
-                />
-              );
-            }
-            if (isToolUIPart(part) && (isPhoneProvisionPart(part) || isByoTwilioPart(part))) {
-              return (
-                <PhoneNumberProvisionCard
-                  key={key}
-                  part={part as PhoneProvisionToolPart | ByoTwilioToolPart}
-                />
-              );
-            }
-            if (isToolUIPart(part) && isUnassignedNumbersPart(part)) {
-              return (
-                <UnassignedPhoneNumbersCard
-                  key={key}
-                  part={part as UnassignedNumbersToolPart}
-                  onSelect={isLast && !isStreaming ? onPhoneNumberForVoiceAgent : undefined}
-                  onGetManagedNumber={isLast && !isStreaming ? onGetManagedNumber : undefined}
-                  onByoTwilio={isLast && !isStreaming ? onByoTwilio : undefined}
-                />
-              );
-            }
-            if (isToolUIPart(part) && isVoiceActivatePart(part)) {
-              return <VoiceAgentActivateCard key={key} part={part as VoiceActivateToolPart} />;
-            }
-            if (isToolUIPart(part) && isKbViewPart(part)) {
-              return (
-                <KnowledgeBaseCard
-                  key={key}
-                  part={part as KbViewToolPart}
-                  onConfirmDocuments={isLast && !isStreaming ? onConfirmDocuments : undefined}
-                />
-              );
-            }
-            return null;
+            if (!isToolUIPart(part)) return null;
+            // DynamicToolUIPart matches isToolUIPart but has type "dynamic-tool"
+            // (not tool-${string}), so cast once and let it fall through to UnknownToolCard.
+            const toolPart = part as ToolUIPart;
+            return (
+              <ToolErrorBoundary key={key} toolType={toolPart.type}>
+                {isSubmitPlanPart(toolPart) ? (
+                  <WorkflowPlanCard part={toolPart as SubmitPlanToolPart} />
+                ) : isWorkflowCommitPart(toolPart) ? (
+                  <WorkflowCommitCard part={toolPart} onWorkflowSelect={onWorkflowSelect} />
+                ) : isPhoneSearchPart(toolPart) ? (
+                  <PhoneNumberSelectionCard
+                    part={toolPart as PhoneSearchToolPart}
+                    onPhoneSelect={isLast && !isStreaming ? onPhoneSelect : undefined}
+                  />
+                ) : isPhoneProvisionPart(toolPart) || isByoTwilioPart(toolPart) ? (
+                  <PhoneNumberProvisionCard
+                    part={toolPart as PhoneProvisionToolPart | ByoTwilioToolPart}
+                  />
+                ) : isUnassignedNumbersPart(toolPart) ? (
+                  <UnassignedPhoneNumbersCard
+                    part={toolPart as UnassignedNumbersToolPart}
+                    onSelect={isLast && !isStreaming ? onPhoneNumberForVoiceAgent : undefined}
+                    onGetManagedNumber={isLast && !isStreaming ? onGetManagedNumber : undefined}
+                    onByoTwilio={isLast && !isStreaming ? onByoTwilio : undefined}
+                  />
+                ) : isVoiceActivatePart(toolPart) ? (
+                  <VoiceAgentActivateCard part={toolPart as VoiceActivateToolPart} />
+                ) : isKbViewPart(toolPart) ? (
+                  <KnowledgeBaseCard
+                    part={toolPart as KbViewToolPart}
+                    onConfirmDocuments={isLast && !isStreaming ? onConfirmDocuments : undefined}
+                  />
+                ) : (
+                  <UnknownToolCard part={toolPart} />
+                )}
+              </ToolErrorBoundary>
+            );
           })
         )}
       </MessageContent>

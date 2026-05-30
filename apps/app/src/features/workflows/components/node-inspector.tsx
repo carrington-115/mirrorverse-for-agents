@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NodeIcon } from "@/features/workflows/lib/node-icon";
 import { WebhookConfig } from "@/features/webhooks/components/webhook-config";
 import { useKbsQuery } from "@/features/knowledge/api/queries";
+import { useComposioAppsQuery } from "@/features/workflows/api/queries";
 import { APP_EVENT_CATALOG } from "@mirrorverse/agent/schemas";
 import type { WorkflowNodeInput } from "@mirrorverse/agent/schemas";
 
@@ -66,16 +67,18 @@ function TextareaInput({
   value,
   onChange,
   placeholder,
+  mono,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  mono?: boolean;
 }) {
   return (
     <Field label={label}>
       <Textarea
-        className="text-xs min-h-[80px] resize-none"
+        className={`text-xs min-h-[80px] resize-none${mono ? "font-mono" : ""}`}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
@@ -130,6 +133,10 @@ function ToggleInput({
   );
 }
 
+function InfoPanel({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs text-muted-foreground">{children}</p>;
+}
+
 // --- Param access helpers ---
 
 type Params = Record<string, unknown>;
@@ -153,18 +160,232 @@ function asObj(v: unknown): Params {
   return typeof v === "object" && v !== null ? (v as Params) : {};
 }
 
+function jsonText(v: unknown): string {
+  if (v == null || (typeof v === "object" && Object.keys(v as object).length === 0)) return "";
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return "";
+  }
+}
+
 // Returns an updater that patches a single params key
 function useParamUpdater(node: WorkflowNodeInput, onUpdate: NodeInspectorProps["onUpdate"]) {
   return (key: string, value: unknown) => onUpdate({ params: { ...node.params, [key]: value } });
+}
+
+// --- Shared condition builder ---
+
+const OPERATOR_OPTIONS = [
+  { value: "equals", label: "Equals" },
+  { value: "not_equals", label: "Not equals" },
+  { value: "contains", label: "Contains" },
+  { value: "not_contains", label: "Not contains" },
+  { value: "greater_than", label: "Greater than" },
+  { value: "less_than", label: "Less than" },
+  { value: "greater_than_or_equal", label: "≥ Greater or equal" },
+  { value: "less_than_or_equal", label: "≤ Less or equal" },
+  { value: "is_empty", label: "Is empty" },
+  { value: "is_not_empty", label: "Is not empty" },
+] as const;
+
+const NO_RIGHT_VALUE_OPS = new Set(["is_empty", "is_not_empty"]);
+
+interface ConditionRow {
+  readonly id?: string;
+  readonly leftValue?: unknown;
+  readonly operator?: string;
+  readonly rightValue?: unknown;
+}
+
+function ConditionsEditor({
+  conditions,
+  combinator,
+  onChange,
+  onCombinatorChange,
+}: {
+  conditions: ConditionRow[];
+  combinator: string;
+  onChange: (next: ConditionRow[]) => void;
+  onCombinatorChange: (v: string) => void;
+}) {
+  function updateRow(i: number, patch: Partial<ConditionRow>) {
+    onChange(conditions.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
+  }
+
+  function removeRow(i: number) {
+    onChange(conditions.filter((_, idx) => idx !== i));
+  }
+
+  function addRow() {
+    onChange([
+      ...conditions,
+      { id: `cond_${Date.now()}`, leftValue: "", operator: "equals", rightValue: "" },
+    ]);
+  }
+
+  return (
+    <>
+      <SelectInput
+        label="Match"
+        value={combinator}
+        options={[
+          { value: "and", label: "All conditions (AND)" },
+          { value: "or", label: "Any condition (OR)" },
+        ]}
+        onChange={onCombinatorChange}
+      />
+      <Field label="Conditions">
+        <div className="gap-2 flex flex-col">
+          {conditions.map((cond, i) => {
+            const op = typeof cond.operator === "string" ? cond.operator : "equals";
+            const noRight = NO_RIGHT_VALUE_OPS.has(op);
+            return (
+              <div key={i} className="gap-1 p-2 flex flex-col rounded-md border border-border">
+                <div className="gap-1 flex items-center">
+                  <Input
+                    className="h-6 text-xs flex-1 font-mono"
+                    placeholder="{{ $json.field }}"
+                    value={typeof cond.leftValue === "string" ? cond.leftValue : ""}
+                    onChange={(e) => updateRow(i, { leftValue: e.target.value })}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 shrink-0"
+                    onClick={() => removeRow(i)}
+                  >
+                    <Trash2 className="size-3" />
+                  </Button>
+                </div>
+                <Select value={op} onValueChange={(v) => updateRow(i, { operator: v })}>
+                  <SelectTrigger className="h-6 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OPERATOR_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="text-xs">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!noRight && (
+                  <Input
+                    className="h-6 text-xs font-mono"
+                    placeholder="value or {{ $json.other }}"
+                    value={
+                      typeof cond.rightValue === "string"
+                        ? cond.rightValue
+                        : String(cond.rightValue ?? "")
+                    }
+                    onChange={(e) => updateRow(i, { rightValue: e.target.value })}
+                  />
+                )}
+              </div>
+            );
+          })}
+          <Button variant="outline" size="sm" className="h-6 text-xs w-full" onClick={addRow}>
+            <Plus className="size-3 mr-1" />
+            Add condition
+          </Button>
+        </div>
+      </Field>
+    </>
+  );
+}
+
+// --- Key/value pair editor (headers, query params, rename mappings) ---
+
+function KvEditor({
+  label,
+  pairs,
+  keyPlaceholder,
+  valuePlaceholder,
+  onChange,
+}: {
+  label: string;
+  pairs: [string, string][];
+  keyPlaceholder?: string;
+  valuePlaceholder?: string;
+  onChange: (next: [string, string][]) => void;
+}) {
+  function updateKey(i: number, newKey: string) {
+    onChange(pairs.map((p, idx) => (idx === i ? [newKey, p[1]] : p)));
+  }
+
+  function updateValue(i: number, newVal: string) {
+    onChange(pairs.map((p, idx) => (idx === i ? [p[0], newVal] : p)));
+  }
+
+  function removeRow(i: number) {
+    onChange(pairs.filter((_, idx) => idx !== i));
+  }
+
+  return (
+    <Field label={label}>
+      <div className="gap-1 flex flex-col">
+        {pairs.map(([k, v], i) => (
+          <div key={i} className="gap-1 flex items-center">
+            <Input
+              className="h-6 text-xs flex-1"
+              placeholder={keyPlaceholder ?? "key"}
+              value={k}
+              onChange={(e) => updateKey(i, e.target.value)}
+            />
+            <Input
+              className="h-6 text-xs flex-1"
+              placeholder={valuePlaceholder ?? "value"}
+              value={v}
+              onChange={(e) => updateValue(i, e.target.value)}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6 shrink-0"
+              onClick={() => removeRow(i)}
+            >
+              <Trash2 className="size-3" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 text-xs mt-0.5 w-full"
+          onClick={() => onChange([...pairs, ["", ""]])}
+        >
+          <Plus className="size-3 mr-1" />
+          Add row
+        </Button>
+      </div>
+    </Field>
+  );
+}
+
+function objToPairs(o: unknown): [string, string][] {
+  if (typeof o !== "object" || o === null) return [];
+  return Object.entries(o as Record<string, unknown>).map(([k, v]) => [
+    k,
+    typeof v === "string" ? v : String(v ?? ""),
+  ]);
+}
+
+function pairsToObj(pairs: [string, string][]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of pairs) {
+    if (k) out[k] = v;
+  }
+  return out;
 }
 
 // --- Per-kind forms ---
 
 function ManualTriggerForm() {
   return (
-    <p className="text-xs text-muted-foreground">
+    <InfoPanel>
       Triggered manually from the editor or an API call. No configuration needed.
-    </p>
+    </InfoPanel>
   );
 }
 
@@ -553,7 +774,6 @@ function LanguageModelForm({
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
-  const opts = asObj(node.params.options);
   return (
     <>
       <SelectInput
@@ -586,21 +806,17 @@ function LanguageModelForm({
           min={0}
           max={2}
           step={0.1}
-          value={num(opts, "temperature", 0.7)}
-          onChange={(e) =>
-            p("options", { ...opts, temperature: parseFloat(e.target.value) || 0.7 })
-          }
+          value={num(node.params, "temperature", 0.7)}
+          onChange={(e) => p("temperature", parseFloat(e.target.value) || 0.7)}
         />
       </Field>
-      <Field label="Max tokens">
+      <Field label="Max output tokens">
         <Input
           className="h-7 text-xs"
           type="number"
           min={1}
-          value={num(opts, "maxTokens", 1024)}
-          onChange={(e) =>
-            p("options", { ...opts, maxTokens: parseInt(e.target.value, 10) || 1024 })
-          }
+          value={num(node.params, "maxOutputTokens", 1024)}
+          onChange={(e) => p("maxOutputTokens", parseInt(e.target.value, 10) || 1024)}
         />
       </Field>
     </>
@@ -637,6 +853,12 @@ function MemoryForm({
           onChange={(e) => p("contextWindowLength", parseInt(e.target.value, 10) || 5)}
         />
       </Field>
+      <TextInput
+        label="Session key expression (optional)"
+        value={str(node.params, "sessionKeyExpression")}
+        onChange={(v) => p("sessionKeyExpression", v || null)}
+        placeholder="{{ $json.userId }}"
+      />
     </>
   );
 }
@@ -649,6 +871,8 @@ function RetrieverForm({
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
+  const rawMinScore = node.params.minScore;
+  const minScoreEnabled = typeof rawMinScore === "number";
   return (
     <>
       <TextInput
@@ -667,6 +891,66 @@ function RetrieverForm({
           onChange={(e) => p("topK", parseInt(e.target.value, 10) || 6)}
         />
       </Field>
+      <div className="gap-1 flex flex-col">
+        <ToggleInput
+          label="Minimum similarity score"
+          value={minScoreEnabled}
+          onChange={(v) => p("minScore", v ? 0.7 : null)}
+        />
+        {minScoreEnabled && (
+          <Input
+            className="h-7 text-xs"
+            type="number"
+            min={0}
+            max={1}
+            step={0.05}
+            value={num(node.params, "minScore", 0.7)}
+            onChange={(e) => p("minScore", parseFloat(e.target.value) || 0)}
+          />
+        )}
+      </div>
+    </>
+  );
+}
+
+function OutputParserForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const schema = node.params.schema;
+  return (
+    <>
+      <SelectInput
+        label="Strategy"
+        value={str(node.params, "strategy", "auto_fix")}
+        options={[
+          { value: "auto_fix", label: "Auto-fix (retry on parse error)" },
+          { value: "structured", label: "Structured (enforce JSON schema)" },
+        ]}
+        onChange={(v) => p("strategy", v)}
+      />
+      <ToggleInput
+        label="Auto-fix on error"
+        value={bool(node.params, "autoFix", true)}
+        onChange={(v) => p("autoFix", v)}
+      />
+      <TextareaInput
+        label="Output schema (JSON, optional)"
+        value={jsonText(schema)}
+        onChange={(v) => {
+          try {
+            p("schema", v.trim() ? JSON.parse(v) : null);
+          } catch {
+            // let user finish typing
+          }
+        }}
+        placeholder='{ "type": "object", "properties": { ... } }'
+        mono
+      />
     </>
   );
 }
@@ -679,11 +963,14 @@ function HttpRequestForm({
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
+  const method = str(node.params, "method", "GET");
+  const hasBody = method !== "GET" && method !== "HEAD";
+
   return (
     <>
       <SelectInput
         label="Method"
-        value={str(node.params, "method", "GET")}
+        value={method}
         options={[
           { value: "GET", label: "GET" },
           { value: "POST", label: "POST" },
@@ -699,6 +986,35 @@ function HttpRequestForm({
         onChange={(v) => p("url", v)}
         placeholder="https://api.example.com/endpoint"
       />
+      <KvEditor
+        label="Headers"
+        pairs={objToPairs(node.params.headers)}
+        keyPlaceholder="Header-Name"
+        valuePlaceholder="value or {{ $json.token }}"
+        onChange={(pairs) => p("headers", pairsToObj(pairs))}
+      />
+      <KvEditor
+        label="Query params"
+        pairs={objToPairs(node.params.query)}
+        keyPlaceholder="param"
+        valuePlaceholder="value"
+        onChange={(pairs) => p("query", pairsToObj(pairs))}
+      />
+      {hasBody && (
+        <TextareaInput
+          label="Body (JSON)"
+          value={jsonText(node.params.body)}
+          onChange={(v) => {
+            try {
+              p("body", v.trim() ? JSON.parse(v) : null);
+            } catch {
+              // let user finish typing
+            }
+          }}
+          placeholder='{ "key": "{{ $json.value }}" }'
+          mono
+        />
+      )}
     </>
   );
 }
@@ -753,52 +1069,449 @@ function IfForm({
 }) {
   const p = useParamUpdater(node, onUpdate);
   const conditions = Array.isArray(node.params.conditions)
-    ? (node.params.conditions as Params[])
+    ? (node.params.conditions as ConditionRow[])
     : [];
-  const first = conditions[0];
+  return (
+    <ConditionsEditor
+      conditions={conditions}
+      combinator={str(node.params, "combinator", "and")}
+      onChange={(next) => p("conditions", next)}
+      onCombinatorChange={(v) => p("combinator", v)}
+    />
+  );
+}
+
+function FilterForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const conditions = Array.isArray(node.params.conditions)
+    ? (node.params.conditions as ConditionRow[])
+    : [];
+  return (
+    <>
+      <InfoPanel>
+        Keeps only array items that match the conditions. Non-array input is treated as a
+        single-element array.
+      </InfoPanel>
+      <ConditionsEditor
+        conditions={conditions}
+        combinator={str(node.params, "combinator", "and")}
+        onChange={(next) => p("conditions", next)}
+        onCombinatorChange={(v) => p("combinator", v)}
+      />
+    </>
+  );
+}
+
+interface SwitchCaseRow {
+  readonly conditions?: ConditionRow[];
+  readonly combinator?: string;
+  readonly outputIndex?: number;
+}
+
+function SwitchForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const cases = Array.isArray(node.params.cases) ? (node.params.cases as SwitchCaseRow[]) : [];
+
+  function updateCase(i: number, patch: Partial<SwitchCaseRow>) {
+    p(
+      "cases",
+      cases.map((c, idx) => (idx === i ? { ...c, ...patch } : c)),
+    );
+  }
+
+  function removeCase(i: number) {
+    p(
+      "cases",
+      cases.filter((_, idx) => idx !== i),
+    );
+  }
+
+  function addCase() {
+    p("cases", [
+      ...cases,
+      {
+        conditions: [
+          { id: `cond_${Date.now()}`, leftValue: "", operator: "equals", rightValue: "" },
+        ],
+        combinator: "and",
+        outputIndex: cases.length,
+      },
+    ]);
+  }
+
+  return (
+    <>
+      <Field label="Cases">
+        <div className="gap-3 flex flex-col">
+          {cases.map((c, i) => (
+            <div key={i} className="gap-2 p-2 flex flex-col rounded-md border border-border">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold tracking-wider text-[10px] text-muted-foreground uppercase">
+                  Case {i + 1} → output {c.outputIndex ?? i}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-5"
+                  onClick={() => removeCase(i)}
+                >
+                  <Trash2 className="size-3" />
+                </Button>
+              </div>
+              <ConditionsEditor
+                conditions={(c.conditions ?? []) as ConditionRow[]}
+                combinator={c.combinator ?? "and"}
+                onChange={(next) => updateCase(i, { conditions: next })}
+                onCombinatorChange={(v) => updateCase(i, { combinator: v })}
+              />
+              <Field label="Output index">
+                <Input
+                  className="h-6 text-xs"
+                  type="number"
+                  min={0}
+                  value={c.outputIndex ?? i}
+                  onChange={(e) =>
+                    updateCase(i, { outputIndex: parseInt(e.target.value, 10) || 0 })
+                  }
+                />
+              </Field>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" className="h-6 text-xs w-full" onClick={addCase}>
+            <Plus className="size-3 mr-1" />
+            Add case
+          </Button>
+        </div>
+      </Field>
+      <Field label="Default output index">
+        <Input
+          className="h-7 text-xs"
+          type="number"
+          min={0}
+          value={num(node.params, "defaultOutputIndex", 0)}
+          onChange={(e) => p("defaultOutputIndex", parseInt(e.target.value, 10) || 0)}
+        />
+      </Field>
+    </>
+  );
+}
+
+function LoopForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  return (
+    <>
+      <TextInput
+        label="Iterable expression"
+        value={str(node.params, "iterableExpression", "{{ $json.items }}")}
+        onChange={(v) => p("iterableExpression", v)}
+        placeholder="{{ $json.items }}"
+      />
+      <Field label="Batch size">
+        <Input
+          className="h-7 text-xs"
+          type="number"
+          min={1}
+          value={num(node.params, "batchSize", 1)}
+          onChange={(e) => p("batchSize", parseInt(e.target.value, 10) || 1)}
+        />
+      </Field>
+    </>
+  );
+}
+
+function WaitForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const until = asObj(node.params.until);
+  const ms = num(until, "ms", 5000);
+
+  // Break ms into hours / minutes / seconds for a friendlier UX.
+  const totalSec = Math.round(ms / 1000);
+  const hours = Math.floor(totalSec / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+
+  function setDuration(h: number, m: number, s: number) {
+    const newMs = (h * 3600 + m * 60 + s) * 1000;
+    p("until", { mode: "duration", ms: newMs });
+  }
+
+  return (
+    <>
+      <InfoPanel>Pauses the run for the specified duration before continuing.</InfoPanel>
+      <div className="gap-2 flex items-end">
+        <Field label="Hours">
+          <Input
+            className="h-7 text-xs"
+            type="number"
+            min={0}
+            value={hours}
+            onChange={(e) => setDuration(parseInt(e.target.value, 10) || 0, minutes, seconds)}
+          />
+        </Field>
+        <Field label="Minutes">
+          <Input
+            className="h-7 text-xs"
+            type="number"
+            min={0}
+            max={59}
+            value={minutes}
+            onChange={(e) => setDuration(hours, parseInt(e.target.value, 10) || 0, seconds)}
+          />
+        </Field>
+        <Field label="Seconds">
+          <Input
+            className="h-7 text-xs"
+            type="number"
+            min={0}
+            max={59}
+            value={seconds}
+            onChange={(e) => setDuration(hours, minutes, parseInt(e.target.value, 10) || 0)}
+          />
+        </Field>
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        Total: {(ms / 1000).toLocaleString()} seconds
+      </p>
+    </>
+  );
+}
+
+function TransformForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const op = str(node.params, "op", "edit_fields");
+  const config = asObj(node.params.config);
+
+  function setConfig(patch: Record<string, unknown>) {
+    p("config", { ...config, ...patch });
+  }
+
   return (
     <>
       <SelectInput
-        label="Combinator"
-        value={str(node.params, "combinator", "and")}
+        label="Operation"
+        value={op}
         options={[
-          { value: "and", label: "All conditions (AND)" },
-          { value: "or", label: "Any condition (OR)" },
+          { value: "edit_fields", label: "Edit fields — set/add keys on the object" },
+          { value: "rename_keys", label: "Rename keys — map old key names to new ones" },
+          { value: "map", label: "Map — apply field templates to each array item" },
+          { value: "aggregate", label: "Aggregate — reduce an array to a single value" },
         ]}
-        onChange={(v) => p("combinator", v)}
+        onChange={(v) => p("op", v)}
       />
-      {first && (
-        <TextInput
-          label="Left value"
-          value={str(first, "leftValue")}
-          onChange={(v) =>
-            p(
-              "conditions",
-              conditions.map((c, i) => (i === 0 ? { ...c, leftValue: v } : c)),
-            )
-          }
-          placeholder="{{ $json.field }}"
+
+      {op === "edit_fields" && (
+        <TextareaInput
+          label='Fields to set (JSON object: { "key": "value or {{ expr }}" })'
+          value={jsonText(config.fields)}
+          onChange={(v) => {
+            try {
+              setConfig({ fields: v.trim() ? JSON.parse(v) : {} });
+            } catch {
+              // let user finish typing
+            }
+          }}
+          placeholder={'{\n  "status": "active",\n  "label": "{{ $json.name }}"\n}'}
+          mono
         />
       )}
-      {first && (
-        <SelectInput
-          label="Operator"
-          value={str(first, "operator", "equals")}
-          options={[
-            { value: "equals", label: "Equals" },
-            { value: "not_equals", label: "Not equals" },
-            { value: "contains", label: "Contains" },
-            { value: "greater_than", label: "Greater than" },
-            { value: "less_than", label: "Less than" },
-            { value: "is_empty", label: "Is empty" },
-            { value: "is_not_empty", label: "Is not empty" },
-          ]}
-          onChange={(v) =>
-            p(
-              "conditions",
-              conditions.map((c, i) => (i === 0 ? { ...c, operator: v } : c)),
-            )
-          }
+
+      {op === "rename_keys" && (
+        <KvEditor
+          label="Key mapping (old → new)"
+          pairs={objToPairs(config.mapping)}
+          keyPlaceholder="old key"
+          valuePlaceholder="new key"
+          onChange={(pairs) => setConfig({ mapping: pairsToObj(pairs) })}
+        />
+      )}
+
+      {op === "map" && (
+        <TextareaInput
+          label='Output fields per item (JSON object: { "key": "{{ $json.field }}" })'
+          value={jsonText(config.fields)}
+          onChange={(v) => {
+            try {
+              setConfig({ fields: v.trim() ? JSON.parse(v) : {} });
+            } catch {
+              // let user finish typing
+            }
+          }}
+          placeholder={'{\n  "id": "{{ $json.id }}",\n  "title": "{{ $json.name }}"\n}'}
+          mono
+        />
+      )}
+
+      {op === "aggregate" && (
+        <>
+          <TextInput
+            label="Key (field to aggregate; leave blank to aggregate whole items)"
+            value={str(config, "key")}
+            onChange={(v) => setConfig({ key: v || undefined })}
+            placeholder="score"
+          />
+          <SelectInput
+            label="Aggregation"
+            value={str(config, "op", "count")}
+            options={[
+              { value: "count", label: "Count" },
+              { value: "sum", label: "Sum" },
+              { value: "min", label: "Min" },
+              { value: "max", label: "Max" },
+              { value: "first", label: "First" },
+              { value: "last", label: "Last" },
+            ]}
+            onChange={(v) => setConfig({ op: v })}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function HumanReviewForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const timeoutSec = num(node.params, "timeoutSec", 3600);
+  const timeoutHours = Math.floor(timeoutSec / 3600);
+  const timeoutMins = Math.floor((timeoutSec % 3600) / 60);
+  const channel = asObj(node.params.channel);
+  const channelKind = str(channel, "kind", "email");
+
+  function setTimeoutSec(h: number, m: number) {
+    p("timeoutSec", h * 3600 + m * 60);
+  }
+
+  function setChannelKind(kind: string) {
+    p("channel", { ...channel, kind });
+  }
+
+  return (
+    <>
+      <SelectInput
+        label="Notify reviewer via"
+        value={channelKind}
+        options={[
+          { value: "email", label: "Email" },
+          { value: "slack", label: "Slack" },
+        ]}
+        onChange={setChannelKind}
+      />
+      {channelKind === "email" && (
+        <Field label="Reviewer email">
+          <Input
+            className="h-7 text-xs mt-1"
+            type="email"
+            placeholder="reviewer@company.com"
+            value={str(channel, "email")}
+            onChange={(e) => p("channel", { ...channel, email: e.target.value })}
+          />
+        </Field>
+      )}
+      {channelKind === "slack" && (
+        <>
+          <Field label="Slack incoming webhook URL">
+            <Input
+              className="h-7 text-xs mt-1"
+              type="url"
+              placeholder="https://hooks.slack.com/services/..."
+              value={str(channel, "webhookUrl")}
+              onChange={(e) => p("channel", { ...channel, webhookUrl: e.target.value })}
+            />
+          </Field>
+          <p className="text-xs text-muted-foreground">
+            Create an incoming webhook in your Slack workspace (Apps → Incoming Webhooks) and paste
+            the URL above.
+          </p>
+        </>
+      )}
+      <TextareaInput
+        label="Prompt shown to reviewer"
+        value={str(node.params, "promptTemplate")}
+        onChange={(v) => p("promptTemplate", v)}
+        placeholder="Please review and approve to continue."
+      />
+      <Field label="Timeout">
+        <div className="gap-2 flex items-end">
+          <div className="flex-1">
+            <Label className="text-xs">Hours</Label>
+            <Input
+              className="h-7 text-xs mt-1"
+              type="number"
+              min={0}
+              value={timeoutHours}
+              onChange={(e) => setTimeoutSec(parseInt(e.target.value, 10) || 0, timeoutMins)}
+            />
+          </div>
+          <div className="flex-1">
+            <Label className="text-xs">Minutes</Label>
+            <Input
+              className="h-7 text-xs mt-1"
+              type="number"
+              min={0}
+              max={59}
+              value={timeoutMins}
+              onChange={(e) => setTimeoutSec(timeoutHours, parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
+        </div>
+      </Field>
+      <SelectInput
+        label="On timeout"
+        value={str(node.params, "onTimeout", "abort")}
+        options={[
+          { value: "abort", label: "Abort the run" },
+          { value: "continue", label: "Continue with default value" },
+        ]}
+        onChange={(v) => p("onTimeout", v)}
+      />
+      {str(node.params, "onTimeout", "abort") === "continue" && (
+        <TextareaInput
+          label="Default value (JSON)"
+          value={jsonText(node.params.defaultValue)}
+          onChange={(v) => {
+            try {
+              p("defaultValue", v.trim() ? JSON.parse(v) : null);
+            } catch {
+              // let user finish typing
+            }
+          }}
+          placeholder="null"
+          mono
         />
       )}
     </>
@@ -830,6 +1543,28 @@ function StickyNoteForm({
         options={COLORS.map((label, i) => ({ value: String(i), label }))}
         onChange={(v) => p("color", parseInt(v, 10))}
       />
+      <div className="gap-2 flex items-end">
+        <Field label="Width">
+          <Input
+            className="h-7 text-xs"
+            type="number"
+            min={100}
+            step={40}
+            value={num(node.params, "width", 200)}
+            onChange={(e) => p("width", parseInt(e.target.value, 10) || 200)}
+          />
+        </Field>
+        <Field label="Height">
+          <Input
+            className="h-7 text-xs"
+            type="number"
+            min={60}
+            step={20}
+            value={num(node.params, "height", 120)}
+            onChange={(e) => p("height", parseInt(e.target.value, 10) || 120)}
+          />
+        </Field>
+      </div>
     </>
   );
 }
@@ -967,11 +1702,127 @@ function InboundCallTriggerForm({
   );
 }
 
-function FallbackForm({ node }: { node: WorkflowNodeInput }) {
+function deriveComposioApp(toolName: string): string | null {
+  if (!toolName) return null;
+  const prefix = toolName.split("_")[0]?.toLowerCase();
+  return prefix ?? null;
+}
+
+function ToolCallForm({
+  node,
+  onUpdate,
+}: {
+  node: WorkflowNodeInput;
+  onUpdate: NodeInspectorProps["onUpdate"];
+}) {
+  const p = useParamUpdater(node, onUpdate);
+  const { data: integrations } = useComposioAppsQuery();
+
+  const mcpServerId = str(node.params, "mcpServerId", "composio");
+  const isComposio = mcpServerId === "composio" || mcpServerId === "";
+  const composioApp =
+    str(node.params, "composioApp") || deriveComposioApp(str(node.params, "toolName")) || "";
+  const toolName = str(node.params, "toolName");
+
+  const selectedIntegration = integrations?.find((i) => i.slug === composioApp) ?? null;
+  const toolOptions = (selectedIntegration?.tools ?? []).map((t) => ({
+    value: t.slug,
+    label: `${t.slug}`,
+  }));
+
+  const appOptions = (integrations ?? []).map((i) => ({ value: i.slug, label: i.name }));
+
+  function handleAppChange(newSlug: string) {
+    onUpdate({ params: { ...node.params, composioApp: newSlug, toolName: "" } });
+  }
+
+  function handleToolChange(newTool: string) {
+    onUpdate({ params: { ...node.params, toolName: newTool } });
+  }
+
   return (
-    <p className="text-xs text-muted-foreground">
-      Configuration panel for <span className="font-mono">{node.type}</span> is coming soon.
-    </p>
+    <>
+      <SelectInput
+        label="Server"
+        value={isComposio ? "composio" : "custom"}
+        options={[
+          { value: "composio", label: "Composio (connected apps)" },
+          { value: "custom", label: "Custom MCP server" },
+        ]}
+        onChange={(v) => p("mcpServerId", v === "composio" ? "composio" : "")}
+      />
+      {isComposio ? (
+        <>
+          <Field label="App">
+            <Select value={composioApp} onValueChange={handleAppChange}>
+              <SelectTrigger className="h-7 text-xs">
+                <SelectValue placeholder="Select an app…" />
+              </SelectTrigger>
+              <SelectContent>
+                {appOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value} className="text-xs">
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {composioApp && (
+            <Field label="Tool">
+              {toolOptions.length > 0 ? (
+                <Select value={toolName} onValueChange={handleToolChange}>
+                  <SelectTrigger className="h-7 text-xs">
+                    <SelectValue placeholder="Select a tool…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {toolOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="text-xs">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="h-7 text-xs"
+                  value={toolName}
+                  placeholder="e.g. SLACK_CREATE_MESSAGE"
+                  onChange={(e) => handleToolChange(e.target.value)}
+                />
+              )}
+            </Field>
+          )}
+        </>
+      ) : (
+        <>
+          <TextInput
+            label="MCP server ID"
+            value={mcpServerId}
+            onChange={(v) => p("mcpServerId", v)}
+            placeholder="e.g. my-server-id"
+          />
+          <TextInput
+            label="Tool name"
+            value={toolName}
+            onChange={(v) => p("toolName", v)}
+            placeholder="e.g. create_issue"
+          />
+        </>
+      )}
+      <TextareaInput
+        label="Parameters (JSON)"
+        value={jsonText(node.params.parameters)}
+        onChange={(v) => {
+          try {
+            p("parameters", v.trim() ? JSON.parse(v) : {});
+          } catch {
+            // let user finish typing
+          }
+        }}
+        placeholder="{}"
+        mono
+      />
+    </>
   );
 }
 
@@ -1005,16 +1856,46 @@ function KindForm({
       return <MemoryForm node={node} onUpdate={onUpdate} />;
     case "ai.retriever":
       return <RetrieverForm node={node} onUpdate={onUpdate} />;
+    case "ai.output_parser":
+      return <OutputParserForm node={node} onUpdate={onUpdate} />;
+    case "core.tool_call":
+      return <ToolCallForm node={node} onUpdate={onUpdate} />;
     case "core.http_request":
       return <HttpRequestForm node={node} onUpdate={onUpdate} />;
     case "core.code":
       return <CodeForm node={node} onUpdate={onUpdate} />;
     case "flow.if":
       return <IfForm node={node} onUpdate={onUpdate} />;
+    case "flow.filter":
+      return <FilterForm node={node} onUpdate={onUpdate} />;
+    case "flow.switch":
+      return <SwitchForm node={node} onUpdate={onUpdate} />;
+    case "flow.loop":
+      return <LoopForm node={node} onUpdate={onUpdate} />;
+    case "flow.wait":
+      return <WaitForm node={node} onUpdate={onUpdate} />;
+    case "flow.merge":
+      return (
+        <InfoPanel>Collects all branch outputs and passes them downstream as an array.</InfoPanel>
+      );
+    case "flow.noop":
+      return (
+        <InfoPanel>Passes data through unchanged. Use as a placeholder connection point.</InfoPanel>
+      );
+    case "flow.stop":
+      return <InfoPanel>Halts the run at this point. No downstream nodes will execute.</InfoPanel>;
+    case "transform":
+      return <TransformForm node={node} onUpdate={onUpdate} />;
+    case "human.review":
+      return <HumanReviewForm node={node} onUpdate={onUpdate} />;
     case "editor.sticky_note":
       return <StickyNoteForm node={node} onUpdate={onUpdate} />;
     default:
-      return <FallbackForm node={node} />;
+      return (
+        <p className="text-xs text-muted-foreground">
+          Configuration panel for <span className="font-mono">{node.type}</span> is coming soon.
+        </p>
+      );
   }
 }
 

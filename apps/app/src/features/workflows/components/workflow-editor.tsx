@@ -250,7 +250,14 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         return;
       }
       const finalNode: WorkflowNodeInput = overrides?.mcpDirectorySlug
-        ? { ...node, params: { ...node.params, mcpServerId: overrides.mcpDirectorySlug } }
+        ? {
+            ...node,
+            params: {
+              ...node.params,
+              mcpServerId: "composio",
+              composioApp: overrides.mcpDirectorySlug,
+            },
+          }
         : node;
       setWorkingDoc((current) => {
         if (!current) return current;
