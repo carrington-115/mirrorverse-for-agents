@@ -1,4 +1,4 @@
-﻿import "../src/lib/tracing.js"; // must be first — registers OTel before any spans
+﻿import "../src/lib/tracing"; // must be first — registers OTel before any spans
 import {
   DEFAULT_CHAT_LIMITS,
   describeChatLimitBreach,
@@ -68,7 +68,7 @@ import {
 } from "../src/mcp/composio/dispatcher";
 import { createConnectionRequest } from "../src/mcp/composio/auth";
 import { runPreflightCheck } from "../src/mcp/composio/preflight";
-import { flushTracing } from "../src/lib/tracing.js";
+import { flushTracing } from "../src/lib/tracing";
 import type { Database } from "@mirrorverse/db";
 
 async function safeAppendChatEvent(

@@ -1,4 +1,4 @@
-import "./lib/tracing.js"; // must be first — registers OTel before any spans are created
+import "./lib/tracing"; // must be first — registers OTel before any spans are created
 import { Buffer } from "node:buffer";
 import {
   createServer,
