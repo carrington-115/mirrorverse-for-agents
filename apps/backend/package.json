@@ -4,6 +4,9 @@
   "private": true,
   "description": "Mirrorverse tRPC backend (Vercel serverless)",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "exports": {
     ".": {
       "types": "./src/index.ts",
