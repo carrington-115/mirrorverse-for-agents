@@ -1,11 +1,17 @@
 {
-  "extends": "@mirrorverse/typescript-config/node.json",
+  "extends": "@mirrorverse/typescript-config/nextjs.json",
   "compilerOptions": {
-    "rootDir": "${configDir}",
-    "types": ["node"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "api/**/*"]
+  "include": [
+    "next-env.d.ts",
+    "src/**/*",
+    "api/**/*",
+    "app/**/*",
+    "middleware.ts",
+    "next.config.ts",
+    ".next/types/**/*.ts"
+  ]
 }

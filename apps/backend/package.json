@@ -2,7 +2,7 @@
   "name": "@mirrorverse/backend",
   "version": "0.0.0",
   "private": true,
-  "description": "Mirrorverse tRPC backend (Vercel serverless)",
+  "description": "Mirrorverse tRPC backend (Next.js route handlers)",
   "type": "module",
   "engines": {
     "node": "22.x"
@@ -14,15 +14,16 @@
     }
   },
   "scripts": {
-    "dev": "tsx watch --env-file=.env.development src/dev.ts",
-    "build": "tsc --noEmit",
-    "start": "tsx --env-file=.env.development src/dev.ts",
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "dev:node": "tsx watch --env-file=.env.development src/dev.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"api/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"api/**/*.ts\" \"app/**/*.ts\" \"middleware.ts\"",
     "typecheck": "tsc --noEmit",
     "dev:tunnel": "npx localtunnel --port 3001",
-    "clean": "rm -rf .turbo dist node_modules coverage .vercel"
+    "clean": "rm -rf .turbo .next dist node_modules coverage .vercel"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.36",
@@ -43,7 +44,10 @@
     "croner": "^10.0.1",
     "inngest": "^4.4.0",
     "mammoth": "^1.12.0",
+    "next": "16.1.6",
     "pdf-parse": "^2.4.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "resend": "^4.6.0",
     "stripe": "^22.1.1",
     "superjson": "^2.2.2",
@@ -57,6 +61,8 @@
     "@types/jsdom": "^28.0.3",
     "@types/node": "^25.5.0",
     "@types/pdf-parse": "^1.1.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "eslint": "^9.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

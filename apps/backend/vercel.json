@@ -1,16 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "outputDirectory": "public",
-  "functions": {
-    "api/trpc/[trpc].ts": {
-      "maxDuration": 60
-    },
-    "api/chat.ts": {
-      "maxDuration": 300
-    },
-    "api/webhooks/[slug].ts": {
-      "maxDuration": 30
-    }
-  }
+  "framework": "nextjs"
 }

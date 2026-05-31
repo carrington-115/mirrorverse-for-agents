@@ -1,0 +1,5 @@
+export { GET, POST, PUT, PATCH, DELETE } from "../../../../api/webhooks/[slug]";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
