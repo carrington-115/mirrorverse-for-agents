@@ -68,7 +68,9 @@ async function getRedis(): Promise<RedisLike> {
       url: string;
       token: string;
     }) => RedisLike;
-    const mod = (await import("@upstash/redis" as string)) as {
+    const mod = (await import(
+      /* turbopackIgnore: true */ /* webpackIgnore: true */ "@upstash/redis" as string
+    )) as {
       Redis: RedisConstructor;
     };
     _redis = new mod.Redis({
