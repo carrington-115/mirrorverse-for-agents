@@ -1,3 +1,3 @@
-import { router } from "../../trpc/init.js";
+import { router } from "../../trpc/init";
 
 export const tenancyRouter = router({});

@@ -2,14 +2,11 @@ import type { InngestFunction } from "inngest";
 import { and, eq, schema, type Database } from "@mirrorverse/db";
 import type { CostBreakdown, WorkflowDocument } from "@mirrorverse/types";
 
-import { inngest } from "../client.js";
-import { workflowExecuteEvent } from "../events.js";
-import {
-  CostTracker,
-  ZERO_COST,
-} from "../../workflows/runtime/cost-tracker.js";
-import { walkGraph } from "../../workflows/runtime/graph-walker.js";
-import { serializeError } from "../../workflows/runtime/step-writer.js";
+import { inngest } from "../client";
+import { workflowExecuteEvent } from "../events";
+import { CostTracker, ZERO_COST } from "../../workflows/runtime/cost-tracker";
+import { walkGraph } from "../../workflows/runtime/graph-walker";
+import { serializeError } from "../../workflows/runtime/step-writer";
 
 const { workflowRuns, workflowVersions } = schema;
 

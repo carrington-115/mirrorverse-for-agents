@@ -3,9 +3,9 @@ import { z } from "zod";
 
 import type { Database } from "@mirrorverse/db";
 
-import * as repo from "./repo.js";
-import { searchAcrossKnowledgeBases } from "./search.js";
-import { knowledgeService } from "./service.js";
+import * as repo from "./repo";
+import { searchAcrossKnowledgeBases } from "./search";
+import { knowledgeService } from "./service";
 
 const MAX_ERROR_LENGTH = 300;
 

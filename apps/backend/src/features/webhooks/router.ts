@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-import { router } from "../../trpc/init.js";
-import { workspaceProc } from "../../trpc/middleware.js";
-import { createWebhookInput, deleteWebhookInput } from "./inputs.js";
-import { createWebhook, deleteWebhook, listWorkspaceWebhooks } from "./repo.js";
+import { router } from "../../trpc/init";
+import { workspaceProc } from "../../trpc/middleware";
+import { createWebhookInput, deleteWebhookInput } from "./inputs";
+import { createWebhook, deleteWebhook, listWorkspaceWebhooks } from "./repo";
 import {
   listEndpointsByWorkspace,
   regenerateEndpointSecret,
-} from "./webhook-endpoints-repo.js";
+} from "./webhook-endpoints-repo";
 
 export const webhooksRouter = router({
   list: workspaceProc.query(({ ctx }) =>

@@ -1,10 +1,10 @@
 import type { Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
-import { slugify } from "../../lib/slug.js";
+import { slugify } from "../../lib/slug";
 
-import * as repo from "./repo.js";
-import type { CreateMcpServerInput } from "./inputs.js";
+import * as repo from "./repo";
+import type { CreateMcpServerInput } from "./inputs";
 
 interface WorkspaceCtx {
   readonly db: Database;

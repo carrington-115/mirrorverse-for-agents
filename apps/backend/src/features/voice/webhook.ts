@@ -11,14 +11,14 @@ import { env } from "@mirrorverse/env/backend";
 import {
   invokeComposioTool,
   NeedsAuthError,
-} from "../../mcp/composio/dispatcher.js";
-import * as knowledgeRepo from "../knowledge/repo.js";
+} from "../../mcp/composio/dispatcher";
+import * as knowledgeRepo from "../knowledge/repo";
 import {
   searchAcrossKnowledgeBases,
   type CrossKbSearchResult,
-} from "../knowledge/search.js";
-import { KNOWLEDGE_SEARCH_TOOL_NAME } from "./compile.js";
-import * as repo from "./repo.js";
+} from "../knowledge/search";
+import { KNOWLEDGE_SEARCH_TOOL_NAME } from "./compile";
+import * as repo from "./repo";
 
 type VoiceAgentRow = NonNullable<
   Awaited<ReturnType<typeof repo.getVoiceAgentByExternalAssistantId>>

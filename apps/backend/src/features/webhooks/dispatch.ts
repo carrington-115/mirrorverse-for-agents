@@ -1,8 +1,8 @@
 import { eq, schema, type Database } from "@mirrorverse/db";
 import type { JsonValue } from "@mirrorverse/types";
 
-import { inngest } from "../inngest/client.js";
-import { workflowExecuteEvent } from "../inngest/events.js";
+import { inngest } from "../inngest/client";
+import { workflowExecuteEvent } from "../inngest/events";
 
 const { workflows } = schema;
 

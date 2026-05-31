@@ -8,7 +8,7 @@ import { schema } from "@mirrorverse/db";
 import {
   voiceService,
   connectByoTwilio as connectByoTwilioService,
-} from "./service.js";
+} from "./service";
 
 interface PhoneToolCtx {
   readonly db: Database;

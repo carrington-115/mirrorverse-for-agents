@@ -1,8 +1,8 @@
-import { router } from "../../trpc/init.js";
+import { router } from "../../trpc/init";
 // Every chat op runs under workspaceProc so it executes inside the tenant
 // transaction (RLS-scoped). Queries still filter by userId; the workspace GUC
 // is a defense-in-depth backstop.
-import { workspaceProc } from "../../trpc/middleware.js";
+import { workspaceProc } from "../../trpc/middleware";
 
 import {
   appendUserMessageInput,
@@ -15,8 +15,8 @@ import {
   getPendingInterruptInput,
   listChatsInput,
   pinChatInput,
-} from "./inputs.js";
-import { chatsService } from "./service.js";
+} from "./inputs";
+import { chatsService } from "./service";
 
 export const chatsRouter = router({
   list: workspaceProc

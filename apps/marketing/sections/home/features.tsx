@@ -27,14 +27,14 @@ const roles = [
 ];
 
 const integrationIcons = [
-  { icon: "simple-icons:slack", color: "#4A154B", name: "Slack" },
-  { icon: "simple-icons:salesforce", color: "#00A1E0", name: "Salesforce" },
+  { icon: "logos:slack-icon", name: "Slack" },
+  { icon: "logos:salesforce", name: "Salesforce" },
   { icon: "simple-icons:hubspot", color: "#FF7A59", name: "HubSpot" },
-  { icon: "simple-icons:calendly", color: "#006BFF", name: "Calendly" },
-  { icon: "simple-icons:notion", color: "#000000", name: "Notion" },
-  { icon: "simple-icons:gmail", color: "#EA4335", name: "Gmail" },
-  { icon: "simple-icons:googledrive", color: "#4285F4", name: "Google Drive" },
-  { icon: "simple-icons:intercom", color: "#1F8DED", name: "Intercom" },
+  { icon: "simple-icons:mailchimp", color: "#FFE01B", name: "Mailchimp" },
+  { icon: "logos:notion-icon", name: "Notion" },
+  { icon: "logos:google-gmail", name: "Gmail" },
+  { icon: "logos:google-drive", name: "Google Drive" },
+  { icon: "simple-icons:clickup", color: "#7B68EE", name: "ClickUp" },
 ];
 
 export function Features() {

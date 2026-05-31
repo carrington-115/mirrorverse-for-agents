@@ -1,13 +1,13 @@
 import { getDb } from "@mirrorverse/db";
 import type { JsonValue } from "@mirrorverse/types";
 
-import { dispatchWebhookRun } from "./dispatch.js";
+import { dispatchWebhookRun } from "./dispatch";
 import {
   getEndpointBySlug,
   incrementCallCount,
   logInbound,
-} from "./webhook-endpoints-repo.js";
-import { verifyHmacSignature } from "./verify.js";
+} from "./webhook-endpoints-repo";
+import { verifyHmacSignature } from "./verify";
 
 function headersToRecord(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};

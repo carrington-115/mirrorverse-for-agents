@@ -1,6 +1,6 @@
 import { env } from "@mirrorverse/env/backend";
 
-import { authenticateRequest } from "../src/lib/auth.js";
+import { authenticateRequest } from "../src/lib/auth";
 
 function jsonError(status: number, message: string): Response {
   return new Response(JSON.stringify({ error: message }), {

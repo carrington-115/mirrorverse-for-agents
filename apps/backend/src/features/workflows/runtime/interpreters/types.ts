@@ -1,6 +1,6 @@
 import type { CostBreakdown, JsonValue, RunStepLog } from "@mirrorverse/types";
 import type { Database } from "@mirrorverse/db";
-import type { CostTracker } from "../cost-tracker.js";
+import type { CostTracker } from "../cost-tracker";
 
 export interface InterpretResult {
   /** The data output of this node, passed to downstream nodes as $json. */

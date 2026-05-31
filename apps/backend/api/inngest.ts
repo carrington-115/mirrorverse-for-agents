@@ -2,10 +2,7 @@ import { serve } from "inngest/edge";
 
 import { getDb } from "@mirrorverse/db";
 
-import {
-  buildInngestFunctions,
-  inngest,
-} from "../src/features/inngest/index.js";
+import { buildInngestFunctions, inngest } from "../src/features/inngest";
 
 // Privileged connection by design: Inngest functions are long-running,
 // multi-step background jobs whose work can't be wrapped in a single

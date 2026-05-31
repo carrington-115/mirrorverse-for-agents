@@ -1,4 +1,4 @@
-import { inboundWebhookHandler } from "../../src/features/webhooks/inbound-handler.js";
+import { inboundWebhookHandler } from "../../src/features/webhooks/inbound-handler";
 
 export const maxDuration = 30;
 

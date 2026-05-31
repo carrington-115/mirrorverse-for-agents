@@ -8,12 +8,12 @@ import type {
   WorkflowDocument,
 } from "@mirrorverse/types";
 
-import { filterKbIdsByWorkspace } from "../../../knowledge/repo.js";
-import { searchAcrossKnowledgeBases } from "../../../knowledge/search.js";
+import { filterKbIdsByWorkspace } from "../../../knowledge/repo";
+import { searchAcrossKnowledgeBases } from "../../../knowledge/search";
 
-import type { CostTracker } from "../cost-tracker.js";
-import type { RunState } from "../run-state.js";
-import type { InterpretResult } from "./types.js";
+import type { CostTracker } from "../cost-tracker";
+import type { RunState } from "../run-state";
+import type { InterpretResult } from "./types";
 
 const { usageEvents } = schema;
 

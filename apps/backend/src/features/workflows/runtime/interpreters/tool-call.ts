@@ -1,10 +1,10 @@
 import type { JsonValue } from "@mirrorverse/types";
 import type { WorkflowNode } from "@mirrorverse/types";
 
-import { invokeComposioTool } from "../../../../mcp/composio/dispatcher.js";
-import { ZERO_COST } from "../cost-tracker.js";
-import type { RunState } from "../run-state.js";
-import type { ExecutionContext, InterpretResult } from "./types.js";
+import { invokeComposioTool } from "../../../../mcp/composio/dispatcher";
+import { ZERO_COST } from "../cost-tracker";
+import type { RunState } from "../run-state";
+import type { ExecutionContext, InterpretResult } from "./types";
 
 interface ToolCallParams {
   readonly mcpServerId?: string;

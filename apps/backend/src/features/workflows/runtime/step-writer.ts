@@ -7,7 +7,7 @@ import type {
   RunStepStatus,
 } from "@mirrorverse/types";
 
-import { ZERO_COST } from "./cost-tracker.js";
+import { ZERO_COST } from "./cost-tracker";
 
 const { workflowRunSteps } = schema;
 

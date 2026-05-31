@@ -4,18 +4,18 @@ import type { UserId } from "@mirrorverse/types";
 import { env } from "@mirrorverse/env/backend";
 import { eq, getDb, schema } from "@mirrorverse/db";
 
-import { appError, ErrCode } from "../../lib/errors.js";
-import { getChatForUser } from "../chats/repo.js";
+import { appError, ErrCode } from "../../lib/errors";
+import { getChatForUser } from "../chats/repo";
 import {
   getComposioAuthRedirectUrl,
   getComposioInstance,
   getToolkitMetadata,
   listComposioIntegrations,
   lookupComposioMcpServerId,
-} from "../../mcp/composio/client.js";
-import { createConnectionRequest } from "../../mcp/composio/auth.js";
+} from "../../mcp/composio/client";
+import { createConnectionRequest } from "../../mcp/composio/auth";
 
-import type { ToolkitInfoInput, InitiateAppConnectionInput } from "./inputs.js";
+import type { ToolkitInfoInput, InitiateAppConnectionInput } from "./inputs";
 
 interface WorkspaceCtx {
   readonly db: Database;

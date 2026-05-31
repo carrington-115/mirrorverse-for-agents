@@ -1,18 +1,18 @@
-import { router } from "./init.js";
+import { router } from "./init";
 
-import { auditRouter } from "../features/audit/router.js";
-import { authRouter } from "../features/auth/router.js";
-import { billingRouter } from "../features/billing/router.js";
-import { chatsRouter } from "../features/chats/router.js";
-import { connectionsRouter } from "../features/connections/router.js";
-import { knowledgeRouter } from "../features/knowledge/router.js";
-import { runsRouter } from "../features/runs/router.js";
-import { skillsRouter } from "../features/skills/router.js";
-import { tenancyRouter } from "../features/tenancy/router.js";
-import { toolsRouter } from "../features/tools/router.js";
-import { voiceRouter } from "../features/voice/router.js";
-import { webhooksRouter } from "../features/webhooks/router.js";
-import { workflowsRouter } from "../features/workflows/router.js";
+import { auditRouter } from "../features/audit/router";
+import { authRouter } from "../features/auth/router";
+import { billingRouter } from "../features/billing/router";
+import { chatsRouter } from "../features/chats/router";
+import { connectionsRouter } from "../features/connections/router";
+import { knowledgeRouter } from "../features/knowledge/router";
+import { runsRouter } from "../features/runs/router";
+import { skillsRouter } from "../features/skills/router";
+import { tenancyRouter } from "../features/tenancy/router";
+import { toolsRouter } from "../features/tools/router";
+import { voiceRouter } from "../features/voice/router";
+import { webhooksRouter } from "../features/webhooks/router";
+import { workflowsRouter } from "../features/workflows/router";
 
 export const appRouter = router({
   audit: auditRouter,

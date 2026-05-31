@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 
 import { getDb } from "@mirrorverse/db";
 
-import { authenticateRequest, type AuthenticatedUser } from "../lib/auth.js";
-import { makeLogger, type Logger } from "../lib/logger.js";
+import { authenticateRequest, type AuthenticatedUser } from "../lib/auth";
+import { makeLogger, type Logger } from "../lib/logger";
 
 export type ContextUser = AuthenticatedUser;
 

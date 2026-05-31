@@ -13,10 +13,10 @@ import {
   EMBEDDING_DIMS,
   EMBEDDING_MODEL_ID,
   embedTexts,
-} from "../../knowledge/embed.js";
-import * as repo from "../../knowledge/repo.js";
-import { inngest } from "../client.js";
-import { knowledgeIngestEvent } from "../events.js";
+} from "../../knowledge/embed";
+import * as repo from "../../knowledge/repo";
+import { inngest } from "../client";
+import { knowledgeIngestEvent } from "../events";
 
 // Approx 4 chars per token; ~400 token chunks with 50-token overlap
 const CHARS_PER_TOKEN = 4;

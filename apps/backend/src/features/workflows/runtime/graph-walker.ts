@@ -5,21 +5,21 @@ import type {
 } from "@mirrorverse/types";
 import type { GetStepTools } from "inngest";
 
-import { inngest } from "../../inngest/client.js";
-import { CostCapExceededError, ZERO_COST } from "./cost-tracker.js";
+import { inngest } from "../../inngest/client";
+import { CostCapExceededError, ZERO_COST } from "./cost-tracker";
 
 type StepTools = GetStepTools<typeof inngest>;
-import { RunState } from "./run-state.js";
+import { RunState } from "./run-state";
 import {
   serializeError,
   stepRowId,
   writeStepResult,
   writeStepStart,
-} from "./step-writer.js";
-import { interpretTrigger } from "./interpreters/trigger.js";
-import { interpretHttpRequest } from "./interpreters/http-request.js";
-import { interpretToolCall } from "./interpreters/tool-call.js";
-import { interpretTransform } from "./interpreters/transform.js";
+} from "./step-writer";
+import { interpretTrigger } from "./interpreters/trigger";
+import { interpretHttpRequest } from "./interpreters/http-request";
+import { interpretToolCall } from "./interpreters/tool-call";
+import { interpretTransform } from "./interpreters/transform";
 import {
   LOOP_SIGNAL,
   STOP_SIGNAL,
@@ -33,13 +33,10 @@ import {
   interpretFlowWait,
   type StopSignal,
   type LoopSignal,
-} from "./interpreters/flow.js";
-import { interpretAgent } from "./interpreters/agent.js";
-import { interpretHumanReview } from "./interpreters/human-review.js";
-import type {
-  ExecutionContext,
-  InterpretResult,
-} from "./interpreters/types.js";
+} from "./interpreters/flow";
+import { interpretAgent } from "./interpreters/agent";
+import { interpretHumanReview } from "./interpreters/human-review";
+import type { ExecutionContext, InterpretResult } from "./interpreters/types";
 import type { CostBreakdown, RunError, RunStatus } from "@mirrorverse/types";
 
 export interface WalkResult {

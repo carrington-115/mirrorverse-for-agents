@@ -12,20 +12,20 @@ import { getDb } from "@mirrorverse/db";
 
 import { env } from "@mirrorverse/env/backend";
 
-import { POST as chatHandler } from "../api/chat.js";
-import { GET as connectionsCallbackGet } from "../api/connections/callback.js";
-import { POST as speechHandler } from "../api/speech.js";
-import { vapiWebhookHandler } from "./features/voice/webhook.js";
-import { handleStripeWebhook } from "./features/billing/webhooks/stripe.js";
-import { inboundWebhookHandler } from "./features/webhooks/inbound-handler.js";
+import { POST as chatHandler } from "../api/chat";
+import { GET as connectionsCallbackGet } from "../api/connections/callback";
+import { POST as speechHandler } from "../api/speech";
+import { vapiWebhookHandler } from "./features/voice/webhook";
+import { handleStripeWebhook } from "./features/billing/webhooks/stripe";
+import { inboundWebhookHandler } from "./features/webhooks/inbound-handler";
 import {
   GET as inngestGet,
   POST as inngestPost,
   PUT as inngestPut,
-} from "../api/inngest.js";
-import { TRPC_ENDPOINT } from "./config.js";
-import { createContext } from "./trpc/context.js";
-import { appRouter } from "./trpc/router.js";
+} from "../api/inngest";
+import { TRPC_ENDPOINT } from "./config";
+import { createContext } from "./trpc/context";
+import { appRouter } from "./trpc/router";
 
 async function readBody(req: IncomingMessage): Promise<Buffer> {
   const chunks: Buffer[] = [];

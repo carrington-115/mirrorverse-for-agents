@@ -5,22 +5,22 @@ import faviconImg from "@/assets/images/favicon.svg";
 interface Integration {
   name: string;
   icon: string;
-  color: string;
+  color?: string;
   size?: number;
 }
 
 const integrations: Integration[] = [
-  { name: "Slack", icon: "simple-icons:slack", color: "#4A154B" },
-  { name: "Intercom", icon: "simple-icons:intercom", color: "#1F8DED" },
-  { name: "Salesforce", icon: "simple-icons:salesforce", color: "#00A1E0", size: 38 },
+  { name: "Slack", icon: "logos:slack-icon" },
+  { name: "ClickUp", icon: "simple-icons:clickup", color: "#7B68EE" },
+  { name: "Salesforce", icon: "logos:salesforce", size: 38 },
   { name: "Zendesk", icon: "simple-icons:zendesk", color: "#03363D" },
-  { name: "Gmail", icon: "simple-icons:gmail", color: "#EA4335" },
-  { name: "Cal.com", icon: "simple-icons:caldotcom", color: "#111827" },
-  { name: "Notion", icon: "simple-icons:notion", color: "#000000" },
-  { name: "Calendly", icon: "simple-icons:calendly", color: "#006BFF" },
-  { name: "Google Calendar", icon: "simple-icons:googlecalendar", color: "#4285F4" },
+  { name: "Gmail", icon: "logos:google-gmail" },
+  { name: "Stripe", icon: "simple-icons:stripe", color: "#635BFF" },
+  { name: "Notion", icon: "logos:notion-icon" },
+  { name: "Mailchimp", icon: "simple-icons:mailchimp", color: "#FFE01B" },
+  { name: "Google Calendar", icon: "logos:google-calendar" },
   { name: "HubSpot", icon: "simple-icons:hubspot", color: "#FF7A59" },
-  { name: "Google Drive", icon: "simple-icons:googledrive", color: "#4285F4" },
+  { name: "Google Drive", icon: "logos:google-drive" },
 ];
 
 export function IntegrationsBar() {

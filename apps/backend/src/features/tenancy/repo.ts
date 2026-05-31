@@ -1,8 +1,8 @@
 import { and, eq, isNull, schema, type Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
-import { stripe } from "../billing/stripe-client.js";
-import { getFreePlan, upsertSubscription } from "../billing/repo.js";
+import { stripe } from "../billing/stripe-client";
+import { getFreePlan, upsertSubscription } from "../billing/repo";
 
 const { workspaces, workspaceMembers, userProfiles } = schema;
 

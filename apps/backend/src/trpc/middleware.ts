@@ -1,7 +1,7 @@
 import { withTenantContext } from "@mirrorverse/db";
 
-import { ensureUserWorkspace } from "../features/tenancy/repo.js";
-import { middleware, publicProcedure, TRPCError } from "./init.js";
+import { ensureUserWorkspace } from "../features/tenancy/repo";
+import { middleware, publicProcedure, TRPCError } from "./init";
 
 const timing = middleware(async ({ ctx, path, type, next }) => {
   const start = Date.now();

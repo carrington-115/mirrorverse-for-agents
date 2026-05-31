@@ -1,7 +1,7 @@
 import type { JsonValue } from "@mirrorverse/types";
 import type { WorkflowNode } from "@mirrorverse/types";
-import type { RunState } from "../run-state.js";
-import type { InterpretResult } from "./types.js";
+import type { RunState } from "../run-state";
+import type { InterpretResult } from "./types";
 
 interface EditFieldsConfig {
   readonly fields?: Record<string, unknown>;

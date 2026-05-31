@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { verifyHmacSignature } from "./verify.js";
+import { verifyHmacSignature } from "./verify";
 
 function sign(body: string, secret: string): string {
   return createHmac("sha256", secret).update(body).digest("hex");

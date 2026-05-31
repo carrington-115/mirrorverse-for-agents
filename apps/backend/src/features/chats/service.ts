@@ -6,11 +6,11 @@ import {
 import type { Database } from "@mirrorverse/db";
 import type { ContentBlock, UserId } from "@mirrorverse/types";
 
-import { appError, ErrCode } from "../../lib/errors.js";
-import { getChatTotalCostCents } from "../billing/repo.js";
+import { appError, ErrCode } from "../../lib/errors";
+import { getChatTotalCostCents } from "../billing/repo";
 
-import * as repo from "./repo.js";
-import * as workflowsRepo from "../workflows/repo.js";
+import * as repo from "./repo";
+import * as workflowsRepo from "../workflows/repo";
 import type {
   AppendUserMessageInput,
   DeleteChatInput,
@@ -21,7 +21,7 @@ import type {
   GetChatInput,
   ListChatsInput,
   PinChatInput,
-} from "./inputs.js";
+} from "./inputs";
 
 interface BaseCtx {
   readonly db: Database;
