@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const nextConfig: NextConfig = {
+  // Trace files from the monorepo root so workspace deps get bundled into
+  // the serverless functions and Vercel detects the Next.js output.
+  outputFileTracingRoot: path.join(process.cwd(), "../.."),
   transpilePackages: ["@mirrorverse/ui", "@mirrorverse/env", "@mirrorverse/agent"],
   images: {
     remotePatterns: [
