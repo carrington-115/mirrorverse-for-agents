@@ -62,6 +62,12 @@ export const env = createEnv({
     CORS_ORIGIN: z.string().default("http://localhost:3000"),
   },
   runtimeEnv: process.env,
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  // Skip validation when explicitly opted out, or during `next build`
+  // (NEXT_PHASE=phase-production-build). Server env is read at request time, so
+  // a build never needs real secrets — this lets the app's Vercel deploy build
+  // this package (a transitive tRPC-types dependency) without backend secrets.
+  // Runtime still validates: NEXT_PHASE is phase-production-server when serving.
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION || process.env.NEXT_PHASE === "phase-production-build",
   emptyStringAsUndefined: true,
 });
