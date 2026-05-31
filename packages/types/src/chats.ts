@@ -18,7 +18,7 @@ import type {
   Timestamps,
   UserId,
   WorkflowId,
-} from "./common.js";
+} from "./common";
 
 /**
  * Content block stored on a `Message`. Stored shape matches Anthropic's API

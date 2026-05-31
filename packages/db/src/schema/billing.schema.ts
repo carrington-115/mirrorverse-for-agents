@@ -14,10 +14,10 @@ import {
 
 import type { PlanFeatures, PlanLimits, SubscriptionStatus, UsageKind } from "@mirrorverse/types";
 
-import { chats } from "./chats.schema.js";
-import { tenantPolicy } from "./rls.js";
-import { workflowRuns } from "./runs.schema.js";
-import { workspaces } from "./tenancy.schema.js";
+import { chats } from "./chats.schema";
+import { tenantPolicy } from "./rls";
+import { workflowRuns } from "./runs.schema";
+import { workspaces } from "./tenancy.schema";
 
 export const plans = pgTable("plans", {
   id: text("id").primaryKey(), // slug: free | starter | pro | custom

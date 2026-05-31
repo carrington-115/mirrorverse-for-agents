@@ -7,7 +7,7 @@ import type {
   Timestamps,
   Tokens,
   UserId,
-} from "./common.js";
+} from "./common";
 
 /** A retrievable corpus the agent and workflow nodes can search over. */
 export interface KnowledgeBase extends Timestamps, Tenanted {

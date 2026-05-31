@@ -10,9 +10,9 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type { JsonValue } from "@mirrorverse/types";
-import { tenantPolicy } from "./rls.js";
-import { workspaces } from "./tenancy.schema.js";
-import { workflows } from "./workflows.schema.js";
+import { tenantPolicy } from "./rls";
+import { workspaces } from "./tenancy.schema";
+import { workflows } from "./workflows.schema";
 
 export type WebhookAuthType = "none" | "bearer" | "basic" | "custom_header";
 

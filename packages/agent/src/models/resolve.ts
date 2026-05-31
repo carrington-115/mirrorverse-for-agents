@@ -2,7 +2,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 
-import { ANTHROPIC_MODEL_PREFIX, OPENAI_GPT_PREFIX, OPENAI_REASONING_PREFIX } from "./constants.js";
+import { ANTHROPIC_MODEL_PREFIX, OPENAI_GPT_PREFIX, OPENAI_REASONING_PREFIX } from "./constants";
 
 export type ModelProvider = "anthropic" | "openai";
 

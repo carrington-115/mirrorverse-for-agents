@@ -7,9 +7,9 @@ import type {
   McpServerKind,
   McpTransport,
 } from "@mirrorverse/types";
-import { mcpDirectoryEntries } from "./mcp-directory.schema.js";
-import { tenantOrGlobalPolicy, tenantPolicy } from "./rls.js";
-import { workspaces } from "./tenancy.schema.js";
+import { mcpDirectoryEntries } from "./mcp-directory.schema";
+import { tenantOrGlobalPolicy, tenantPolicy } from "./rls";
+import { workspaces } from "./tenancy.schema";
 
 /**
  * Registered MCP server. The same row covers built-in (workspaceId null),

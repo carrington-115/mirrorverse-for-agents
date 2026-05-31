@@ -1,21 +1,17 @@
-﻿export { runMirrorpilot } from "./runtime/index.js";
-export type {
-  AgentLifecycleEvent,
-  RunMirrorpilotDeps,
-  RunMirrorpilotResult,
-} from "./runtime/index.js";
-export { sanitizeToolCallHistory } from "./sanitize-history.js";
-export { providerForModel, resolveModel } from "./models/resolve.js";
-export type { ModelProvider } from "./models/resolve.js";
-export { workflowDocumentSchema } from "./schemas/workflow.js";
+﻿export { runMirrorpilot } from "./runtime";
+export type { AgentLifecycleEvent, RunMirrorpilotDeps, RunMirrorpilotResult } from "./runtime";
+export { sanitizeToolCallHistory } from "./sanitize-history";
+export { providerForModel, resolveModel } from "./models/resolve";
+export type { ModelProvider } from "./models/resolve";
+export { workflowDocumentSchema } from "./schemas/workflow";
 export type {
   WorkflowConnectionInput,
   WorkflowDocumentInput,
   WorkflowNodeInput,
-} from "./schemas/workflow.js";
-export { PALETTE_ENTRIES, defaultNodeForKind } from "./schemas/node-defaults.js";
-export type { PaletteCategory, PaletteEntry } from "./schemas/node-defaults.js";
-export { generateChatTitle } from "./title.js";
+} from "./schemas/workflow";
+export { PALETTE_ENTRIES, defaultNodeForKind } from "./schemas/node-defaults";
+export type { PaletteCategory, PaletteEntry } from "./schemas/node-defaults";
+export { generateChatTitle } from "./title";
 export {
   DEFAULT_CHAT_LIMITS,
   SUPPORTED_CHAT_MODEL_IDS,
@@ -24,7 +20,7 @@ export {
   describeChatLimitBreach,
   getModelPrice,
   isSupportedModel,
-} from "./billing/index.js";
+} from "./billing";
 export type {
   AgentUsageEntry,
   AgentUsageKind,
@@ -32,4 +28,4 @@ export type {
   ChatLimits,
   ModelPricePerMillionTokens,
   StepUsageBreakdown,
-} from "./billing/index.js";
+} from "./billing";

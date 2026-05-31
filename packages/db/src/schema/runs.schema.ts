@@ -8,9 +8,9 @@ import type {
   RunStepLog,
   RunStepStatus,
 } from "@mirrorverse/types";
-import { tenantPolicy } from "./rls.js";
-import { workspaces } from "./tenancy.schema.js";
-import { workflowVersions, workflows } from "./workflows.schema.js";
+import { tenantPolicy } from "./rls";
+import { workspaces } from "./tenancy.schema";
+import { workflowVersions, workflows } from "./workflows.schema";
 
 /** One execution of a workflow. The canonical row in run history. */
 export const workflowRuns = pgTable(

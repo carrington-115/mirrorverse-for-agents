@@ -1,4 +1,4 @@
-export * from "./client.js";
-export * from "./runtime.js";
-export * as schema from "./schema/index.js";
+export * from "./client";
+export * from "./runtime";
+export * as schema from "./schema";
 export * from "drizzle-orm";

@@ -1,4 +1,4 @@
-import type { WorkflowNodeInput } from "./workflow.js";
+import type { WorkflowNodeInput } from "./workflow";
 
 export interface PaletteEntry {
   readonly kind: string;

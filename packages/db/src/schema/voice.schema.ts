@@ -15,10 +15,10 @@ import type {
   VoiceCallDirection,
   VoiceCallStatus,
 } from "@mirrorverse/types";
-import { tenantPolicy } from "./rls.js";
-import { connections } from "./tools.schema.js";
-import { workspaces } from "./tenancy.schema.js";
-import { workflows, workflowVersions } from "./workflows.schema.js";
+import { tenantPolicy } from "./rls";
+import { connections } from "./tools.schema";
+import { workspaces } from "./tenancy.schema";
+import { workflows, workflowVersions } from "./workflows.schema";
 
 /**
  * Stores encrypted Twilio credentials for BYO (bring-your-own) phone numbers

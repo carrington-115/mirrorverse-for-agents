@@ -6,8 +6,8 @@ import type {
   WorkflowKind,
   WorkflowStatus,
 } from "@mirrorverse/types";
-import { tenantPolicy } from "./rls.js";
-import { workspaces } from "./tenancy.schema.js";
+import { tenantPolicy } from "./rls";
+import { workspaces } from "./tenancy.schema";
 
 /**
  * Workflow root entity. Stable identity across versions; the canvas/document

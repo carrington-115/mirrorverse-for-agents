@@ -7,8 +7,8 @@ import type {
   WorkflowId,
   WorkflowTriggerId,
   WorkflowVersionId,
-} from "./common.js";
-import type { DeployedAgent } from "./agent-definition.js";
+} from "./common";
+import type { DeployedAgent } from "./agent-definition";
 
 export type WorkflowKind = "automation" | "voice-agent" | "chat-agent" | "code";
 export type WorkflowStatus = "draft" | "active" | "paused" | "archived";

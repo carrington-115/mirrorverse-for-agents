@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { JsonObject, SkillAttachmentScope, SkillVisibility } from "@mirrorverse/types";
-import { activeWorkspaceSql, tenantOrGlobalPolicy, transitivePolicy } from "./rls.js";
-import { workspaces } from "./tenancy.schema.js";
+import { activeWorkspaceSql, tenantOrGlobalPolicy, transitivePolicy } from "./rls";
+import { workspaces } from "./tenancy.schema";
 
 /**
  * Reusable bundle of agent behavior. The product ships a starter library

@@ -8,7 +8,7 @@ import type {
   WorkspaceStatus,
 } from "@mirrorverse/types";
 
-import { tenantPolicy } from "./rls.js";
+import { tenantPolicy } from "./rls";
 
 /**
  * Top-level tenant. Every other domain table carries `workspace_id` and

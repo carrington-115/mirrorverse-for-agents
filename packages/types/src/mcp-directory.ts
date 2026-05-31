@@ -1,4 +1,4 @@
-import type { JsonObject, McpDirectoryEntryId, Timestamps } from "./common.js";
+import type { JsonObject, McpDirectoryEntryId, Timestamps } from "./common";
 
 /**
  * One server from Anthropic's public MCP directory

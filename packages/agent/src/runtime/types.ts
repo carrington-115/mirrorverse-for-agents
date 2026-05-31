@@ -1,7 +1,7 @@
 ﻿import type { Tool, UIMessage } from "ai";
 import type { Database } from "@mirrorverse/db";
 
-import type { StepUsageBreakdown } from "../billing/index.js";
+import type { StepUsageBreakdown } from "../billing";
 
 export type AgentLifecycleEvent =
   | { readonly kind: "message_started"; readonly messageId: string }

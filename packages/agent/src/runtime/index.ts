@@ -1,8 +1,8 @@
-﻿export { runMirrorpilot } from "./stream.js";
+﻿export { runMirrorpilot } from "./stream";
 export type {
   AgentLifecycleEvent,
   FinishEvent,
   RunMirrorpilotDeps,
   RunMirrorpilotResult,
   UsageEvent,
-} from "./types.js";
+} from "./types";
