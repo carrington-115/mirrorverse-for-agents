@@ -20,7 +20,7 @@ function corsHeaders(origin: string | null): Headers {
   return headers;
 }
 
-export function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const cors = corsHeaders(req.headers.get("origin"));
 
   if (req.method === "OPTIONS") {
