@@ -1,4 +1,4 @@
-export { GET, POST } from "../../../../api/trpc/[trpc]";
+export { GET, POST } from "../../../../src/api/trpc/[trpc]";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

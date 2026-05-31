@@ -8,7 +8,6 @@
   "include": [
     "next-env.d.ts",
     "src/**/*",
-    "api/**/*",
     "app/**/*",
     "proxy.ts",
     "next.config.ts",

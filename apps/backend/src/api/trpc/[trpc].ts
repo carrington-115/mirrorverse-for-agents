@@ -2,9 +2,9 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { env } from "@mirrorverse/env/backend";
 
-import { TRPC_ENDPOINT } from "../../src/config";
-import { createContext } from "../../src/trpc/context";
-import { appRouter } from "../../src/trpc/router";
+import { TRPC_ENDPOINT } from "../../config";
+import { createContext } from "../../trpc/context";
+import { appRouter } from "../../trpc/router";
 
 const handler = (req: Request) =>
   fetchRequestHandler({

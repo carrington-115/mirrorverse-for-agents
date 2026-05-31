@@ -1,4 +1,4 @@
-export { POST } from "../../../../api/speech";
+export { POST } from "../../../../src/api/speech";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

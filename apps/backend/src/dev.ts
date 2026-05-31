@@ -12,9 +12,9 @@ import { getDb } from "@mirrorverse/db";
 
 import { env } from "@mirrorverse/env/backend";
 
-import { POST as chatHandler } from "../api/chat";
-import { GET as connectionsCallbackGet } from "../api/connections/callback";
-import { POST as speechHandler } from "../api/speech";
+import { POST as chatHandler } from "./api/chat";
+import { GET as connectionsCallbackGet } from "./api/connections/callback";
+import { POST as speechHandler } from "./api/speech";
 import { vapiWebhookHandler } from "./features/voice/webhook";
 import { handleStripeWebhook } from "./features/billing/webhooks/stripe";
 import { inboundWebhookHandler } from "./features/webhooks/inbound-handler";
@@ -22,7 +22,7 @@ import {
   GET as inngestGet,
   POST as inngestPost,
   PUT as inngestPut,
-} from "../api/inngest";
+} from "./api/inngest";
 import { TRPC_ENDPOINT } from "./config";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./trpc/router";

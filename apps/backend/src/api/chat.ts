@@ -1,4 +1,4 @@
-﻿import "../src/lib/tracing"; // must be first — registers OTel before any spans
+import "../lib/tracing"; // must be first — registers OTel before any spans
 import {
   DEFAULT_CHAT_LIMITS,
   describeChatLimitBreach,
@@ -25,25 +25,25 @@ import type {
 } from "@mirrorverse/types";
 import type { UIMessage } from "ai";
 
-import { authenticateRequest } from "../src/lib/auth";
-import { buildPhoneTools } from "../src/features/voice/chat-tools";
-import { buildKnowledgeTools } from "../src/features/knowledge/chat-tools";
+import { authenticateRequest } from "../lib/auth";
+import { buildPhoneTools } from "../features/voice/chat-tools";
+import { buildKnowledgeTools } from "../features/knowledge/chat-tools";
 import {
   resolveSelectedDocumentKbs,
   type ResolvedSelectedDocument,
-} from "../src/features/knowledge/repo";
-import { ensureUserWorkspace } from "../src/features/tenancy/repo";
-import { listWorkspaceWebhooks } from "../src/features/webhooks/repo";
-import { recordChatUsage } from "../src/features/billing/repo";
+} from "../features/knowledge/repo";
+import { ensureUserWorkspace } from "../features/tenancy/repo";
+import { listWorkspaceWebhooks } from "../features/webhooks/repo";
+import { recordChatUsage } from "../features/billing/repo";
 import {
   checkQuota,
   QuotaExceededError,
-} from "../src/features/billing/enforcement";
+} from "../features/billing/enforcement";
 import {
   firstUserText,
   lifecycleToChatEventPayload,
   uiMessageToContentBlocks,
-} from "../src/features/chats/mappers";
+} from "../features/chats/mappers";
 import {
   appendChatEvent,
   bumpLastMessageAt,
@@ -51,8 +51,8 @@ import {
   insertMessage,
   markChatFailed,
   setChatTitleIfEmpty,
-} from "../src/features/chats/repo";
-import { chatsService } from "../src/features/chats/service";
+} from "../features/chats/repo";
+import { chatsService } from "../features/chats/service";
 import {
   isComposioConfigured,
   listComposioTools,
@@ -60,15 +60,12 @@ import {
   listConnectedApps,
   getComposioAuthRedirectUrl,
   lookupComposioMcpServerId,
-} from "../src/mcp/composio/client";
-import { listWorkspaceMcpServers } from "../src/features/tools/repo";
-import {
-  NeedsAuthError,
-  invokeComposioTool,
-} from "../src/mcp/composio/dispatcher";
-import { createConnectionRequest } from "../src/mcp/composio/auth";
-import { runPreflightCheck } from "../src/mcp/composio/preflight";
-import { flushTracing } from "../src/lib/tracing";
+} from "../mcp/composio/client";
+import { listWorkspaceMcpServers } from "../features/tools/repo";
+import { NeedsAuthError, invokeComposioTool } from "../mcp/composio/dispatcher";
+import { createConnectionRequest } from "../mcp/composio/auth";
+import { runPreflightCheck } from "../mcp/composio/preflight";
+import { flushTracing } from "../lib/tracing";
 import type { Database } from "@mirrorverse/db";
 
 async function safeAppendChatEvent(

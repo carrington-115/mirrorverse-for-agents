@@ -30,7 +30,7 @@ export default function NavBar() {
       className={cn(
         "inset-x-0 top-0 lg:px-[120px] lg:py-[10px] fixed z-50 flex flex-col items-center px-(--spacing-20) py-(--spacing-10)",
         menuIsOpen && "bottom-0",
-        (scrolled || menuIsOpen) && "bg-white border-b border-(--colors-black-10)",
+        (scrolled || menuIsOpen) && "bg-white shadow-sm",
       )}
     >
       <div className="flex h-auto w-full items-center justify-between">
