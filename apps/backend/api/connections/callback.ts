@@ -3,12 +3,12 @@ import { env } from "@mirrorverse/env/backend";
 import {
   getComposioInstance,
   isComposioConfigured,
-} from "../../src/mcp/composio/client";
+} from "../../src/mcp/composio/client.js";
 import {
   resolveConnectionRequest,
   findPendingConnectionRequest,
-} from "../../src/mcp/composio/auth";
-import { inngest } from "../../src/features/inngest/client";
+} from "../../src/mcp/composio/auth.js";
+import { inngest } from "../../src/features/inngest/client.js";
 
 function jsonError(status: number, message: string): Response {
   return new Response(JSON.stringify({ error: message }), {

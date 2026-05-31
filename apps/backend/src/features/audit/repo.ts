@@ -11,7 +11,7 @@ import {
 } from "@mirrorverse/db";
 import type { WorkspaceRole } from "@mirrorverse/types";
 
-import type { ListAuditInput } from "./inputs";
+import type { ListAuditInput } from "./inputs.js";
 
 export async function listAuditLog(
   db: Database,

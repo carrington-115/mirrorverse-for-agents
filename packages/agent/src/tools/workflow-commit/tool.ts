@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-import { buildWorkflowDocument } from "./builder";
+import { buildWorkflowDocument } from "./builder.js";
 import {
   DEFAULT_BUILDER_MODEL,
   LOG_PREFIX,
@@ -9,9 +9,9 @@ import {
   MAX_INTENT_LENGTH,
   MAX_SUMMARY_LENGTH,
   WORKFLOW_KINDS,
-} from "./constants";
-import { getLatestVersionForChat, persistWorkflow } from "./persistence";
-import type { WorkflowCommitDeps, WorkflowCommitResult } from "./types";
+} from "./constants.js";
+import { getLatestVersionForChat, persistWorkflow } from "./persistence.js";
+import type { WorkflowCommitDeps, WorkflowCommitResult } from "./types.js";
 
 const inputSchema = z
   .object({

@@ -20,7 +20,7 @@
     "dev:node": "tsx watch --env-file=.env.development src/dev.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"api/**/*.ts\" \"app/**/*.ts\" \"middleware.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"api/**/*.ts\" \"app/**/*.ts\" \"proxy.ts\"",
     "typecheck": "tsc --noEmit",
     "dev:tunnel": "npx localtunnel --port 3001",
     "clean": "rm -rf .turbo .next dist node_modules coverage .vercel"

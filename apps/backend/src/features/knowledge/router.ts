@@ -1,5 +1,5 @@
-import { router } from "../../trpc/init";
-import { workspaceProc } from "../../trpc/middleware";
+import { router } from "../../trpc/init.js";
+import { workspaceProc } from "../../trpc/middleware.js";
 
 import {
   createKbInput,
@@ -13,8 +13,8 @@ import {
   listKbsInput,
   searchKbInput,
   signUploadUrlInput,
-} from "./inputs";
-import { knowledgeService } from "./service";
+} from "./inputs.js";
+import { knowledgeService } from "./service.js";
 
 export const knowledgeRouter = router({
   createKb: workspaceProc

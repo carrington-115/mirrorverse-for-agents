@@ -9,7 +9,7 @@ import type {
   Timestamps,
   UserId,
   WorkflowId,
-} from "./common";
+} from "./common.js";
 
 export type SkillVisibility = "public" | "team" | "private";
 

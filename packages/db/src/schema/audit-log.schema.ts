@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 
 import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import { tenantPolicy } from "./rls";
-import { workspaces } from "./tenancy.schema";
+import { tenantPolicy } from "./rls.js";
+import { workspaces } from "./tenancy.schema.js";
 
 export const auditLog = pgTable(
   "audit_log",

@@ -1,8 +1,8 @@
 import type { InngestFunction } from "inngest";
 import type { Database } from "@mirrorverse/db";
 
-import { inngest, workflowExecuteEvent } from "../../inngest";
-import { findDueCronWorkflows } from "./cron-repo";
+import { inngest, workflowExecuteEvent } from "../../inngest/index.js";
+import { findDueCronWorkflows } from "./cron-repo.js";
 
 /**
  * Runs every minute. Queries for active automation workflows whose cron

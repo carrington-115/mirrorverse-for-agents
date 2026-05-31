@@ -1,5 +1,5 @@
-import { LOG_PREFIX } from "./constants";
-import type { AgentLifecycleEvent } from "./types";
+import { LOG_PREFIX } from "./constants.js";
+import type { AgentLifecycleEvent } from "./types.js";
 
 type LifecycleHandler = (event: AgentLifecycleEvent) => Promise<void> | void;
 

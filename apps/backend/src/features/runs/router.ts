@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import { inngest } from "../inngest/client";
-import { router, TRPCError } from "../../trpc/init";
-import { publicProc, workspaceProc } from "../../trpc/middleware";
-import { humanReviewRespondedEvent } from "../inngest/events";
+import { inngest } from "../inngest/client.js";
+import { router, TRPCError } from "../../trpc/init.js";
+import { publicProc, workspaceProc } from "../../trpc/middleware.js";
+import { humanReviewRespondedEvent } from "../inngest/events.js";
 import { eq, schema } from "@mirrorverse/db";
 
 export const runsRouter = router({

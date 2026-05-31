@@ -1,4 +1,4 @@
-import { getComposioInstance } from "./client";
+import { getComposioInstance } from "./client.js";
 
 export class NeedsAuthError extends Error {
   constructor(

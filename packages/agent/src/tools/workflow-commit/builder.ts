@@ -1,20 +1,20 @@
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
-import { resolveModel } from "../../models/resolve";
+import { resolveModel } from "../../models/resolve.js";
 import {
   jsonObject,
   workflowConnection,
   workflowDocumentSchema,
   workflowNode,
   type WorkflowDocumentInput,
-} from "../../schemas/workflow";
-import { WORKFLOW_DOCUMENT_BUILDER_PROMPT } from "../../system-prompt";
-import { summarizeZodIssues } from "../_shared/zod-errors";
+} from "../../schemas/workflow.js";
+import { WORKFLOW_DOCUMENT_BUILDER_PROMPT } from "../../system-prompt.js";
+import { summarizeZodIssues } from "../_shared/zod-errors.js";
 
-import { MAX_BUILDER_ATTEMPTS, MAX_BUILDER_STEPS, MAX_TITLE_LENGTH } from "./constants";
-import type { BuilderState, WorkflowCommitProgressEmitter } from "./types";
-import type { WorkflowKind } from "./constants";
+import { MAX_BUILDER_ATTEMPTS, MAX_BUILDER_STEPS, MAX_TITLE_LENGTH } from "./constants.js";
+import type { BuilderState, WorkflowCommitProgressEmitter } from "./types.js";
+import type { WorkflowKind } from "./constants.js";
 
 const narration = z
   .string()

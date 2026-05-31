@@ -1,7 +1,7 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-import * as schema from "./schema";
+import * as schema from "./schema/index.js";
 
 // Note: this intentionally omits the `& { $client }` that `drizzle()` returns,
 // so a transaction handle (PgTransaction) is also assignable to `Database`.

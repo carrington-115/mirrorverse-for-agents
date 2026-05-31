@@ -8,7 +8,7 @@ import type {
   WorkflowRunId,
   WorkflowRunStepId,
   WorkflowVersionId,
-} from "./common";
+} from "./common.js";
 
 export type RunStatus =
   | "queued"

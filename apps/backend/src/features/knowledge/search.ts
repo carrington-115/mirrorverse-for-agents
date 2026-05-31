@@ -1,7 +1,7 @@
 import type { Database } from "@mirrorverse/db";
 
-import { embedQuery } from "./embed";
-import * as repo from "./repo";
+import { embedQuery } from "./embed.js";
+import * as repo from "./repo.js";
 
 export interface KnowledgeSearchResult {
   chunkId: string;

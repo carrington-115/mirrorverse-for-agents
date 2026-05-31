@@ -3,7 +3,7 @@ import type { Vapi } from "@vapi-ai/server-sdk";
 
 import { env } from "@mirrorverse/env/backend";
 
-import type { TwilioCreds } from "./twilio";
+import type { TwilioCreds } from "./twilio.js";
 
 function getClient(): VapiClient {
   return new VapiClient({ token: env.VAPI_API_KEY ?? "" });

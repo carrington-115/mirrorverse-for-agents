@@ -1,5 +1,5 @@
 import { and, eq, schema, type Database } from "@mirrorverse/db";
-import type { CreateWebhookInput } from "./inputs";
+import type { CreateWebhookInput } from "./inputs.js";
 
 const { webhooks } = schema;
 

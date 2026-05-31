@@ -9,21 +9,24 @@ import {
 } from "ai";
 import { propagateAttributes } from "@langfuse/tracing";
 
-import { breakdownStepUsage } from "../billing";
-import { resolveModel } from "../models/resolve";
-import { sanitizeToolCallHistory } from "../sanitize-history";
-import { MIRRORPILOT_SYSTEM_PROMPT } from "../system-prompt";
-import { makeWorkflowCommitTool, WORKFLOW_COMMIT_TOOL_NAME } from "../tools/workflow-commit";
+import { breakdownStepUsage } from "../billing/index.js";
+import { resolveModel } from "../models/resolve.js";
+import { sanitizeToolCallHistory } from "../sanitize-history.js";
+import { MIRRORPILOT_SYSTEM_PROMPT } from "../system-prompt.js";
+import {
+  makeWorkflowCommitTool,
+  WORKFLOW_COMMIT_TOOL_NAME,
+} from "../tools/workflow-commit/index.js";
 
 import {
   DEFAULT_MAX_STEPS,
   DEFAULT_MAX_TOKENS,
   DEFAULT_MIRRORPILOT_MODEL,
   LOG_PREFIX,
-} from "./constants";
-import { makeLifecycleEmitter } from "./lifecycle";
-import { buildProviderOptions } from "./provider-options";
-import type { RunMirrorpilotDeps } from "./types";
+} from "./constants.js";
+import { makeLifecycleEmitter } from "./lifecycle.js";
+import { buildProviderOptions } from "./provider-options.js";
+import type { RunMirrorpilotDeps } from "./types.js";
 
 export async function runMirrorpilot(deps: RunMirrorpilotDeps): Promise<Response> {
   const modelId = deps.model ?? DEFAULT_MIRRORPILOT_MODEL;

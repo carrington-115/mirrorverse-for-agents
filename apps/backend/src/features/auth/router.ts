@@ -1,10 +1,10 @@
 import { getDb } from "@mirrorverse/db";
 
-import { router } from "../../trpc/init";
-import { protectedProc, workspaceProc } from "../../trpc/middleware";
+import { router } from "../../trpc/init.js";
+import { protectedProc, workspaceProc } from "../../trpc/middleware.js";
 
-import { completeOnboardingInput, syncProfileInput } from "./inputs";
-import { authService } from "./service";
+import { completeOnboardingInput, syncProfileInput } from "./inputs.js";
+import { authService } from "./service.js";
 
 // `user_profiles` is a per-user bootstrap table, not workspace-scoped, so it is
 // intentionally outside RLS (issue #31). These procedures only read/write the

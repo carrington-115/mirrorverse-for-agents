@@ -1,8 +1,8 @@
-import { router } from "../../trpc/init";
-import { protectedProc, workspaceProc } from "../../trpc/middleware";
+import { router } from "../../trpc/init.js";
+import { protectedProc, workspaceProc } from "../../trpc/middleware.js";
 
-import { initiateAppConnectionInput, toolkitInfoInput } from "./inputs";
-import { connectionsService } from "./service";
+import { initiateAppConnectionInput, toolkitInfoInput } from "./inputs.js";
+import { connectionsService } from "./service.js";
 
 export const connectionsRouter = router({
   toolkitInfo: protectedProc

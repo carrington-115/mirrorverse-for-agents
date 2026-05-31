@@ -1,14 +1,14 @@
 ﻿import type { Database } from "@mirrorverse/db";
 
-import { appError, ErrCode } from "../../lib/errors";
+import { appError, ErrCode } from "../../lib/errors.js";
 import {
   createSignedStorageUrl,
   createSignedUploadUrl,
-} from "../../lib/storage";
-import { inngest } from "../inngest/client";
-import { knowledgeIngestEvent } from "../inngest/events";
-import * as repo from "./repo";
-import { searchKnowledgeBase } from "./search";
+} from "../../lib/storage.js";
+import { inngest } from "../inngest/client.js";
+import { knowledgeIngestEvent } from "../inngest/events.js";
+import * as repo from "./repo.js";
+import { searchKnowledgeBase } from "./search.js";
 import type {
   CreateKbInput,
   DeleteDocumentInput,
@@ -21,7 +21,7 @@ import type {
   ListKbsInput,
   SearchKbInput,
   SignUploadUrlInput,
-} from "./inputs";
+} from "./inputs.js";
 
 interface WorkspaceCtx {
   readonly db: Database;

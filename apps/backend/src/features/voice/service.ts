@@ -2,9 +2,9 @@ import type { Database } from "@mirrorverse/db";
 import { schema, eq } from "@mirrorverse/db";
 import { env } from "@mirrorverse/env/backend";
 
-import { appError, ErrCode } from "../../lib/errors";
+import { appError, ErrCode } from "../../lib/errors.js";
 
-import { compileToVapiAssistant } from "./compile";
+import { compileToVapiAssistant } from "./compile.js";
 import {
   createAssistant,
   deleteAssistant,
@@ -12,7 +12,7 @@ import {
   bindAssistantToNumber,
   unbindAssistantFromNumber,
   deleteVapiPhoneNumber,
-} from "./providers/vapi";
+} from "./providers/vapi.js";
 import {
   loadTwilioCreds,
   searchAvailableNumbers,
@@ -21,8 +21,8 @@ import {
   releaseNumber as releaseTwilioNumber,
   TwilioNumberRaceError,
   type TwilioCreds,
-} from "./providers/twilio";
-import * as repo from "./repo";
+} from "./providers/twilio.js";
+import * as repo from "./repo.js";
 import type { VoiceAgentNode } from "@mirrorverse/types";
 
 import type {
@@ -34,7 +34,7 @@ import type {
   GetVoiceAgentInput,
   ListVoiceCallsInput,
   ListCallsByPhoneInput,
-} from "./inputs";
+} from "./inputs.js";
 
 interface WorkspaceCtx {
   readonly db: Database;

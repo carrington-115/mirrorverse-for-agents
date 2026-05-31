@@ -1,7 +1,7 @@
 import type { Database } from "@mirrorverse/db";
 import type { QuotaCheck, UsageKind } from "@mirrorverse/types";
 
-import { getActiveSubscription } from "./repo";
+import { getActiveSubscription } from "./repo.js";
 
 // Mirrors the field names in PlanLimits that map to UsageKind
 const KIND_TO_LIMIT_FIELD: Partial<

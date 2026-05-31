@@ -1,4 +1,4 @@
-﻿import { DEFAULT_SONNET_MODEL } from "../models/constants";
+﻿import { DEFAULT_SONNET_MODEL } from "../models/constants.js";
 
 export const LOG_PREFIX = "[mirrorpilot]";
 

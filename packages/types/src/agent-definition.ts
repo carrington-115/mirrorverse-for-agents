@@ -1,4 +1,4 @@
-import type { JsonObject } from "./common";
+import type { JsonObject } from "./common.js";
 
 /**
  * Flat declarative artifact a `WorkflowDocument` compiles to when its kind

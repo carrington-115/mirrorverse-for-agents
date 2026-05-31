@@ -1,12 +1,12 @@
 import type { Database } from "@mirrorverse/db";
 
-import { appError, ErrCode } from "../../lib/errors";
+import { appError, ErrCode } from "../../lib/errors.js";
 
 import {
   createOrReactivateEndpoint,
   disableEndpointsByWorkflowId,
-} from "../webhooks/webhook-endpoints-repo";
-import * as repo from "./repo";
+} from "../webhooks/webhook-endpoints-repo.js";
+import * as repo from "./repo.js";
 import type {
   DeleteWorkflowInput,
   GetWorkflowInput,
@@ -16,7 +16,7 @@ import type {
   RenameWorkflowInput,
   ReorderWorkflowsInput,
   SaveWorkflowVersionInput,
-} from "./inputs";
+} from "./inputs.js";
 
 interface WorkspaceCtx {
   readonly db: Database;

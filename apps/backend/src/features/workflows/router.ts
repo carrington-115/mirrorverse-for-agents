@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { router } from "../../trpc/init";
-import { workspaceProc } from "../../trpc/middleware";
+import { router } from "../../trpc/init.js";
+import { workspaceProc } from "../../trpc/middleware.js";
 
 import {
   deleteWorkflowInput,
@@ -12,8 +12,8 @@ import {
   renameWorkflowInput,
   reorderWorkflowsInput,
   saveWorkflowVersionInput,
-} from "./inputs";
-import { workflowsService } from "./service";
+} from "./inputs.js";
+import { workflowsService } from "./service.js";
 
 const workflowIdInput = z.object({ workflowId: z.string().min(1).max(128) });
 

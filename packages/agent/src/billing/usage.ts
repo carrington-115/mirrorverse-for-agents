@@ -1,6 +1,6 @@
 import type { LanguageModelUsage } from "ai";
 
-import { getModelPrice, microcentsToCents, tokensToCents } from "./pricing";
+import { getModelPrice, microcentsToCents, tokensToCents } from "./pricing.js";
 
 export type AgentUsageKind =
   | "llm_input"

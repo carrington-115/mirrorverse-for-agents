@@ -1,8 +1,8 @@
-import { router } from "../../trpc/init";
-import { workspaceProc } from "../../trpc/middleware";
+import { router } from "../../trpc/init.js";
+import { workspaceProc } from "../../trpc/middleware.js";
 
-import { auditService } from "./service";
-import { listAuditInput } from "./inputs";
+import { auditService } from "./service.js";
+import { listAuditInput } from "./inputs.js";
 
 export const auditRouter = router({
   list: workspaceProc

@@ -1,7 +1,10 @@
-import { ANTHROPIC_OPUS_PREFIX } from "../models/constants";
-import { providerForModel } from "../models/resolve";
+import { ANTHROPIC_OPUS_PREFIX } from "../models/constants.js";
+import { providerForModel } from "../models/resolve.js";
 
-import { ANTHROPIC_ADAPTIVE_THINKING_EFFORT, ANTHROPIC_THINKING_BUDGET_TOKENS } from "./constants";
+import {
+  ANTHROPIC_ADAPTIVE_THINKING_EFFORT,
+  ANTHROPIC_THINKING_BUDGET_TOKENS,
+} from "./constants.js";
 
 export function buildProviderOptions(modelId: string) {
   const provider = providerForModel(modelId);

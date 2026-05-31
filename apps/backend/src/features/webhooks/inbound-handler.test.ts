@@ -15,13 +15,13 @@ vi.mock("./dispatch", () => ({
   dispatchWebhookRun: vi.fn(),
 }));
 
-import { inboundWebhookHandler } from "./inbound-handler";
+import { inboundWebhookHandler } from "./inbound-handler.js";
 import {
   getEndpointBySlug,
   logInbound,
   incrementCallCount,
-} from "./webhook-endpoints-repo";
-import { dispatchWebhookRun } from "./dispatch";
+} from "./webhook-endpoints-repo.js";
+import { dispatchWebhookRun } from "./dispatch.js";
 
 const mockGetEndpoint = vi.mocked(getEndpointBySlug);
 const mockLog = vi.mocked(logInbound);

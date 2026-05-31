@@ -4,8 +4,8 @@ import type {
   WorkflowConnectionInput,
   WorkflowDocumentInput,
   WorkflowNodeInput,
-} from "../../schemas/workflow";
-import type { WorkflowKind } from "./constants";
+} from "../../schemas/workflow.js";
+import type { WorkflowKind } from "./constants.js";
 
 export interface BuilderMeta {
   readonly kind: WorkflowKind;

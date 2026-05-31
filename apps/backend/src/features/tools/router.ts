@@ -1,8 +1,8 @@
-import { router } from "../../trpc/init";
-import { workspaceProc } from "../../trpc/middleware";
+import { router } from "../../trpc/init.js";
+import { workspaceProc } from "../../trpc/middleware.js";
 
-import { createMcpServerInput, revokeConnectionInput } from "./inputs";
-import { toolsService } from "./service";
+import { createMcpServerInput, revokeConnectionInput } from "./inputs.js";
+import { toolsService } from "./service.js";
 
 export const toolsRouter = router({
   createMcpServer: workspaceProc

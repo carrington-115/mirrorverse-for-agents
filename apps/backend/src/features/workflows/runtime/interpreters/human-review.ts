@@ -6,13 +6,13 @@ import type { Database } from "@mirrorverse/db";
 import { schema } from "@mirrorverse/db";
 import { env } from "@mirrorverse/env/backend";
 
-import { inngest } from "../../../inngest/client";
+import { inngest } from "../../../inngest/client.js";
 
 type StepTools = GetStepTools<typeof inngest>;
-import type { RunState } from "../run-state";
-import type { InterpretResult } from "./types";
-import { sendReviewEmail } from "../../../notifications/email";
-import { sendSlackReview } from "../../../notifications/slack";
+import type { RunState } from "../run-state.js";
+import type { InterpretResult } from "./types.js";
+import { sendReviewEmail } from "../../../notifications/email.js";
+import { sendSlackReview } from "../../../notifications/slack.js";
 
 interface ReviewChannel {
   readonly kind: "email" | "slack" | "chat";

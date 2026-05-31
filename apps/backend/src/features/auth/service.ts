@@ -1,10 +1,10 @@
 import type { Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
-import { appError, ErrCode } from "../../lib/errors";
+import { appError, ErrCode } from "../../lib/errors.js";
 
-import * as repo from "./repo";
-import type { CompleteOnboardingInput, SyncProfileInput } from "./inputs";
+import * as repo from "./repo.js";
+import type { CompleteOnboardingInput, SyncProfileInput } from "./inputs.js";
 
 interface UserCtx {
   readonly db: Database;

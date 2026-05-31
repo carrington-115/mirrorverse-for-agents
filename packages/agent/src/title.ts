@@ -1,7 +1,7 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 
-import { DEFAULT_HAIKU_MODEL } from "./models/constants";
+import { DEFAULT_HAIKU_MODEL } from "./models/constants.js";
 
 const LOG_PREFIX = "[title]";
 const TITLE_MODEL = DEFAULT_HAIKU_MODEL;

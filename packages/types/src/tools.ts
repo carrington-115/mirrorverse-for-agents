@@ -9,7 +9,7 @@ import type {
   Timestamps,
   ToolId,
   UserId,
-} from "./common";
+} from "./common.js";
 
 export type McpServerKind = "first_party" | "composio" | "pipedream" | "klavis" | "user_supplied";
 export type McpTransport = "http" | "sse" | "stdio" | "websocket";

@@ -4,14 +4,14 @@ import { eq, schema } from "@mirrorverse/db";
 
 import { env } from "@mirrorverse/env/backend";
 
-import { router } from "../../trpc/init";
-import { workspaceProc } from "../../trpc/middleware";
-import { stripe } from "./stripe-client";
+import { router } from "../../trpc/init.js";
+import { workspaceProc } from "../../trpc/middleware.js";
+import { stripe } from "./stripe-client.js";
 import {
   getActiveSubscription,
   listInvoices,
   getUsageThisPeriod,
-} from "./repo";
+} from "./repo.js";
 
 const { workspaces } = schema;
 

@@ -1,7 +1,7 @@
 import { verifyToken } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
-import { BEARER } from "../config";
+import { BEARER } from "../config.js";
 
 export interface AuthenticatedUser {
   readonly id: UserId;

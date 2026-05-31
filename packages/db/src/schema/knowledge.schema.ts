@@ -9,8 +9,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { activeWorkspaceSql, tenantPolicy, transitivePolicy } from "./rls";
-import { workspaces } from "./tenancy.schema";
+import { activeWorkspaceSql, tenantPolicy, transitivePolicy } from "./rls.js";
+import { workspaces } from "./tenancy.schema.js";
 
 // pgvector column — stored as "[0.1,0.2,...]" string by the driver
 const embeddingVector = customType<{ data: number[]; driverData: string }>({

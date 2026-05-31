@@ -4,8 +4,8 @@ import { eq, schema, type Database } from "@mirrorverse/db";
 
 import { env } from "@mirrorverse/env/backend";
 
-import { stripe } from "../stripe-client";
-import { upsertSubscription, upsertInvoice } from "../repo";
+import { stripe } from "../stripe-client.js";
+import { upsertSubscription, upsertInvoice } from "../repo.js";
 
 const { workspaces, subscriptions } = schema;
 

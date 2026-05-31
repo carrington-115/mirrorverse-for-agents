@@ -31,9 +31,9 @@ export const env = createEnv({
     TWILIO_PHONE_NUMBER: z.string().min(1).optional(),
     TWILIO_WHATSAPP_NUMBER: z.string().min(1).optional(),
 
-    SENTRY_DSN: z.url().optional(),
+    SENTRY_DSN: z.string().url().optional(),
     POSTHOG_API_KEY: z.string().min(1).optional(),
-    POSTHOG_HOST: z.url().default("https://app.posthog.com"),
+    POSTHOG_HOST: z.string().url().default("https://app.posthog.com"),
 
     LANGFUSE_SECRET_KEY: z.string().min(1).optional(),
     LANGFUSE_PUBLIC_KEY: z.string().min(1).optional(),

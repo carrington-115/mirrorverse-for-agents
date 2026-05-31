@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { and, eq, inArray, schema, type Database } from "@mirrorverse/db";
 import type { ChatId } from "@mirrorverse/types";
 
-import { appendChatEvent } from "../../features/chats/repo";
-import { isComposioConfigured } from "./client";
+import { appendChatEvent } from "../../features/chats/repo.js";
+import { isComposioConfigured } from "./client.js";
 
 /**
  * Known app keyword → Composio slug mappings.

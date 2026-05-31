@@ -10,7 +10,7 @@
     "src/**/*",
     "api/**/*",
     "app/**/*",
-    "middleware.ts",
+    "proxy.ts",
     "next.config.ts",
     ".next/types/**/*.ts"
   ]

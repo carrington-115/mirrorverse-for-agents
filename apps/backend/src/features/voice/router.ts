@@ -1,5 +1,5 @@
-import { router } from "../../trpc/init";
-import { workspaceProc } from "../../trpc/middleware";
+import { router } from "../../trpc/init.js";
+import { workspaceProc } from "../../trpc/middleware.js";
 
 import {
   activateVoiceInput,
@@ -10,8 +10,8 @@ import {
   listVoiceCallsInput,
   releaseNumberInput,
   searchNumbersInput,
-} from "./inputs";
-import { voiceService } from "./service";
+} from "./inputs.js";
+import { voiceService } from "./service.js";
 
 export const voiceRouter = router({
   // ── Phone numbers ─────────────────────────────────────────────────────────

@@ -3,10 +3,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { and, desc, eq, schema, type Database } from "@mirrorverse/db";
 import type { WorkflowDocument } from "@mirrorverse/types";
 
-import type { WorkflowDocumentInput } from "../../schemas/workflow";
+import type { WorkflowDocumentInput } from "../../schemas/workflow.js";
 
-import { INITIAL_VERSION_NUMBER, INITIAL_WORKFLOW_STATUS } from "./constants";
-import type { WorkflowKind } from "./constants";
+import { INITIAL_VERSION_NUMBER, INITIAL_WORKFLOW_STATUS } from "./constants.js";
+import type { WorkflowKind } from "./constants.js";
 
 const { workflows, workflowVersions, chats } = schema;
 

@@ -6,7 +6,7 @@ import type {
   Timestamps,
   UserId,
   WorkspaceId,
-} from "./common";
+} from "./common.js";
 
 export type WorkspaceStatus = "active" | "suspended" | "deleted";
 

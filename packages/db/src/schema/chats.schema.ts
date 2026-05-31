@@ -20,9 +20,9 @@ import type {
   StopReason,
   Usage,
 } from "@mirrorverse/types";
-import { activeWorkspaceSql, tenantPolicy, transitivePolicy } from "./rls";
-import { workspaces } from "./tenancy.schema";
-import { workflows } from "./workflows.schema";
+import { activeWorkspaceSql, tenantPolicy, transitivePolicy } from "./rls.js";
+import { workspaces } from "./tenancy.schema.js";
+import { workflows } from "./workflows.schema.js";
 
 /**
  * One conversation between the user and the orchestrator agent. Lives durably

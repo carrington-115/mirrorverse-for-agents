@@ -1,12 +1,12 @@
 import type { JsonValue } from "@mirrorverse/types";
 import type { WorkflowNode } from "@mirrorverse/types";
 import type { GetStepTools } from "inngest";
-import type { RunState } from "../run-state";
+import type { RunState } from "../run-state.js";
 
-import { inngest } from "../../../inngest/client";
+import { inngest } from "../../../inngest/client.js";
 
 type StepTools = GetStepTools<typeof inngest>;
-import type { InterpretResult } from "./types";
+import type { InterpretResult } from "./types.js";
 
 // ─── Condition evaluation (flow.if) ───────────────────────────────────────────
 

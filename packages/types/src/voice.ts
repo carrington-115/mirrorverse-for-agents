@@ -6,7 +6,7 @@ import type {
   VoiceAgentId,
   VoiceCallId,
   WorkflowId,
-} from "./common";
+} from "./common.js";
 
 /** Local mirror of a Vapi assistant. Vapi handles orchestration; ElevenLabs provides the voice. */
 export interface VoiceAgent extends Timestamps, Tenanted {

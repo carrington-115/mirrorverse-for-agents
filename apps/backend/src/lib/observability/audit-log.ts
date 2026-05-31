@@ -1,6 +1,6 @@
 import { schema } from "@mirrorverse/db";
 
-import { middleware } from "../../trpc/init";
+import { middleware } from "../../trpc/init.js";
 
 export const auditMutation = middleware(
   async ({ ctx, path, type, next, getRawInput }) => {

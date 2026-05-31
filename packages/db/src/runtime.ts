@@ -3,8 +3,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from "jose";
 import { env } from "@mirrorverse/env/backend";
 
-import { connectToDatabase, type Database } from "./client";
-import { auditLog } from "./schema";
+import { connectToDatabase, type Database } from "./client.js";
+import { auditLog } from "./schema/index.js";
 
 let cachedAdminDb: Database | null = null;
 let cachedRuntimeDb: Database | null = null;

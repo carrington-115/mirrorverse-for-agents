@@ -2,9 +2,9 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { appCodeFromCause } from "../lib/errors";
+import { appCodeFromCause } from "../lib/errors.js";
 
-import type { Context } from "./context";
+import type { Context } from "./context.js";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,

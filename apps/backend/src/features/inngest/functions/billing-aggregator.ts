@@ -1,13 +1,13 @@
 import type { InngestFunction, GetStepTools } from "inngest";
 import type { Database } from "@mirrorverse/db";
 
-import { stripe } from "../../billing/stripe-client";
+import { stripe } from "../../billing/stripe-client.js";
 import {
   getHourlyUsageSince,
   getPaidSubscriptions,
   upsertUsagePeriodAggregates,
-} from "../../billing/repo";
-import { inngest } from "../client";
+} from "../../billing/repo.js";
+import { inngest } from "../client.js";
 
 type StepTools = GetStepTools<typeof inngest>;
 

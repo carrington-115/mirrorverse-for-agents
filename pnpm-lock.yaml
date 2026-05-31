@@ -555,13 +555,13 @@ importers:
     dependencies:
       '@t3-oss/env-core':
         specifier: ^0.13.8
-        version: 0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.3)
+        version: 0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@3.25.76)
       '@t3-oss/env-nextjs':
         specifier: ^0.13.8
-        version: 0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.3)
+        version: 0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@3.25.76)
       zod:
-        specifier: ^4.3.6
-        version: 4.4.3
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       '@mirrorverse/eslint-config':
         specifier: workspace:*
@@ -14046,19 +14046,19 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@t3-oss/env-core@0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.3)':
+  '@t3-oss/env-core@0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@3.25.76)':
     optionalDependencies:
       typescript: 5.9.3
       valibot: 1.4.0(typescript@5.9.3)
-      zod: 4.4.3
+      zod: 3.25.76
 
-  '@t3-oss/env-nextjs@0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.3)':
+  '@t3-oss/env-nextjs@0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@3.25.76)':
     dependencies:
-      '@t3-oss/env-core': 0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@4.4.3)
+      '@t3-oss/env-core': 0.13.11(typescript@5.9.3)(valibot@1.4.0(typescript@5.9.3))(zod@3.25.76)
     optionalDependencies:
       typescript: 5.9.3
       valibot: 1.4.0(typescript@5.9.3)
-      zod: 4.4.3
+      zod: 3.25.76
 
   '@tabby_ai/hijri-converter@1.0.5': {}
 

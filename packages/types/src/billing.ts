@@ -9,7 +9,7 @@ import type {
   Tokens,
   UsageEventId,
   WorkflowRunId,
-} from "./common";
+} from "./common.js";
 
 export type PlanSlug = "free" | "starter" | "pro" | "business" | "enterprise";
 
