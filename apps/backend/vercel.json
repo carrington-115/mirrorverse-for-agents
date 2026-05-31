@@ -1,16 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
   "functions": {
     "api/trpc/[trpc].ts": {
-      "runtime": "vercel/node@22.x",
       "maxDuration": 60
     },
     "api/chat.ts": {
-      "runtime": "vercel/node@22.x",
       "maxDuration": 300
     },
     "api/webhooks/[slug].ts": {
-      "runtime": "vercel/node@22.x",
       "maxDuration": 30
     }
   }
