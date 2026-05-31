@@ -108,9 +108,27 @@ export interface VerifiedToken {
   readonly email: string;
 }
 
-const cachedJwtSecret = new TextEncoder().encode(env.JWT_SECRET);
-const jwksUrl = new URL("/auth/v1/.well-known/jwks.json", env.SUPABASE_URL);
-const jwks = createRemoteJWKSet(jwksUrl);
+// Built lazily on first verification rather than at module load. `next build`
+// imports route modules to collect page data, evaluating this file before any
+// env vars are present — eager `new URL(..., env.SUPABASE_URL)` would throw
+// "Invalid URL" (or fail env validation) and break the build.
+let cachedJwtSecret: Uint8Array | null = null;
+let cachedJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+
+function getJwtSecret(): Uint8Array {
+  if (!cachedJwtSecret) {
+    cachedJwtSecret = new TextEncoder().encode(env.JWT_SECRET);
+  }
+  return cachedJwtSecret;
+}
+
+function getJwks(): ReturnType<typeof createRemoteJWKSet> {
+  if (!cachedJwks) {
+    const jwksUrl = new URL("/auth/v1/.well-known/jwks.json", env.SUPABASE_URL);
+    cachedJwks = createRemoteJWKSet(jwksUrl);
+  }
+  return cachedJwks;
+}
 
 // Supabase signs JWTs with either HS256 (legacy, shared secret) or an
 // asymmetric algorithm (RS256/ES256, public keys via JWKS). We inspect the
@@ -121,8 +139,8 @@ export async function verifyToken(token: string): Promise<VerifiedToken | null> 
     const header = decodeProtectedHeader(token);
     const { payload } =
       header.alg === "HS256"
-        ? await jwtVerify(token, cachedJwtSecret)
-        : await jwtVerify(token, jwks);
+        ? await jwtVerify(token, getJwtSecret())
+        : await jwtVerify(token, getJwks());
     if (typeof payload.sub !== "string") return null;
     const email = typeof payload.email === "string" ? payload.email : "";
     return { sub: payload.sub, email };
