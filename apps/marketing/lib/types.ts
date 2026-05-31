@@ -1,9 +1,16 @@
 import { StaticImageData } from "next/image";
 import { HTMLAttributes } from "react";
 
+export interface NavChildLink {
+  label: string;
+  href: string;
+  description?: string;
+}
+
 export interface NavLinkType {
   label: string;
-  id: string;
+  href?: string;
+  children?: NavChildLink[];
 }
 
 export interface productLinkTypes {

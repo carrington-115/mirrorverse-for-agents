@@ -5,6 +5,7 @@ export type ModelOption = {
   readonly chefSlug: string;
   readonly description: string;
   readonly series?: string;
+  readonly pro?: boolean;
 };
 
 export const CHAT_MODELS = [
@@ -35,6 +36,7 @@ export const CHAT_MODELS = [
     chef: "Anthropic",
     chefSlug: "anthropic",
     description: "Deep reasoning for complex workflow automation",
+    pro: true,
   },
   {
     id: "claude-opus-4-6",
@@ -42,6 +44,7 @@ export const CHAT_MODELS = [
     chef: "Anthropic",
     chefSlug: "anthropic",
     description: "Powerful agentic model with precise orchestration",
+    pro: true,
   },
   {
     id: "claude-opus-4-7",
@@ -49,6 +52,15 @@ export const CHAT_MODELS = [
     chef: "Anthropic",
     chefSlug: "anthropic",
     description: "Peak intelligence for frontier agentic workflows",
+    pro: true,
+  },
+  {
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4.8",
+    chef: "Anthropic",
+    chefSlug: "anthropic",
+    description: "Most capable Opus model for the most demanding agentic workflows",
+    pro: true,
   },
   {
     id: "gpt-5-nano",

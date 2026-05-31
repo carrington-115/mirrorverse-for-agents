@@ -1,16 +1,25 @@
-import { Communication, Features, Footer, Hero, Pricing, Product, Updates, FAQ } from "@/sections";
+import { Hero, IntegrationsBar, Product, HowItWorks, Features, HomeFaq } from "@/sections/home";
+import { CtaBanner } from "@/components/cta-banner";
+import { Footer } from "@/sections/footer";
 
 export default function Home() {
   return (
-    <div className="container mx-auto">
+    <>
       <Hero />
+      <IntegrationsBar />
       <Product />
-      <Communication />
+      <HowItWorks />
       <Features />
-      <Pricing />
-      <Updates />
-      <FAQ />
+      <HomeFaq />
+      <CtaBanner
+        title="Start automating today — it's free"
+        subtitle="Join thousands of teams using mirrorverse to eliminate busywork and scale without limits."
+        primaryLabel="Try for free"
+        primaryHref="#"
+        secondaryLabel="Book a demo"
+        secondaryHref="https://cal.com/frumark/mirrroagents"
+      />
       <Footer />
-    </div>
+    </>
   );
 }

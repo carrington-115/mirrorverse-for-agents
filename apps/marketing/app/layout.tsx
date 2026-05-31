@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Mirrro AI",
+  title: "Mirrorverse",
   description:
     "Unifying Sales, Marketing, and Support teams in the modern Era under one AI and one memory.",
 };

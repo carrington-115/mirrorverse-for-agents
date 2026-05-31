@@ -537,7 +537,14 @@ function ModelItem({
       onClick={onSelect}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium leading-snug text-foreground">{model.name}</p>
+        <p className="gap-1.5 text-sm font-medium leading-snug flex items-center text-foreground">
+          {model.name}
+          {model.pro && (
+            <span className="bg-amber-500/15 px-1.5 py-0.5 font-semibold text-amber-600 dark:text-amber-400 rounded-full text-[10px]">
+              Pro
+            </span>
+          )}
+        </p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{model.description}</p>
       </div>
       {selected && <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />}

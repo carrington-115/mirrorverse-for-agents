@@ -1,1 +1,1 @@
-# Mirrro AI Landing Page v1
+# Mirrorverse Landing Page v1

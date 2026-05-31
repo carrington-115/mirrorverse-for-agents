@@ -1,10 +1,4 @@
-import {
-  communicationTypes,
-  featureDataProps,
-  linkGroupTypes,
-  NavLinkType,
-  productLinkTypes,
-} from "./types";
+import { communicationTypes, featureDataProps, linkGroupTypes, productLinkTypes } from "./types";
 
 // product images
 import superagentImage from "@/assets/images/superagent.png";
@@ -50,12 +44,18 @@ import darkmultichannelImage from "@/assets/icons/multichannel-dark.svg";
 import darkmultiuserImage from "@/assets/icons/multiusers-dark.svg";
 import darkmarketplaceImage from "@/assets/icons/store-dark.svg";
 
-export const navLinks: NavLinkType[] = [
-  { label: "Product", id: "product" },
-  { label: "Features", id: "features" },
-  { label: "Pricing", id: "pricing" },
-  { label: "How it works", id: "how-it-works" },
-  { label: "FAQs", id: "faqs" },
+export const navLinks = [
+  { label: "Product", href: "/product" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Use Cases", href: "/use-cases" },
+  {
+    label: "Resources",
+    children: [
+      { label: "Docs", href: "#" },
+      { label: "Terms & Conditions", href: "/terms" },
+      { label: "Privacy Policy", href: "/privacy" },
+    ],
+  },
 ];
 
 export const productData: productLinkTypes[] = [
@@ -221,24 +221,14 @@ export const darkFeatureData: featureDataProps[] = [
   },
 ];
 
-const usefulLinks = {
-  privacyPolicy:
-    "https://www.notion.so/Mirrroverse-Privacy-Policy-05cef81cb4c944a5ab6cb13d034dd873?source=copy_link",
-  termsAndConditions:
-    "https://www.notion.so/Mirrroverse-Privacy-Policy-05cef81cb4c944a5ab6cb13d034dd873?source=copy_link",
-  FAQs: "https://www.notion.so/Mirrroverse-FAQs-44ed9409b5e9476083770892be44bbeb?source=copy_link",
-};
-
 export const linkGroups: linkGroupTypes = {
   productGroup: [
-    { title: "Product", link: "#product" },
-    { title: "Features", link: "#features" },
-    { title: "Integrations", link: "#integrations" },
-    { title: "Use cases", link: "#use-cases" },
+    { title: "Product", link: "/product" },
+    { title: "Pricing", link: "/pricing" },
+    { title: "Use Cases", link: "/use-cases" },
   ],
   legalGroup: [
-    { title: "Terms and conditions", link: usefulLinks.privacyPolicy },
-    { title: "Privacy policy", link: usefulLinks.privacyPolicy },
-    { title: "FAQs", link: "#faqs" },
+    { title: "Terms & Conditions", link: "/terms" },
+    { title: "Privacy Policy", link: "/privacy" },
   ],
 };

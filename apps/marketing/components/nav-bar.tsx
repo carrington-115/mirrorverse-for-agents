@@ -3,77 +3,85 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
-import logoImg from "@/assets/images/light-logo.svg";
+import logoImg from "@/assets/images/mirrorpilot-icon.svg";
 import NavLink from "./nav-link";
+import { NavDropdown } from "./nav-dropdown";
 import MenuIcon from "./menu-icon";
 import { navLinks } from "@/lib/data";
 import MobileLinks from "./mobile-links";
-import { twMerge } from "tailwind-merge";
 import { buttonVariants } from "@/components/ui/button";
 
 export default function NavBar() {
-  const [menuIsOpen, setMenuIsOpen] = useState<boolean>(false);
+  const [menuIsOpen, setMenuIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  function handleScroll() {
-    setScrolled(window.scrollY > 100);
-  }
-
   useEffect(() => {
+    function handleScroll() {
+      setScrolled(window.scrollY > 100);
+    }
     window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.addEventListener("scroll", handleScroll);
-    };
-  }, [scrolled]);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <>
-      <header
-        className={`inset-x-0 top-0 fixed ${
-          menuIsOpen && "bottom-0"
-        } z-50 flex flex-col items-center overflow-clip px-(--spacing-20) py-(--spacing-10) ${
-          (scrolled ? "bg-white" : "") || (menuIsOpen ? "bg-white" : "")
-        } ${scrolled ? "border-b border-(--colors-black-10)" : ""} lg:px-[120px] lg:py-[10px]`}
-      >
-        <div className="flex h-auto w-full items-center justify-between">
-          <Link href="#">
-            <div className="lg:ml-[5px] lg:w-[120px] md:w-[131px] h-auto w-[92px] shrink-0">
-              <Image alt="mirrro" className="size-full object-cover dark:hidden" src={logoImg} />
-            </div>
-          </Link>
+    <header
+      className={cn(
+        "inset-x-0 top-0 lg:px-[120px] lg:py-[10px] fixed z-50 flex flex-col items-center px-(--spacing-20) py-(--spacing-10)",
+        menuIsOpen && "bottom-0",
+        (scrolled || menuIsOpen) && "bg-white border-b border-(--colors-black-10)",
+      )}
+    >
+      <div className="flex h-auto w-full items-center justify-between">
+        <Link href="/">
+          <div className="lg:ml-[5px] lg:w-[120px] flex h-auto w-[92px] shrink-0 items-center">
+            <Image alt="Mirrorverse" className="size-8 dark:hidden" src={logoImg} />
+            <h1 className="text-2xl font-bold text-[#2c2c2c]">Mirrorverse</h1>
+          </div>
+        </Link>
 
-          <nav className="lg:flex mr-[4px] hidden shrink-0">
-            <ul className="flex shrink-0 items-center gap-[14px] px-[20px]">
-              {navLinks.map((link) => (
-                <li key={link.id} className="list-none">
-                  <NavLink href={`#${link.id}`}>{link.label}</NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        <nav className="lg:flex mr-[4px] hidden shrink-0">
+          <ul className="flex shrink-0 items-center gap-[14px] px-[20px]">
+            {navLinks.map((link) => (
+              <li key={link.label} className="list-none">
+                {link.children ? (
+                  <NavDropdown label={link.label} items={link.children} />
+                ) : link.href ? (
+                  <NavLink href={link.href}>{link.label}</NavLink>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="lg:flex hidden items-center gap-[8px]">
           <Link
             href="https://cal.com/frumark/mirrroagents"
-            className={twMerge(
-              buttonVariants({
-                variant: "default",
-                size: "default",
-                className: "w-fit",
-              }),
-              "font-medium text-[14px] leading-[20px]",
+            className={cn(
+              buttonVariants({ variant: "outline", size: "default" }),
+              "font-medium rounded-full text-[14px] leading-[20px]",
             )}
             target="_blank"
             rel="noopener noreferrer"
           >
-            Book a call
+            Book a demo
           </Link>
-
-          {/* mobile menu */}
-          <MenuIcon isOpen={menuIsOpen} action={() => setMenuIsOpen(!menuIsOpen)} />
+          <Link
+            href="#"
+            className={cn(
+              buttonVariants({ variant: "default", size: "default" }),
+              "font-medium leading-[20px], rounded-full text-[14px]",
+            )}
+          >
+            Try for free
+          </Link>
         </div>
-        <MobileLinks isOpen={menuIsOpen} triggerCloseAction={() => setMenuIsOpen(false)} />
-      </header>
-    </>
+
+        <MenuIcon isOpen={menuIsOpen} action={() => setMenuIsOpen(!menuIsOpen)} />
+      </div>
+
+      <MobileLinks isOpen={menuIsOpen} triggerCloseAction={() => setMenuIsOpen(false)} />
+    </header>
   );
 }

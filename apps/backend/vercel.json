@@ -2,15 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/trpc/[trpc].ts": {
-      "runtime": "nodejs22.x",
+      "runtime": "vercel/node@22.x",
       "maxDuration": 60
     },
     "api/chat.ts": {
-      "runtime": "nodejs22.x",
+      "runtime": "vercel/node@22.x",
       "maxDuration": 300
     },
     "api/webhooks/[slug].ts": {
-      "runtime": "nodejs22.x",
+      "runtime": "vercel/node@22.x",
       "maxDuration": 30
     }
   }

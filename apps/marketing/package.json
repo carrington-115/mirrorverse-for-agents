@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@iconify/react": "^6.0.2",
     "@mirrorverse/env": "workspace:*",
     "@mirrorverse/ui": "workspace:*",
     "class-variance-authority": "^0.7.1",

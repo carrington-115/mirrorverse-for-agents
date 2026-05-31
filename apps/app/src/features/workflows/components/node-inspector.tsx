@@ -95,7 +95,7 @@ function SelectInput({
 }: {
   label: string;
   value: string;
-  options: readonly { value: string; label: string }[];
+  options: readonly { value: string; label: string; pro?: boolean }[];
   onChange: (v: string) => void;
 }) {
   return (
@@ -107,7 +107,14 @@ function SelectInput({
         <SelectContent>
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value} className="text-xs">
-              {o.label}
+              <span className="gap-1.5 flex items-center">
+                {o.label}
+                {o.pro && (
+                  <span className="bg-amber-500/15 px-1.5 py-0.5 font-semibold text-amber-600 dark:text-amber-400 rounded-full text-[10px]">
+                    Pro
+                  </span>
+                )}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
@@ -558,7 +565,8 @@ function VoiceAgentForm({
         options={[
           { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
           { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-          { value: "claude-opus-4-7", label: "Claude Opus 4.7" },
+          { value: "claude-opus-4-7", label: "Claude Opus 4.7", pro: true },
+          { value: "claude-opus-4-8", label: "Claude Opus 4.8", pro: true },
           { value: "gpt-4o-mini", label: "GPT-4o mini" },
           { value: "gpt-4o", label: "GPT-4o" },
           { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
@@ -792,7 +800,8 @@ function LanguageModelForm({
         options={[
           { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
           { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-          { value: "claude-opus-4-7", label: "Claude Opus 4.7" },
+          { value: "claude-opus-4-7", label: "Claude Opus 4.7", pro: true },
+          { value: "claude-opus-4-8", label: "Claude Opus 4.8", pro: true },
           { value: "gpt-4o-mini", label: "GPT-4o mini" },
           { value: "gpt-4o", label: "GPT-4o" },
           { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
