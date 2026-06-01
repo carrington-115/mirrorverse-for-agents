@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { blogPosts, getBlogPostBySlug, getRecentPosts } from "@/content/blog";
-import { BlogPostHero, BlogPostContent, BlogKeepReading, BlogPostFaqs } from "@/sections/blog";
+import { BlogPostHero, BlogPostContent, BlogKeepReading } from "@/sections/blog";
 import { CtaBanner } from "@/components/cta-banner";
 
 export function generateStaticParams() {
@@ -35,7 +35,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <BlogPostHero post={post} />
       <BlogPostContent content={post.content} />
       <BlogKeepReading posts={recentPosts} />
-      {post.faqs && post.faqs.length > 0 && <BlogPostFaqs faqs={post.faqs} />}
       <CtaBanner
         title="Start automating today — it's free"
         subtitle="Join thousands of teams using Mirrorverse to eliminate busywork and scale without limits."

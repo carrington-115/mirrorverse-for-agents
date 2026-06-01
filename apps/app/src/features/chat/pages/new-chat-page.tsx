@@ -98,7 +98,7 @@ export function NewChatPage() {
   const showPanel = isPanelOpen && !!selectedWorkflowId;
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-auto">
       <div className="min-w-0 flex h-full flex-1 flex-col">
         <ChatRuntime
           sessionId={sessionId}

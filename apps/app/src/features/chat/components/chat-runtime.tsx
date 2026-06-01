@@ -179,14 +179,16 @@ export function ChatRuntime({
     [sendMessage, model, uploadFiles, messages.length, onFirstMessage],
   );
 
-  const handleStarter = useCallback(
-    (prompt: string) => {
-      if (messages.length === 0) onFirstMessage?.();
-      setStreamFinished(false);
-      sendMessage({ text: prompt }, { body: { model, ragDocumentIds: ragDocumentIdsRef.current } });
-    },
-    [sendMessage, model, messages.length, onFirstMessage],
-  );
+  const fillInputRef = useRef<((text: string) => void) | null>(null);
+
+  const handleFillInput = useCallback((prompt: string) => {
+    fillInputRef.current?.(prompt);
+    setTimeout(() => {
+      document
+        .querySelector<HTMLTextAreaElement>('textarea[data-slot="input-group-control"]')
+        ?.focus();
+    }, 0);
+  }, []);
 
   const handlePhoneSelect = useCallback(
     (phoneNumber: string) => {
@@ -309,6 +311,7 @@ export function ChatRuntime({
       onConnectWebhook={() => setWebhookOpen(true)}
       planSteps={planSteps}
       sessionTriggerCount={sessionTriggerCount}
+      fillInputRef={fillInputRef}
     />
   );
 
@@ -375,7 +378,7 @@ export function ChatRuntime({
   if (isEmpty) {
     return (
       <>
-        <ChatEmptyState onPickStarter={handleStarter} inputSlot={inputBlock} />
+        <ChatEmptyState onFillInput={handleFillInput} inputSlot={inputBlock} />
         {credentialInterrupt && !interruptDismissed && (
           <CredentialInterruptDialog
             appSlug={credentialInterrupt.appSlug}

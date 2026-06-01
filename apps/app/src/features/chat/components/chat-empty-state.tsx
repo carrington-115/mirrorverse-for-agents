@@ -1,21 +1,36 @@
-﻿import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
 
 import mirrorpilotIconLight from "@/assets/mirrorpilot-icon.svg";
 import mirrorpilotIconDark from "@/assets/mirrorpilot-icon-dark.svg";
-import { CHAT_STARTERS } from "@/features/chat/config";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { USE_CASE_CATEGORIES, type AutomationApp } from "@/features/chat/config";
 
 interface ChatEmptyStateProps {
-  onPickStarter: (prompt: string) => void;
+  onFillInput: (prompt: string) => void;
   inputSlot: React.ReactNode;
 }
 
-export function ChatEmptyState({ onPickStarter, inputSlot }: ChatEmptyStateProps) {
+export function ChatEmptyState({ onFillInput, inputSlot }: ChatEmptyStateProps) {
   return (
     <div className="px-4 flex h-full w-full items-center justify-center">
       <div className="max-w-3xl gap-6 flex w-full flex-col">
         <BrandHeader />
         {inputSlot}
-        <StarterGrid onPick={onPickStarter} />
+        <UseCasesTabs onPick={onFillInput} />
+        <p className="mt-1.5 text-xs md:text-xs text-center text-muted-foreground/60">
+          Mirrorpilot can make mistakes. By using Mirrorpilot, you agree to our{" "}
+          <a
+            href="https://mirrorverse.ai/terms-of-service"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-muted-foreground"
+          >
+            Terms and Conditions
+          </a>
+        </p>
       </div>
     </div>
   );
@@ -23,7 +38,7 @@ export function ChatEmptyState({ onPickStarter, inputSlot }: ChatEmptyStateProps
 
 function BrandHeader() {
   return (
-    <div className="gap-y-6 mb-[var(--spacing-lg)] flex items-center justify-center">
+    <div className="gap-y-6 md:mt-[200px] mt-[450px] mb-[var(--spacing-lg)] flex items-center justify-center">
       <Image
         src={mirrorpilotIconLight}
         alt="Mirrro"
@@ -45,20 +60,82 @@ function BrandHeader() {
   );
 }
 
-function StarterGrid({ onPick }: { onPick: (prompt: string) => void }) {
+function AppIcon({ app }: { app: AutomationApp }) {
+  const googleFaviconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${app.domain}`;
+  const [src, setSrc] = useState(app.logoUrl ?? googleFaviconUrl);
+  const [failed, setFailed] = useState(false);
+
+  const handleError = () => {
+    if (src !== googleFaviconUrl) {
+      setSrc(googleFaviconUrl);
+    } else {
+      setFailed(true);
+    }
+  };
+
   return (
-    <div className="gap-3 sm:grid-cols-3 grid grid-cols-1">
-      {CHAT_STARTERS.map((s) => (
-        <button
-          key={s.title}
-          type="button"
-          onClick={() => onPick(s.prompt)}
-          className="p-4 rounded-xl border border-border bg-card text-left transition-colors hover:border-foreground/30 hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        >
-          <div className="text-sm font-semibold text-foreground">{s.title}</div>
-          <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{s.prompt}</div>
-        </button>
+    <span className="size-6 flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-background ring-2 ring-background">
+      {failed ? (
+        <span className="font-semibold text-[9px] text-muted-foreground">
+          {app.name.slice(0, 2)}
+        </span>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={app.name}
+          className="p-0.5 size-full object-contain"
+          onError={handleError}
+        />
+      )}
+    </span>
+  );
+}
+
+function AppIconStack({ apps }: { apps: readonly AutomationApp[] }) {
+  return (
+    <div className="-space-x-2 flex shrink-0 opacity-50">
+      {apps.map((app) => (
+        <AppIcon key={app.domain} app={app} />
       ))}
     </div>
+  );
+}
+
+function UseCasesTabs({ onPick }: { onPick: (prompt: string) => void }) {
+  return (
+    <Tabs defaultValue="customer-support" className="w-full">
+      <div className="md:justify-center flex h-fit w-full justify-start overflow-x-auto overflow-y-hidden">
+        <TabsList variant="line" className="flex w-fit">
+          {USE_CASE_CATEGORIES.map((cat) => (
+            <TabsTrigger key={cat.value} value={cat.value}>
+              {cat.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
+      {USE_CASE_CATEGORIES.map((cat) => (
+        <TabsContent key={cat.value} value={cat.value} className="mt-3">
+          <div className="sm:grid-cols-2 lg:grid-cols-3 gap-2 grid grid-cols-1">
+            {cat.automations.map((automation) => (
+              <button
+                key={automation.title}
+                type="button"
+                onClick={() => onPick(automation.prompt)}
+                className="p-4 rounded-xl text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <div className="gap-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">{automation.title}</span>
+                  <AppIconStack apps={automation.apps} />
+                </div>
+                <div className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  {automation.prompt}
+                </div>
+              </button>
+            ))}
+          </div>
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }

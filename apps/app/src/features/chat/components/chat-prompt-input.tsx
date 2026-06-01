@@ -1,7 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { Fragment, memo, useCallback, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
 import {
   CheckIcon,
   FileText,
@@ -62,6 +70,23 @@ interface ChatPromptInputProps {
   onConnectWebhook?: () => void;
   planSteps?: PlanProgressStep[];
   sessionTriggerCount?: number;
+  fillInputRef?: MutableRefObject<((text: string) => void) | null>;
+}
+
+function SetInputBridge({
+  fillInputRef,
+}: {
+  fillInputRef: MutableRefObject<((text: string) => void) | null>;
+}) {
+  const controller = usePromptInputController();
+  const setInput = controller.textInput.setInput;
+  useEffect(() => {
+    fillInputRef.current = setInput;
+    return () => {
+      fillInputRef.current = null;
+    };
+  }, [fillInputRef, setInput]);
+  return null;
 }
 
 export function ChatPromptInput({
@@ -74,9 +99,11 @@ export function ChatPromptInput({
   onConnectWebhook,
   planSteps = [],
   sessionTriggerCount = 0,
+  fillInputRef,
 }: ChatPromptInputProps) {
   return (
     <PromptInputProvider>
+      {fillInputRef && <SetInputBridge fillInputRef={fillInputRef} />}
       <PlanProgressBar steps={planSteps} />
       <PromptInput
         globalDrop
