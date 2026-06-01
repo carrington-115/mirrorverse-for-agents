@@ -44,16 +44,21 @@ export function ProductHero() {
           <div className="flex h-[320px] divide-x divide-[#e5e5e5]">
             {/* Sidebar */}
             <div className="w-48 gap-1 p-3 flex flex-col bg-[#fafafa]">
-              {["Agents", "Workflows", "Memory", "Channels", "Analytics", "Settings"].map(
-                (item, i) => (
-                  <div
-                    key={item}
-                    className={`px-3 py-2 text-xs font-medium rounded-lg ${i === 0 ? "text-white bg-[#0a0a0a]" : "text-[#737373]"}`}
-                  >
-                    {item}
-                  </div>
-                ),
-              )}
+              {[
+                "Mirrorpilot",
+                "Workflows",
+                "Knowledge",
+                "Channels",
+                "Integrations",
+                "Settings",
+              ].map((item, i) => (
+                <div
+                  key={item}
+                  className={`px-3 py-2 text-xs font-medium rounded-lg ${i === 0 ? "text-white bg-[#0a0a0a]" : "text-[#737373]"}`}
+                >
+                  {item}
+                </div>
+              ))}
             </div>
             {/* Main content */}
             <div className="gap-4 p-5 flex flex-1 flex-col">

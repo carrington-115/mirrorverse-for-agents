@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import logoImg from "@/assets/images/mirrorpilot-icon.svg";
 import NavLink from "./nav-link";
 import { NavDropdown } from "./nav-dropdown";
+import { ProductDropdown } from "./product-dropdown";
+import { UseCasesDropdown } from "./use-cases-dropdown";
 import MenuIcon from "./menu-icon";
 import { navLinks } from "@/lib/data";
 import MobileLinks from "./mobile-links";
@@ -42,11 +44,25 @@ export default function NavBar() {
         </Link>
 
         <nav className="lg:flex mr-[4px] hidden shrink-0">
-          <ul className="flex shrink-0 items-center gap-[14px] px-[20px]">
+          <ul className="flex shrink-0 items-center gap-[0] px-[20px]">
             {navLinks.map((link) => (
               <li key={link.label} className="list-none">
-                {link.children ? (
-                  <NavDropdown label={link.label} items={link.children} />
+                {link.product ? (
+                  <ProductDropdown
+                    label={link.label}
+                    left={link.product.left}
+                    right={link.product.right}
+                    banner={link.product.banner}
+                  />
+                ) : link.useCases ? (
+                  <UseCasesDropdown
+                    label={link.label}
+                    left={link.useCases.left}
+                    right={link.useCases.right}
+                    banner={link.useCases.banner}
+                  />
+                ) : link.children ? (
+                  <NavDropdown label={link.label} items={link.children} featured={link.featured} />
                 ) : link.href ? (
                   <NavLink href={link.href}>{link.label}</NavLink>
                 ) : null}
@@ -71,7 +87,7 @@ export default function NavBar() {
             href="#"
             className={cn(
               buttonVariants({ variant: "default", size: "default" }),
-              "font-medium leading-[20px], rounded-full text-[14px]",
+              "font-medium rounded-full text-[14px] leading-[20px]",
             )}
           >
             Try for free

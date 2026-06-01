@@ -1,6 +1,5 @@
 import { PricingHero, PricingPlans, PricingFaq } from "@/sections/pricing";
 import { CtaBanner } from "@/components/cta-banner";
-import { Footer } from "@/sections/footer";
 
 export default function PricingPage() {
   return (
@@ -16,7 +15,6 @@ export default function PricingPage() {
         secondaryLabel="Talk to sales"
         secondaryHref="https://cal.com/frumark/mirrroagents"
       />
-      <Footer />
     </>
   );
 }

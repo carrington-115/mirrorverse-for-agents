@@ -1,12 +1,21 @@
-import { Bot, Zap, CalendarDays, Brain } from "lucide-react";
+import { Bot, Zap, CalendarDays, Search, FileText, BookOpen, CheckCircle2 } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
+import { cn } from "@/lib/utils";
 
-const memories = [
-  { key: "Customer", value: "Sarah Chen — VIP since 2023" },
-  { key: "Last issue", value: "Delayed shipment, resolved ✓" },
-  { key: "Preferences", value: "Email + SMS, no calls" },
-  { key: "Open tickets", value: "0 — all resolved" },
-  { key: "Sentiment", value: "Positive · NPS 9/10" },
+const knowledgeBases = [
+  {
+    name: "Product Docs",
+    count: "247 files",
+    Icon: FileText,
+    iconCls: "text-violet-600 bg-violet-50",
+  },
+  { name: "Support FAQ", count: "89 files", Icon: BookOpen, iconCls: "text-blue-600 bg-blue-50" },
+  {
+    name: "Legal Docs",
+    count: "34 files",
+    Icon: FileText,
+    iconCls: "text-emerald-600 bg-emerald-50",
+  },
 ];
 
 export function Product() {
@@ -168,39 +177,46 @@ export function Product() {
               </div>
             </div>
 
-            {/* Shared memory — 2/5 */}
+            {/* Knowledge Bases — 2/5 */}
             <div className="gap-6 p-6 md:p-8 lg:col-span-2 flex flex-col rounded-3xl border border-[#e5e5e5] bg-[#fafafa]">
               <div className="gap-3 flex flex-col">
                 <span className="bg-white px-3 py-1 text-xs font-medium w-fit rounded-full border border-[#e5e5e5] text-[#404040]">
-                  Shared Memory
+                  Knowledge Bases
                 </span>
                 <h3 className="text-xl font-semibold leading-[1.2] tracking-[-0.5px] text-[#0a0a0a]">
-                  Context that never drops
+                  Your agents, grounded in your content
                 </h3>
                 <p className="text-sm leading-[22px] text-[#404040]">
-                  One unified memory layer across all agents and channels — every agent always knows
-                  what happened before.
+                  Upload docs and FAQs. Agents retrieve the right information at the right moment —
+                  no hallucinations.
                 </p>
               </div>
-              {/* Memory display */}
-              <div className="bg-white p-4 rounded-2xl border border-[#e5e5e5]">
-                <div className="mb-3 gap-1.5 flex items-center">
-                  <Brain size={13} className="text-[#737373]" />
-                  <p className="font-semibold tracking-wider text-[10px] text-[#737373] uppercase">
-                    Agent Memory
-                  </p>
+              {/* KB list */}
+              <div className="gap-2.5 flex flex-col">
+                <div className="gap-2 bg-white px-3.5 py-2.5 flex items-center rounded-xl border border-[#e5e5e5]">
+                  <Search size={13} className="shrink-0 text-[#a3a3a3]" />
+                  <span className="text-sm text-[#a3a3a3]">Search knowledge bases…</span>
                 </div>
-                <div className="gap-2 flex flex-col">
-                  {memories.map((m) => (
-                    <div key={m.key} className="gap-2 flex items-start">
-                      <span className="mt-1 size-1.5 bg-green-400 shrink-0 rounded-full" />
-                      <div>
-                        <span className="font-semibold text-[10px] text-[#737373]">{m.key}: </span>
-                        <span className="text-[10px] text-[#0a0a0a]">{m.value}</span>
-                      </div>
+                {knowledgeBases.map(({ name, count, Icon, iconCls }) => (
+                  <div
+                    key={name}
+                    className="gap-3 bg-white px-3.5 py-3 flex items-center rounded-xl border border-[#e5e5e5]"
+                  >
+                    <div
+                      className={cn(
+                        "size-8 flex shrink-0 items-center justify-center rounded-lg",
+                        iconCls,
+                      )}
+                    >
+                      <Icon size={14} />
                     </div>
-                  ))}
-                </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-[#0a0a0a]">{name}</div>
+                      <div className="text-[11px] text-[#737373]">{count}</div>
+                    </div>
+                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                  </div>
+                ))}
               </div>
             </div>
           </div>

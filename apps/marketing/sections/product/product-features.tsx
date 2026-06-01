@@ -1,8 +1,24 @@
-import { Bot, GitBranch, Brain, BarChart2, Check } from "lucide-react";
+import {
+  Bot,
+  GitBranch,
+  BookOpen,
+  Phone,
+  Plug,
+  Check,
+  Search,
+  FileText,
+  CheckCircle2,
+  MessageCircle,
+  MessageSquare,
+  Mail,
+  Zap,
+} from "lucide-react";
+import { Icon as IconifyIcon } from "@iconify/react";
+import { cn } from "@/lib/utils";
 
 const features = [
   {
-    tag: "mirrorpilot Agent",
+    tag: "Mirrorpilot",
     icon: Bot,
     iconBg: "bg-[#0a0a0a]",
     iconColor: "text-white",
@@ -20,7 +36,7 @@ const features = [
     bg: "bg-white",
   },
   {
-    tag: "Workflow Builder",
+    tag: "Workflows",
     icon: GitBranch,
     iconBg: "bg-violet-50",
     iconColor: "text-violet-600",
@@ -38,42 +54,62 @@ const features = [
     bg: "bg-[#fafafa]",
   },
   {
-    tag: "Shared Memory",
-    icon: Brain,
-    iconBg: "bg-green-50",
-    iconColor: "text-green-600",
-    title: "No context ever gets dropped.",
+    tag: "Knowledge Bases",
+    icon: BookOpen,
+    iconBg: "bg-emerald-50",
+    iconColor: "text-emerald-600",
+    title: "Give your agents the right knowledge.",
     description:
-      "One unified memory layer shared across all your agents and channels. Every interaction, data point, and decision is accessible in real time.",
+      "Upload PDFs, docs, and FAQs. Agents retrieve exactly what they need — grounding every response in your actual content, not guesswork.",
     points: [
-      "Cross-channel context persistence",
-      "Automatic knowledge extraction",
-      "Custom memory schemas",
-      "GDPR-compliant data handling",
+      "Upload PDFs, docs & web pages",
+      "RAG-powered retrieval",
+      "Per-agent knowledge binding",
+      "Automatic re-indexing on update",
     ],
     imagePosition: "right" as const,
-    visual: "memory" as const,
+    visual: "knowledge" as const,
     bg: "bg-white",
   },
   {
-    tag: "Monitoring",
-    icon: BarChart2,
-    iconBg: "bg-orange-50",
-    iconColor: "text-orange-600",
-    title: "See everything that matters.",
+    tag: "Channels",
+    icon: Phone,
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-600",
+    title: "Deploy across every channel in minutes.",
     description:
-      "A live dashboard that surfaces what your agents are doing, where they&apos;re succeeding, and where they need tuning.",
+      "Connect a phone number or WhatsApp Business account and your agent is live. Manage calls, chats, and logs from one unified dashboard.",
     points: [
-      "Real-time agent activity feed",
-      "Conversation analytics",
-      "Workflow performance metrics",
-      "Alert & notification system",
+      "Phone & WhatsApp Business",
+      "Call logs & conversation history",
+      "Live agent handoff",
+      "Multi-number routing",
     ],
     imagePosition: "left" as const,
-    visual: "analytics" as const,
+    visual: "channels" as const,
     bg: "bg-[#fafafa]",
   },
+  {
+    tag: "Integrations",
+    icon: Plug,
+    iconBg: "bg-[#f5f5f5]",
+    iconColor: "text-[#404040]",
+    title: "Your stack, connected out of the box.",
+    description:
+      "Tap into 200+ tools — Salesforce, HubSpot, Slack, Gmail, Calendly, and more. Wire them to any agent in two clicks via Composio.",
+    points: [
+      "200+ tools via Composio",
+      "One-click OAuth connections",
+      "Custom webhook support",
+      "No code, no credentials to manage",
+    ],
+    imagePosition: "right" as const,
+    visual: "integrations" as const,
+    bg: "bg-white",
+  },
 ];
+
+// ── Visual components ───────────────────────────────────────────────────────
 
 function ChatVisual() {
   return (
@@ -91,7 +127,7 @@ function ChatVisual() {
             type: "agent",
             text: "Hi! I see your subscription renews in 3 days. Can I help with anything?",
           },
-          { type: "user", text: "I&apos;d like to switch to annual billing." },
+          { type: "user", text: "I'd like to switch to annual billing." },
           {
             type: "agent",
             text: "Done! Switched to annual — saves you $180/year. Confirmation sent to your email. ✓",
@@ -112,8 +148,9 @@ function ChatVisual() {
                   ? "text-white rounded-br-sm bg-[#0a0a0a]"
                   : "rounded-bl-sm bg-[#f5f5f5] text-[#0a0a0a]"
               }`}
-              dangerouslySetInnerHTML={{ __html: msg.text }}
-            />
+            >
+              {msg.text}
+            </div>
           </div>
         ))}
       </div>
@@ -165,28 +202,93 @@ function WorkflowVisual() {
   );
 }
 
-function MemoryVisual() {
-  const entries = [
-    { key: "Name", value: "James Okonkwo" },
-    { key: "Plan", value: "Pro · renews Dec 12" },
-    { key: "Sentiment", value: "Positive · NPS 8" },
-    { key: "Last contact", value: "Phone · 3 days ago" },
-    { key: "Open issues", value: "None" },
-    { key: "Preferred channel", value: "SMS" },
-  ];
+const kbItems = [
+  {
+    name: "Product Docs",
+    count: "247 files",
+    Icon: FileText,
+    iconCls: "text-violet-600 bg-violet-50",
+  },
+  { name: "Support FAQ", count: "89 files", Icon: BookOpen, iconCls: "text-blue-600 bg-blue-50" },
+  {
+    name: "Legal Docs",
+    count: "34 files",
+    Icon: FileText,
+    iconCls: "text-emerald-600 bg-emerald-50",
+  },
+];
+
+function KnowledgeBaseVisual() {
   return (
-    <div className="bg-white p-5 shadow-sm rounded-2xl border border-[#e5e5e5]">
-      <p className="mb-3 font-semibold tracking-wider text-[10px] text-[#737373] uppercase">
-        Unified Customer Memory
-      </p>
-      <div className="gap-2 flex flex-col">
-        {entries.map((e) => (
+    <div className="bg-white shadow-sm p-5 gap-3 flex flex-col rounded-2xl border border-[#e5e5e5]">
+      <div className="gap-2 px-3.5 py-2.5 flex items-center rounded-xl border border-[#e5e5e5] bg-[#fafafa]">
+        <Search size={13} className="shrink-0 text-[#a3a3a3]" />
+        <span className="text-sm text-[#a3a3a3]">Search knowledge bases…</span>
+      </div>
+      {kbItems.map(({ name, count, Icon, iconCls }) => (
+        <div
+          key={name}
+          className="gap-3 px-3.5 py-3 flex items-center rounded-xl border border-[#e5e5e5] bg-[#fafafa]"
+        >
           <div
-            key={e.key}
-            className="pb-1.5 flex items-center justify-between border-b border-[#f5f5f5]"
+            className={cn("size-8 flex shrink-0 items-center justify-center rounded-lg", iconCls)}
           >
-            <span className="text-xs text-[#737373]">{e.key}</span>
-            <span className="text-xs font-medium text-[#0a0a0a]">{e.value}</span>
+            <Icon size={14} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium text-[#0a0a0a]">{name}</div>
+            <div className="text-[11px] text-[#737373]">{count}</div>
+          </div>
+          <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const channelItems = [
+  {
+    Icon: Phone,
+    label: "Phone",
+    detail: "+1 (555) 000-1234 · 3 active calls",
+    iconCls: "text-blue-600 bg-blue-50",
+  },
+  {
+    Icon: MessageCircle,
+    label: "WhatsApp",
+    detail: "+44 7700 900123 · 12 chats",
+    iconCls: "text-emerald-600 bg-emerald-50",
+  },
+  {
+    Icon: MessageSquare,
+    label: "SMS",
+    detail: "Auto-reply enabled",
+    iconCls: "text-violet-600 bg-violet-50",
+  },
+  { Icon: Mail, label: "Email", detail: "support@acme.com", iconCls: "text-amber-600 bg-amber-50" },
+];
+
+function ChannelsVisual() {
+  return (
+    <div className="bg-white shadow-sm p-5 gap-2.5 flex flex-col rounded-2xl border border-[#e5e5e5]">
+      <div className="gap-2.5 grid grid-cols-2">
+        {channelItems.map(({ Icon, label, detail, iconCls }) => (
+          <div
+            key={label}
+            className="gap-3 px-3.5 py-3.5 flex items-start rounded-xl border border-[#e5e5e5] bg-[#fafafa]"
+          >
+            <div
+              className={cn("size-8 flex shrink-0 items-center justify-center rounded-lg", iconCls)}
+            >
+              <Icon size={15} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="gap-1.5 flex items-center">
+                <span className="text-xs font-semibold text-[#0a0a0a]">{label}</span>
+                <span className="size-1.5 bg-emerald-500 shrink-0 rounded-full" />
+              </div>
+              <div className="text-[10px] leading-[14px] text-[#737373]">{detail}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -194,34 +296,34 @@ function MemoryVisual() {
   );
 }
 
-function AnalyticsVisual() {
-  const bars = [55, 70, 45, 85, 60, 92, 78, 88, 65, 95, 80, 100];
-  const stats = [
-    { label: "Conversations today", value: "1,284" },
-    { label: "Avg resolution time", value: "1m 42s" },
-    { label: "Customer satisfaction", value: "96%" },
-  ];
+const integrationIcons = [
+  { icon: "logos:slack-icon", name: "Slack" },
+  { icon: "logos:salesforce", name: "Salesforce" },
+  { icon: "simple-icons:hubspot", color: "#FF7A59", name: "HubSpot" },
+  { icon: "simple-icons:mailchimp", color: "#FFE01B", name: "Mailchimp" },
+  { icon: "logos:notion-icon", name: "Notion" },
+  { icon: "logos:google-gmail", name: "Gmail" },
+  { icon: "logos:google-drive", name: "Google Drive" },
+  { icon: "simple-icons:clickup", color: "#7B68EE", name: "ClickUp" },
+];
+
+function IntegrationsVisual() {
   return (
-    <div className="gap-4 bg-white p-5 shadow-sm flex flex-col rounded-2xl border border-[#e5e5e5]">
-      <div className="gap-3 grid grid-cols-3">
-        {stats.map((s) => (
+    <div className="bg-white shadow-sm p-5 gap-4 flex flex-col rounded-2xl border border-[#e5e5e5]">
+      <div className="gap-2.5 grid grid-cols-4">
+        {integrationIcons.map(({ icon, color, name }) => (
           <div
-            key={s.label}
-            className="p-3 rounded-xl border border-[#e5e5e5] bg-[#fafafa] text-center"
+            key={name}
+            title={name}
+            className="p-3 flex items-center justify-center rounded-xl border border-[#e5e5e5] bg-[#fafafa]"
           >
-            <p className="text-lg font-bold text-[#0a0a0a]">{s.value}</p>
-            <p className="text-[10px] text-[#737373]">{s.label}</p>
+            <IconifyIcon icon={icon} width={24} height={24} color={color} aria-label={name} />
           </div>
         ))}
       </div>
-      <div className="h-24 gap-1 p-3 flex items-end rounded-xl bg-[#fafafa]">
-        {bars.map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-t-sm bg-[#0a0a0a]"
-            style={{ height: `${h}%`, opacity: 0.1 + (i / bars.length) * 0.9 }}
-          />
-        ))}
+      <div className="gap-2 px-3.5 py-2.5 flex items-center rounded-xl border border-dashed border-[#e5e5e5]">
+        <Zap size={13} className="shrink-0 text-[#737373]" />
+        <span className="text-xs text-[#737373]">20+ integrations available now</span>
       </div>
     </div>
   );
@@ -230,9 +332,12 @@ function AnalyticsVisual() {
 const VISUALS = {
   chat: ChatVisual,
   workflow: WorkflowVisual,
-  memory: MemoryVisual,
-  analytics: AnalyticsVisual,
+  knowledge: KnowledgeBaseVisual,
+  channels: ChannelsVisual,
+  integrations: IntegrationsVisual,
 };
+
+// ── Section ─────────────────────────────────────────────────────────────────
 
 export function ProductFeatures() {
   return (

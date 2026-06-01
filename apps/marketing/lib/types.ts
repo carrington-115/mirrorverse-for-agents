@@ -7,10 +7,46 @@ export interface NavChildLink {
   description?: string;
 }
 
+export interface NavFeaturedItem {
+  label: string;
+  href: string;
+  description?: string;
+}
+
+export interface UseCaseItem {
+  title: string;
+  description: string;
+  href: string;
+}
+
+export interface UseCasesBanner {
+  title: string;
+  description: string;
+  image: StaticImageData;
+  href: string;
+}
+
+export interface ProductItem {
+  title: string;
+  description: string;
+  href: string;
+}
+
 export interface NavLinkType {
   label: string;
   href?: string;
   children?: NavChildLink[];
+  featured?: NavFeaturedItem;
+  product?: {
+    left: ProductItem[];
+    right: ProductItem[];
+    banner: UseCasesBanner;
+  };
+  useCases?: {
+    left: UseCaseItem[];
+    right: UseCaseItem[];
+    banner: UseCasesBanner;
+  };
 }
 
 export interface productLinkTypes {
@@ -51,7 +87,9 @@ type footerLink = {
 
 export interface linkGroupTypes {
   productGroup: footerLink[];
+  resourcesGroup: footerLink[];
   legalGroup: footerLink[];
+  useCasesGroup: footerLink[];
 }
 
 export interface mobileLinksTypes {

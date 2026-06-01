@@ -1,6 +1,5 @@
 import { Hero, IntegrationsBar, Product, HowItWorks, Features, HomeFaq } from "@/sections/home";
 import { CtaBanner } from "@/components/cta-banner";
-// import { Footer } from "@/sections/footer";
 
 export default function Home() {
   return (

@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 import Image from "next/image";
-import faviconImg from "@/assets/images/favicon.svg";
+import faviconImg from "@/assets/images/mirrorpilot-icon.svg";
 
 interface Integration {
   name: string;
@@ -34,7 +34,7 @@ export function IntegrationsBar() {
               <Image src={faviconImg} alt="mirrorpilot icon" fill className="object-contain" />
             </div>
             <span className="font-semibold leading-tight text-[27px] tracking-[-0.87px] text-[#171717]">
-              mirrorpilot
+              Mirrorpilot
             </span>
           </div>
           <div className="gap-1 flex items-center text-[#737373]">

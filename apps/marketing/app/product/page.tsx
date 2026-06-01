@@ -1,6 +1,5 @@
 import { ProductHero, ProductFeatures } from "@/sections/product";
 import { CtaBanner } from "@/components/cta-banner";
-import { Footer } from "@/sections/footer";
 
 export default function ProductPage() {
   return (
@@ -15,7 +14,6 @@ export default function ProductPage() {
         secondaryLabel="Book a demo"
         secondaryHref="https://cal.com/frumark/mirrroagents"
       />
-      <Footer />
     </>
   );
 }

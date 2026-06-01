@@ -24,7 +24,69 @@ export default function MobileLinks({ isOpen, triggerCloseAction }: mobileLinksT
         <ul className="flex flex-col gap-[5px]">
           {navLinks.map((link) => (
             <li key={link.label} className="list-none">
-              {link.children ? (
+              {link.product ? (
+                <div>
+                  <button
+                    onClick={() => setOpenGroup(openGroup === link.label ? null : link.label)}
+                    className="text-2xl sm:text-3xl flex items-center gap-[8px] text-(--colors-primary) dark:text-(--colors-black-5)"
+                  >
+                    {link.label}
+                    <ChevronDown
+                      size={28}
+                      className={cn(
+                        "transition-transform duration-200",
+                        openGroup === link.label && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  {openGroup === link.label && (
+                    <ul className="mt-[8px] ml-[16px] flex flex-col gap-[4px]">
+                      {[...link.product.left, ...link.product.right].map((item) => (
+                        <li key={item.href} className="list-none">
+                          <Link
+                            href={item.href}
+                            className="text-lg sm:text-xl text-(--unofficial-foreground-alt,#404040) dark:text-(--colors-black-20)"
+                            onClick={triggerCloseAction}
+                          >
+                            {item.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : link.useCases ? (
+                <div>
+                  <button
+                    onClick={() => setOpenGroup(openGroup === link.label ? null : link.label)}
+                    className="text-2xl sm:text-3xl flex items-center gap-[8px] text-(--colors-primary) dark:text-(--colors-black-5)"
+                  >
+                    {link.label}
+                    <ChevronDown
+                      size={28}
+                      className={cn(
+                        "transition-transform duration-200",
+                        openGroup === link.label && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  {openGroup === link.label && (
+                    <ul className="mt-[8px] ml-[16px] flex flex-col gap-[4px]">
+                      {[...link.useCases.left, ...link.useCases.right].map((item) => (
+                        <li key={item.href} className="list-none">
+                          <Link
+                            href={item.href}
+                            className="text-lg sm:text-xl text-(--unofficial-foreground-alt,#404040) dark:text-(--colors-black-20)"
+                            onClick={triggerCloseAction}
+                          >
+                            {item.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : link.children ? (
                 <div>
                   <button
                     onClick={() => setOpenGroup(openGroup === link.label ? null : link.label)}

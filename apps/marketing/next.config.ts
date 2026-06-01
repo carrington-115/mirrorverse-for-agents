@@ -6,6 +6,18 @@ const nextConfig: NextConfig = {
   // the serverless functions and Vercel detects the Next.js output.
   outputFileTracingRoot: path.join(process.cwd(), "../.."),
   transpilePackages: ["@mirrorverse/ui", "@mirrorverse/env"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

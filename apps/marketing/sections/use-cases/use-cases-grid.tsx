@@ -15,6 +15,7 @@ const useCases = [
     iconBg: "bg-blue-50",
     iconColor: "text-blue-600",
     category: "Customer Support",
+    slug: "customer-support",
     title: "Be there for every customer, around the clock",
     description:
       "Handle Tier 1 support tickets, answer FAQs, process returns, and escalate complex cases — automatically, across every channel.",
@@ -29,6 +30,7 @@ const useCases = [
     iconBg: "bg-green-50",
     iconColor: "text-green-600",
     category: "Sales",
+    slug: "sales",
     title: "Never let a warm lead go cold",
     description:
       "Qualify inbound leads, send personalized follow-ups, book discovery calls, and update your CRM — without lifting a finger.",
@@ -43,6 +45,7 @@ const useCases = [
     iconBg: "bg-violet-50",
     iconColor: "text-violet-600",
     category: "HR & Onboarding",
+    slug: "hr-onboarding",
     title: "Onboard faster, retain better",
     description:
       "Automate new hire paperwork, answer policy questions, schedule orientations, and collect feedback — all through familiar channels.",
@@ -57,6 +60,7 @@ const useCases = [
     iconBg: "bg-amber-50",
     iconColor: "text-amber-600",
     category: "Finance Operations",
+    slug: "finance-operations",
     title: "Close your books, not your weekends",
     description:
       "Process expense requests, chase invoice approvals, send payment reminders, and generate reports — automatically.",
@@ -71,6 +75,7 @@ const useCases = [
     iconBg: "bg-orange-50",
     iconColor: "text-orange-600",
     category: "E-commerce",
+    slug: "e-commerce",
     title: "Turn browsers into buyers",
     description:
       "Answer product questions, track orders, process returns, send promotional messages, and recover abandoned carts at scale.",
@@ -85,6 +90,7 @@ const useCases = [
     iconBg: "bg-red-50",
     iconColor: "text-red-500",
     category: "Healthcare",
+    slug: "healthcare",
     title: "Patient experience, reimagined",
     description:
       "Schedule appointments, send reminders, answer eligibility questions, and follow up on care plans — securely and compliantly.",
@@ -138,7 +144,7 @@ export function UseCasesGrid() {
 
                 {/* CTA */}
                 <Link
-                  href="#"
+                  href={`/use-cases/${uc.slug}`}
                   className="gap-1.5 text-xs font-medium mt-auto flex items-center text-[#0a0a0a] transition-opacity hover:opacity-60"
                 >
                   See how it works

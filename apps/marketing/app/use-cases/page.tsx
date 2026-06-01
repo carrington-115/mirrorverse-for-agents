@@ -1,6 +1,5 @@
 import { UseCasesHero, UseCasesGrid } from "@/sections/use-cases";
 import { CtaBanner } from "@/components/cta-banner";
-import { Footer } from "@/sections/footer";
 
 export default function UseCasesPage() {
   return (
@@ -15,7 +14,6 @@ export default function UseCasesPage() {
         secondaryLabel="Book a demo"
         secondaryHref="https://cal.com/frumark/mirrroagents"
       />
-      <Footer />
     </>
   );
 }

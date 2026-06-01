@@ -6,6 +6,24 @@
 
 /* ─── Keyframes ─────────────────────────────────────────────────────────── */
 
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -61,6 +79,29 @@
   animation: glow-pulse 3s ease-in-out infinite;
 }
 
+@utility animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+@utility animate-accordion-up {
+  animation: accordion-up 0.2s ease-out;
+}
+
 @utility animate-marquee {
   animation: marquee 28s linear infinite;
+}
+
+/* ─── Scroll-triggered card reveal ──────────────────────────────────────── */
+
+.scroll-card {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-card.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
