@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 const features = [
   {
+    id: "mirrorpilot",
     tag: "Mirrorpilot",
     icon: Bot,
     iconBg: "bg-[#0a0a0a]",
@@ -36,6 +37,7 @@ const features = [
     bg: "bg-white",
   },
   {
+    id: "workflows",
     tag: "Workflows",
     icon: GitBranch,
     iconBg: "bg-violet-50",
@@ -54,6 +56,7 @@ const features = [
     bg: "bg-[#fafafa]",
   },
   {
+    id: "knowledge",
     tag: "Knowledge Bases",
     icon: BookOpen,
     iconBg: "bg-emerald-50",
@@ -72,6 +75,7 @@ const features = [
     bg: "bg-white",
   },
   {
+    id: "channels",
     tag: "Channels",
     icon: Phone,
     iconBg: "bg-blue-50",
@@ -90,6 +94,7 @@ const features = [
     bg: "bg-[#fafafa]",
   },
   {
+    id: "integrations",
     tag: "Integrations",
     icon: Plug,
     iconBg: "bg-[#f5f5f5]",
@@ -348,7 +353,11 @@ export function ProductFeatures() {
         const isImageLeft = feature.imagePosition === "left";
 
         return (
-          <section key={feature.tag} className={`border-b border-[#e5e5e5] ${feature.bg}`}>
+          <section
+            id={feature.id}
+            key={feature.tag}
+            className={`border-b border-[#e5e5e5] ${feature.bg}`}
+          >
             <div className="px-5 py-20 lg:px-[120px] lg:py-24 mx-auto max-w-[1188px]">
               <div
                 className={`gap-10 lg:items-center lg:gap-16 flex flex-col ${isImageLeft ? "lg:flex-row-reverse" : "lg:flex-row"}`}

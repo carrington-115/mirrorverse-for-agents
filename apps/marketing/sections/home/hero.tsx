@@ -18,7 +18,7 @@ export function Hero() {
           </h1>
 
           <p
-            className="animate-fade-in-up text-base font-medium lg:text-[18px] text-xl font-normal md:font-medium md:text-center max-w-[500px] text-left leading-[27px] text-muted-foreground"
+            className="animate-fade-in-up text-base font-medium lg:text-[18px] text-xl font-normal md:font-normal md:text-center max-w-[500px] text-left leading-[27px] text-muted-foreground"
             style={{ animationDelay: "100ms" }}
           >
             The busywork that&apos;s slowing your team down? Hand it to AI agents that just get it

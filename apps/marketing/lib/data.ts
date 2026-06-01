@@ -152,7 +152,7 @@ export const navLinks: NavLinkType[] = [
   {
     label: "Resources",
     children: [
-      { label: "Docs", href: "#" },
+      { label: "Blog", href: "/blog" },
       { label: "Terms & Conditions", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
     ],
@@ -345,11 +345,11 @@ export const linkGroups: linkGroupTypes = {
     { title: "Privacy Policy", link: "/privacy" },
   ],
   useCasesGroup: [
-    { title: "Sales Automation", link: "/use-cases#sales" },
-    { title: "Customer Support", link: "/use-cases#support" },
-    { title: "Marketing Campaigns", link: "/use-cases#marketing" },
-    { title: "Lead Qualification", link: "/use-cases#leads" },
-    { title: "Customer Onboarding", link: "/use-cases#onboarding" },
-    { title: "Revenue Intelligence", link: "/use-cases#analytics" },
+    { title: "Sales", link: "/use-cases/sales" },
+    { title: "Customer Support", link: "/use-cases/customer-support" },
+    { title: "HR & Onboarding", link: "/use-cases/hr-onboarding" },
+    { title: "Finance Operations", link: "/use-cases/finance-operations" },
+    { title: "E-commerce", link: "/use-cases/e-commerce" },
+    { title: "Healthcare", link: "/use-cases/healthcare" },
   ],
 };
