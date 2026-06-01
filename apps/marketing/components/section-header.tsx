@@ -21,11 +21,11 @@ export function SectionHeader({
         className,
       )}
     >
-      <h2 className="font-semibold text-2xl sm:text-3xl lg:text-[40px] leading-[1.1] tracking-[-1px] text-(--general-secondary-foreground,#171717)">
+      <h2 className="font-semibold md:text-[34px] lg:text-[40px] text-[28px] leading-[1.1] tracking-[-1px] text-(--general-secondary-foreground,#171717)">
         {title}
       </h2>
       {subtitle && (
-        <p className="text-sm sm:text-base sm:leading-[27px] lg:text-lg w-full max-w-[600px] leading-[24px] text-(--unofficial-foreground-alt,#404040)">
+        <p className="text-xl font-normal md:font-medium lg:text-[18px] w-full max-w-[600px] leading-[27px] text-(--unofficial-foreground-alt,#404040)">
           {subtitle}
         </p>
       )}

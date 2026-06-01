@@ -1,11 +1,24 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface PricingCardProps {
   name: string;
-  price: string;
+  monthlyPrice: number | null;
+  annualPrice: number | null;
+  isAnnual: boolean;
+  badge?: string;
   description: string;
   features: string[];
   ctaLabel: string;
@@ -15,83 +28,59 @@ interface PricingCardProps {
 
 export function PricingCard({
   name,
-  price,
+  monthlyPrice,
+  annualPrice,
+  isAnnual,
+  badge,
   description,
   features,
   ctaLabel,
   ctaHref,
   highlighted = false,
 }: PricingCardProps) {
+  const displayPrice = monthlyPrice === null ? null : isAnnual ? annualPrice : monthlyPrice;
+
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-(--spacing-24) rounded-[24px] border p-(--spacing-32)",
-        highlighted
-          ? "text-white border-transparent bg-(--general-secondary-foreground,#171717)"
-          : "bg-white border-(--border,#e5e5e5)",
-      )}
-    >
-      <div className="flex flex-col gap-(--spacing-8)">
-        <p
-          className={cn(
-            "text-sm font-semibold leading-[20px]",
-            highlighted ? "text-(--colors-black-20)" : "text-(--unofficial-foreground-alt,#404040)",
-          )}
-        >
-          {name}
-        </p>
-        <p
-          className={cn(
-            "font-bold text-[40px] leading-[1] tracking-[-1px]",
-            highlighted ? "text-white" : "text-(--general-secondary-foreground,#171717)",
-          )}
-        >
-          {price}
-        </p>
-        <p
-          className={cn(
-            "text-sm leading-[20px]",
-            highlighted ? "text-(--colors-black-20)" : "text-(--unofficial-foreground-alt,#404040)",
-          )}
-        >
-          {description}
-        </p>
-      </div>
-
-      <Link
-        href={ctaHref}
-        className={cn(
-          buttonVariants({ variant: highlighted ? "outline" : "default", size: "default" }),
-          "font-medium w-full justify-center",
-          highlighted && "border-white text-white hover:bg-white/10",
+    <Card className={cn("flex flex-col justify-between", highlighted && "ring-2 ring-primary/60")}>
+      <CardHeader>
+        <CardTitle>{name}</CardTitle>
+        {badge && (
+          <CardAction>
+            <Badge variant="secondary">{badge}</Badge>
+          </CardAction>
         )}
-      >
-        {ctaLabel}
-      </Link>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
 
-      <ul className="flex flex-col gap-(--spacing-12)">
-        {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-(--spacing-8)">
-            <Check
-              size={16}
-              className={cn(
-                "mt-[2px] shrink-0",
-                highlighted ? "text-(--colors-black-20)" : "text-(--colors-primary)",
-              )}
-            />
-            <span
-              className={cn(
-                "text-sm leading-[20px]",
-                highlighted
-                  ? "text-(--colors-black-10)"
-                  : "text-(--unofficial-foreground-alt,#404040)",
-              )}
-            >
+      <CardContent className="gap-4 flex flex-col">
+        <div>
+          {displayPrice === null ? (
+            <p className="text-2xl font-bold">Custom</p>
+          ) : displayPrice === 0 ? (
+            <p className="text-2xl font-bold">Free</p>
+          ) : (
+            <p className="text-2xl font-bold transition-all duration-200">
+              ${displayPrice}
+              <span className="text-sm font-normal text-muted-foreground"> / mo</span>
+            </p>
+          )}
+        </div>
+
+        <ul className="gap-2 flex flex-col">
+          {features.map((feature) => (
+            <li key={feature} className="gap-2 text-sm flex items-center">
+              <Check className="size-3.5 shrink-0 text-primary" />
               {feature}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+
+      <CardFooter>
+        <Button className="w-full" size="sm" asChild>
+          <Link href={ctaHref}>{ctaLabel}</Link>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

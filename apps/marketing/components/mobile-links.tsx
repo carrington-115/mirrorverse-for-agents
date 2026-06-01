@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { navLinks } from "@/lib/data";
@@ -10,8 +8,6 @@ import { buttonVariants } from "@/components/ui/button";
 import type { mobileLinksTypes } from "@/lib/types";
 
 export default function MobileLinks({ isOpen, triggerCloseAction }: mobileLinksTypes) {
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
-
   return (
     <div
       className={cn(
@@ -21,113 +17,95 @@ export default function MobileLinks({ isOpen, triggerCloseAction }: mobileLinksT
       style={{ transition: "height 1s cubic-bezier(0.4,0,0.2,1)" }}
     >
       <nav>
-        <ul className="flex flex-col gap-[5px]">
-          {navLinks.map((link) => (
-            <li key={link.label} className="list-none">
-              {link.product ? (
-                <div>
-                  <button
-                    onClick={() => setOpenGroup(openGroup === link.label ? null : link.label)}
-                    className="text-2xl sm:text-3xl flex items-center gap-[8px] text-(--colors-primary) dark:text-(--colors-black-5)"
+        <ul className="flex flex-col gap-[24px]">
+          {navLinks.map((link) => {
+            if (link.product) {
+              const items = [...link.product.left, ...link.product.right];
+              return (
+                <li key={link.label} className="list-none">
+                  <span className="text-xs font-semibold tracking-widest text-(--unofficial-foreground-alt,#404040) uppercase dark:text-(--colors-black-30)">
+                    {link.label}
+                  </span>
+                  <ul className="mt-[10px] flex flex-col gap-[12px]">
+                    {items.map((item) => (
+                      <li key={item.href} className="list-none">
+                        <Link
+                          href={item.href}
+                          className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
+                          onClick={triggerCloseAction}
+                        >
+                          {item.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            }
+
+            if (link.useCases) {
+              const items = [...link.useCases.left, ...link.useCases.right];
+              return (
+                <li key={link.label} className="list-none">
+                  <span className="text-xs font-semibold tracking-widest text-(--unofficial-foreground-alt,#404040) uppercase dark:text-(--colors-black-30)">
+                    {link.label}
+                  </span>
+                  <ul className="mt-[10px] flex flex-col gap-[12px]">
+                    {items.map((item) => (
+                      <li key={item.href} className="list-none">
+                        <Link
+                          href={item.href}
+                          className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
+                          onClick={triggerCloseAction}
+                        >
+                          {item.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            }
+
+            if (link.children) {
+              return (
+                <li key={link.label} className="list-none">
+                  <span className="text-xs font-semibold tracking-widest text-(--unofficial-foreground-alt,#404040) uppercase dark:text-(--colors-black-30)">
+                    {link.label}
+                  </span>
+                  <ul className="mt-[10px] flex flex-col gap-[12px]">
+                    {link.children.map((child) => (
+                      <li key={child.href} className="list-none">
+                        <Link
+                          href={child.href}
+                          className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
+                          onClick={triggerCloseAction}
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            }
+
+            if (link.href) {
+              return (
+                <li key={link.label} className="list-none">
+                  <Link
+                    href={link.href}
+                    className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
+                    onClick={triggerCloseAction}
                   >
                     {link.label}
-                    <ChevronDown
-                      size={28}
-                      className={cn(
-                        "transition-transform duration-200",
-                        openGroup === link.label && "rotate-180",
-                      )}
-                    />
-                  </button>
-                  {openGroup === link.label && (
-                    <ul className="mt-[8px] ml-[16px] flex flex-col gap-[4px]">
-                      {[...link.product.left, ...link.product.right].map((item) => (
-                        <li key={item.href} className="list-none">
-                          <Link
-                            href={item.href}
-                            className="text-lg sm:text-xl text-(--unofficial-foreground-alt,#404040) dark:text-(--colors-black-20)"
-                            onClick={triggerCloseAction}
-                          >
-                            {item.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ) : link.useCases ? (
-                <div>
-                  <button
-                    onClick={() => setOpenGroup(openGroup === link.label ? null : link.label)}
-                    className="text-2xl sm:text-3xl flex items-center gap-[8px] text-(--colors-primary) dark:text-(--colors-black-5)"
-                  >
-                    {link.label}
-                    <ChevronDown
-                      size={28}
-                      className={cn(
-                        "transition-transform duration-200",
-                        openGroup === link.label && "rotate-180",
-                      )}
-                    />
-                  </button>
-                  {openGroup === link.label && (
-                    <ul className="mt-[8px] ml-[16px] flex flex-col gap-[4px]">
-                      {[...link.useCases.left, ...link.useCases.right].map((item) => (
-                        <li key={item.href} className="list-none">
-                          <Link
-                            href={item.href}
-                            className="text-lg sm:text-xl text-(--unofficial-foreground-alt,#404040) dark:text-(--colors-black-20)"
-                            onClick={triggerCloseAction}
-                          >
-                            {item.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ) : link.children ? (
-                <div>
-                  <button
-                    onClick={() => setOpenGroup(openGroup === link.label ? null : link.label)}
-                    className="text-2xl sm:text-3xl flex items-center gap-[8px] text-(--colors-primary) dark:text-(--colors-black-5)"
-                  >
-                    {link.label}
-                    <ChevronDown
-                      size={28}
-                      className={cn(
-                        "transition-transform duration-200",
-                        openGroup === link.label && "rotate-180",
-                      )}
-                    />
-                  </button>
-                  {openGroup === link.label && (
-                    <ul className="mt-[8px] ml-[16px] flex flex-col gap-[4px]">
-                      {link.children.map((child) => (
-                        <li key={child.href} className="list-none">
-                          <Link
-                            href={child.href}
-                            className="text-lg sm:text-xl text-(--unofficial-foreground-alt,#404040) dark:text-(--colors-black-20)"
-                            onClick={triggerCloseAction}
-                          >
-                            {child.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ) : link.href ? (
-                <Link
-                  href={link.href}
-                  className="text-2xl sm:text-3xl text-(--colors-primary) dark:text-(--colors-black-5)"
-                  onClick={triggerCloseAction}
-                >
-                  {link.label}
-                </Link>
-              ) : null}
-            </li>
-          ))}
+                  </Link>
+                </li>
+              );
+            }
+
+            return null;
+          })}
         </ul>
       </nav>
 

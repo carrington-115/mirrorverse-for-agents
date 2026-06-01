@@ -39,7 +39,7 @@ export function UseCasesDropdown({ label, left, right, banner }: UseCasesDropdow
     <NavigationMenu viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="font-medium h-auto bg-transparent px-[8px] py-[4px] text-[14px] leading-[20px] whitespace-nowrap text-(--foreground-alt) hover:bg-transparent hover:text-(--colors-primary) focus:bg-transparent data-popup-open:bg-transparent dark:text-(--colors-black-20) dark:hover:text-(--base-white) data-open:bg-transparent">
+          <NavigationMenuTrigger className="font-medium h-auto rounded-full bg-transparent px-[8px] py-[4px] text-[14px] leading-[20px] whitespace-nowrap text-(--foreground-alt) hover:bg-transparent hover:text-(--colors-primary) focus:bg-transparent data-popup-open:bg-transparent dark:text-(--colors-black-20) dark:hover:text-(--base-white) data-open:bg-transparent">
             {label}
           </NavigationMenuTrigger>
           <NavigationMenuContent className="!bg-white !shadow-md !mt-[8px] flex !w-[560px] flex-col gap-[16px] !rounded-[12px] border border-(--border,#e5e5e5) !p-[16px] dark:border-(--colors-black-70) dark:!bg-(--colors-black-90)">

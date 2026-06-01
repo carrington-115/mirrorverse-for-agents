@@ -12,7 +12,7 @@ export function UseCasesHero() {
           subtitle="Whether you're in customer support, sales, HR, or finance — mirrorverse has a workflow for you. See how leading teams automate the work that matters."
         />
         <Button
-          className="gap-2 text-lg px-8 py-5 font-normal mt-2 flex cursor-pointer items-center justify-center rounded-full hover:bg-accent-foreground"
+          className="gap-2 text-xl font-normal md:text-base md:font-medium mt-2 px-8 flex h-[49px] cursor-pointer items-center justify-center rounded-full hover:bg-accent-foreground"
           size={"lg"}
         >
           <Image src={MirrorpilotLogo} alt="" width={24} height={24} />

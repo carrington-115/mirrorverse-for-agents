@@ -30,16 +30,16 @@ export default function NavBar() {
   return (
     <header
       className={cn(
-        "inset-x-0 top-0 lg:px-[120px] lg:py-[10px] fixed z-50 flex flex-col items-center px-(--spacing-20) py-(--spacing-10)",
+        "inset-x-0 top-0 lg:px-[120px] lg:py-[10px] fixed z-50 flex w-screen flex-col items-center px-[14px] py-(--spacing-10)",
         menuIsOpen && "bottom-0",
         (scrolled || menuIsOpen) && "bg-white shadow-sm",
       )}
     >
-      <div className="flex h-auto w-full items-center justify-between">
+      <div className="md:px-(--spacing-10) md:py-(--spacing-5) flex h-auto w-full items-center justify-between px-[16px] py-[10px]">
         <Link href="/">
           <div className="lg:ml-[5px] lg:w-[120px] flex h-auto w-[92px] shrink-0 items-center">
-            <Image alt="Mirrorverse" className="size-8 dark:hidden" src={logoImg} />
-            <h1 className="text-2xl font-bold text-[#2c2c2c]">Mirrorverse</h1>
+            <Image alt="Mirrorverse" className="size-10 md:size-8 dark:hidden" src={logoImg} />
+            <h1 className="md:block text-2xl font-bold hidden text-[#2c2c2c]">Mirrorverse</h1>
           </div>
         </Link>
 

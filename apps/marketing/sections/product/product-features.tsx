@@ -366,7 +366,9 @@ export function ProductFeatures() {
                   <h2 className="text-2xl font-semibold lg:text-3xl leading-[1.2] tracking-[-0.5px] text-[#0a0a0a]">
                     {feature.title}
                   </h2>
-                  <p className="text-base leading-[27px] text-[#404040]">{feature.description}</p>
+                  <p className="text-xl font-normal md:font-medium lg:text-[18px] leading-[27px] text-[#404040]">
+                    {feature.description}
+                  </p>
                   <ul className="gap-3 flex flex-col">
                     {feature.points.map((point) => (
                       <li key={point} className="gap-2.5 flex items-center">

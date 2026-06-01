@@ -25,7 +25,7 @@ const pricingFaqs = [
   {
     question: "What happens when I exceed my plan&apos;s limits?",
     answer:
-      "On the Starter plan, automations pause at the monthly limit and resume on the next cycle. On paid plans, we&apos;ll notify you before you hit any limit — never a hard cutoff that breaks live workflows.",
+      "On the Free plan, automations pause at the monthly limit and resume on the next cycle. On paid plans, we&apos;ll notify you before you hit any limit — never a hard cutoff that breaks live workflows.",
   },
 ];
 

@@ -33,7 +33,7 @@ export function NavDropdown({ label, items, featured }: NavDropdownProps) {
     <NavigationMenu viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="font-medium h-auto bg-transparent px-[8px] py-[4px] text-[14px] leading-[20px] whitespace-nowrap text-(--foreground-alt) hover:bg-transparent hover:text-(--colors-primary) focus:bg-transparent data-popup-open:bg-transparent dark:text-(--colors-black-20) dark:hover:text-(--base-white) data-open:bg-transparent">
+          <NavigationMenuTrigger className="font-medium h-auto rounded-full bg-transparent px-[8px] py-[4px] text-[14px] leading-[20px] whitespace-nowrap text-(--foreground-alt) hover:bg-transparent hover:text-(--colors-primary) focus:bg-transparent data-popup-open:bg-transparent dark:text-(--colors-black-20) dark:hover:text-(--base-white) data-open:bg-transparent">
             {label}
           </NavigationMenuTrigger>
           <NavigationMenuContent

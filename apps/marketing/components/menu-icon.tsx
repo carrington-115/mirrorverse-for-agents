@@ -5,12 +5,12 @@ export default function MenuIcon({ isOpen, action }: menuIconProps) {
   return (
     <button
       onClick={action}
-      className="lg:hidden flex size-[40px] cursor-pointer items-center justify-center"
+      className="lg:hidden size-8 flex cursor-pointer items-center justify-center"
     >
       {isOpen ? (
-        <X size={24} className="text-black dark:text-white" />
+        <X size={24} className="size-7 text-black dark:text-white" />
       ) : (
-        <Menu size={24} className="text-black dark:text-white" />
+        <Menu size={24} className="size-8 text-black dark:text-white" />
       )}
     </button>
   );

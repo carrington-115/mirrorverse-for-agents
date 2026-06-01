@@ -33,10 +33,12 @@ export function UseCaseDetailHero({ useCase }: UseCaseDetailHeroProps) {
 
         {/* Title + subtitle */}
         <div className="mb-10 w-full max-w-[780px]">
-          <h1 className="text-4xl font-semibold mb-4 lg:text-5xl leading-[1.15] tracking-[-0.5px] text-[#0a0a0a]">
+          <h1 className="font-semibold mb-4 md:text-[48px] lg:text-[56px] text-[40px] leading-[1.05] tracking-[-1px] text-[#0a0a0a]">
             {useCase.title}
           </h1>
-          <p className="text-lg leading-[1.6] text-[#404040]">{useCase.subtitle}</p>
+          <p className="text-xl font-normal md:font-medium lg:text-[18px] leading-[27px] text-[#404040]">
+            {useCase.subtitle}
+          </p>
         </div>
 
         {/* Image */}

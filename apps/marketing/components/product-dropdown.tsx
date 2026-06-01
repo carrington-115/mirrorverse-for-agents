@@ -39,7 +39,7 @@ export function ProductDropdown({ label, left, right, banner }: ProductDropdownP
     <NavigationMenu viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="font-medium h-auto bg-transparent px-[8px] py-[4px] text-[14px] leading-[20px] whitespace-nowrap text-(--foreground-alt) hover:bg-transparent hover:text-(--colors-primary) focus:bg-transparent data-popup-open:bg-transparent dark:text-(--colors-black-20) dark:hover:text-(--base-white) data-open:bg-transparent">
+          <NavigationMenuTrigger className="font-medium h-auto rounded-full bg-transparent px-[8px] py-[4px] text-[14px] leading-[20px] whitespace-nowrap text-(--foreground-alt) hover:bg-transparent hover:text-(--colors-primary) focus:bg-transparent data-popup-open:bg-transparent dark:text-(--colors-black-20) dark:hover:text-(--base-white) data-open:bg-transparent">
             {label}
           </NavigationMenuTrigger>
           <NavigationMenuContent className="!bg-white !shadow-md !mt-[8px] flex !w-[560px] flex-col gap-[16px] !rounded-[12px] border border-(--border,#e5e5e5) !p-[16px] dark:border-(--colors-black-70) dark:!bg-(--colors-black-90)">
@@ -63,7 +63,7 @@ export function ProductDropdown({ label, left, right, banner }: ProductDropdownP
             {/* Bottom section — product promo */}
             <Link
               href={banner.href}
-              className="group hover:shadow-sm flex items-center gap-[16px] rounded-[10px] bg-(--colors-black-5) px-[16px] py-[12px] transition-all hover:bg-(--colors-black-10) dark:bg-(--colors-black-80) dark:hover:bg-(--colors-black-70)"
+              className="group flex items-center gap-[16px] rounded-[10px] bg-(--colors-black-5) px-[16px] py-[12px] transition-all hover:bg-(--colors-black-10) dark:bg-(--colors-black-80) dark:hover:bg-(--colors-black-70)"
             >
               <div className="flex-1">
                 <span className="font-semibold block text-[14px] leading-[20px] text-(--general-secondary-foreground,#171717) transition-colors group-hover:text-(--colors-primary) dark:text-(--colors-black-5) dark:group-hover:text-(--base-white)">
