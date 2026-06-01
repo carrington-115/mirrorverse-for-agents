@@ -1,4 +1,5 @@
-import { Menu, X } from "lucide-react";
+import { TbMenu } from "react-icons/tb";
+import { X } from "lucide-react";
 import { menuIconProps } from "@/lib/types";
 
 export default function MenuIcon({ isOpen, action }: menuIconProps) {
@@ -10,7 +11,7 @@ export default function MenuIcon({ isOpen, action }: menuIconProps) {
       {isOpen ? (
         <X size={24} className="size-7 text-black dark:text-white" />
       ) : (
-        <Menu size={24} className="size-8 text-black dark:text-white" />
+        <TbMenu size={28} className="text-black dark:text-white" />
       )}
     </button>
   );

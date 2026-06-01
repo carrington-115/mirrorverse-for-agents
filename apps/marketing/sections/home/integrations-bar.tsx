@@ -26,7 +26,7 @@ const integrations: Integration[] = [
 export function IntegrationsBar() {
   return (
     <div className="w-full border-t border-b border-[var(--border)] bg-[#f5f5f5]">
-      <div className="gap-6 px-5 py-10 md:flex-row md:gap-8 md:py-12 lg:px-[144px] md:items-center mx-auto flex max-w-[1440px] flex-col items-start justify-between">
+      <div className="gap-6 px-5 py-10 md:flex-row md:gap-8 md:py-12 lg:px-[144px] md:items-center md:w-auto mx-auto flex w-full max-w-[1440px] flex-col items-start justify-between">
         {/* Left: Mirrorpilot branding */}
         <div className="md:w-auto gap-3 md:items-start md:block md:flex-col flex w-full shrink-0 items-center">
           <div className="flex items-center gap-[7px]">
@@ -41,7 +41,7 @@ export function IntegrationsBar() {
             <span className="text-xs font-medium w-[93px] leading-[16px]">
               Connects with your 24/7 stack
             </span>
-            <span className="text-xl font-semibold text-[#171717]">20+ apps</span>
+            <span className="md:block text-xl font-semibold hidden text-[#171717]">20+ apps</span>
           </div>
         </div>
 

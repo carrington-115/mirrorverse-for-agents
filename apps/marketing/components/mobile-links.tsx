@@ -11,7 +11,7 @@ export default function MobileLinks({ isOpen, triggerCloseAction }: mobileLinksT
   return (
     <div
       className={cn(
-        "bottom-0 left-0 right-0 lg:hidden mt-(--spacing-20) hidden size-full flex-col justify-between",
+        "bottom-0 left-0 right-0 lg:hidden mb-4 pt-4 mt-(--spacing-20) hidden size-full h-[100vh] flex-col justify-between overflow-y-scroll",
         isOpen && "flex",
       )}
       style={{ transition: "height 1s cubic-bezier(0.4,0,0.2,1)" }}
@@ -109,7 +109,7 @@ export default function MobileLinks({ isOpen, triggerCloseAction }: mobileLinksT
         </ul>
       </nav>
 
-      <div className="flex flex-col gap-[12px] pb-(--spacing-20)">
+      <div className="mt-8 flex flex-col gap-[12px] pb-(--spacing-20)">
         <Link
           href="https://cal.com/frumark/mirrroagents"
           className={cn(

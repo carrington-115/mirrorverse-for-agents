@@ -16,14 +16,14 @@ export function ProductHero() {
             href="#"
             className={cn(
               buttonVariants({ variant: "default", size: "default" }),
-              "px-6 text-xl font-normal md:text-base md:font-medium h-[49px] rounded-full",
+              "px-6 text-base font-normal md:text-base md:font-medium h-[45px] rounded-full",
             )}
           >
             Try for free
           </Link>
           <Link
             href="https://cal.com/frumark/mirrroagents"
-            className="px-6 text-xl font-normal md:text-base md:font-medium shadow-sm hover:bg-black/5 flex h-[49px] items-center justify-center rounded-full border border-[#a3a3a3] bg-transparent text-[#0a0a0a] transition-colors"
+            className="px-6 text-base font-normal md:text-base md:font-medium shadow-sm hover:bg-black/5 flex h-[45px] items-center justify-center rounded-full border border-[#a3a3a3] bg-transparent text-[#0a0a0a] transition-colors"
             target="_blank"
             rel="noopener noreferrer"
           >

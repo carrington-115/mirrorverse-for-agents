@@ -2,6 +2,7 @@
   "extends": "@mirrorverse/typescript-config/nextjs.json",
   "compilerOptions": {
     "paths": {
+      "zod/v4/core": ["./node_modules/zod/v4/core"],
       "@/components/ui/*": ["../../packages/ui/src/components/ui/*"],
       "@/lib/utils": ["../../packages/ui/src/lib/utils"],
       "@/hooks/use-mobile": ["../../packages/ui/src/hooks/use-mobile"],

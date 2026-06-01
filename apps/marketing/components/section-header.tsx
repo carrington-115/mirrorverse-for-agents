@@ -25,7 +25,7 @@ export function SectionHeader({
         {title}
       </h2>
       {subtitle && (
-        <p className="text-xl font-normal md:font-medium lg:text-[18px] w-full max-w-[600px] leading-[27px] text-(--unofficial-foreground-alt,#404040)">
+        <p className="font-normal md:font-medium lg:text-[18px] w-full max-w-[600px] text-[16px] leading-[27px] text-(--unofficial-foreground-alt,#404040)">
           {subtitle}
         </p>
       )}
