@@ -9,7 +9,7 @@ export function Hero() {
         {/* ── Headline + subtext + CTAs ───────────────────────────────────── */}
         <div className="gap-4 flex max-w-[822px] flex-col items-center text-center">
           <h1
-            className="animate-fade-in-up font-semibold sm:tracking-[-1.5px] md:text-[48px] lg:text-[56px] lg:tracking-[-2px] mt-8 md:mt-0 text-left text-[40px] leading-[1.05] tracking-[-1px] text-[#0a0a0a]"
+            className="animate-fade-in-up font-semibold sm:tracking-[-1.5px] md:text-[48px] lg:text-[56px] lg:tracking-[-2px] mt-8 md:mt-0 md:text-center text-left text-[40px] leading-[1.05] tracking-[-1px] text-[#0a0a0a]"
             style={{
               animationDelay: "0ms",
             }}
