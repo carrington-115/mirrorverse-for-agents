@@ -26,21 +26,21 @@ export function Hero() {
           </p>
 
           <div
-            className="animate-fade-in-up mt-1 gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-center mt-8 md:mt-0 flex w-full flex-col items-stretch"
+            className="animate-fade-in-up mt-1 gap-3 mt-8 md:mt-0 md:justify-center flex w-full items-stretch"
             style={{ animationDelay: "200ms" }}
           >
             <Link
               href="https://work.mirrro.io"
               className={cn(
                 buttonVariants({ variant: "default", size: "default" }),
-                "md:px-6 text-lg font-normal md:text-base md:font-medium h-[49px] rounded-full",
+                "md:w-auto md:px-6 text-lg font-normal md:text-base md:font-medium h-[49px] w-1/2 rounded-full",
               )}
             >
               Try for free
             </Link>
             <Link
               href="https://cal.com/frumark/mirrroagents"
-              className="h-10 px-6 text-lg md:text-base font-medium hover:bg-black/5 flex h-[49px] items-center justify-center rounded-full border border-[var(--border)] bg-transparent text-[#0a0a0a] transition-colors"
+              className="md:w-auto md:px-6 text-lg md:text-base font-medium hover:bg-black/5 flex h-[49px] w-1/2 items-center justify-center rounded-full border border-[var(--border)] bg-transparent text-[#0a0a0a] transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
