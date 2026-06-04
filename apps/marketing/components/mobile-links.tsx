@@ -18,94 +18,17 @@ export default function MobileLinks({ isOpen, triggerCloseAction }: mobileLinksT
     >
       <nav>
         <ul className="flex flex-col gap-[24px]">
-          {navLinks.map((link) => {
-            if (link.product) {
-              const items = [...link.product.left, ...link.product.right];
-              return (
-                <li key={link.label} className="list-none">
-                  <span className="text-xs font-semibold tracking-widest text-(--unofficial-foreground-alt,#404040) uppercase dark:text-(--colors-black-30)">
-                    {link.label}
-                  </span>
-                  <ul className="mt-[10px] flex flex-col gap-[12px]">
-                    {items.map((item) => (
-                      <li key={item.href} className="list-none">
-                        <Link
-                          href={item.href}
-                          className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
-                          onClick={triggerCloseAction}
-                        >
-                          {item.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              );
-            }
-
-            if (link.useCases) {
-              const items = [...link.useCases.left, ...link.useCases.right];
-              return (
-                <li key={link.label} className="list-none">
-                  <span className="text-xs font-semibold tracking-widest text-(--unofficial-foreground-alt,#404040) uppercase dark:text-(--colors-black-30)">
-                    {link.label}
-                  </span>
-                  <ul className="mt-[10px] flex flex-col gap-[12px]">
-                    {items.map((item) => (
-                      <li key={item.href} className="list-none">
-                        <Link
-                          href={item.href}
-                          className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
-                          onClick={triggerCloseAction}
-                        >
-                          {item.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              );
-            }
-
-            if (link.children) {
-              return (
-                <li key={link.label} className="list-none">
-                  <span className="text-xs font-semibold tracking-widest text-(--unofficial-foreground-alt,#404040) uppercase dark:text-(--colors-black-30)">
-                    {link.label}
-                  </span>
-                  <ul className="mt-[10px] flex flex-col gap-[12px]">
-                    {link.children.map((child) => (
-                      <li key={child.href} className="list-none">
-                        <Link
-                          href={child.href}
-                          className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
-                          onClick={triggerCloseAction}
-                        >
-                          {child.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              );
-            }
-
-            if (link.href) {
-              return (
-                <li key={link.label} className="list-none">
-                  <Link
-                    href={link.href}
-                    className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
-                    onClick={triggerCloseAction}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              );
-            }
-
-            return null;
-          })}
+          {navLinks.map((link) => (
+            <li key={link.label} className="list-none">
+              <Link
+                href={link.href}
+                className="text-xl sm:text-2xl font-medium text-(--colors-primary) dark:text-(--colors-black-5)"
+                onClick={triggerCloseAction}
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
 
@@ -123,7 +46,7 @@ export default function MobileLinks({ isOpen, triggerCloseAction }: mobileLinksT
           Book a demo
         </Link>
         <Link
-          href="#"
+          href="https://work.mirrro.io"
           className={cn(
             buttonVariants({ variant: "default", size: "lg" }),
             "w-full justify-center",

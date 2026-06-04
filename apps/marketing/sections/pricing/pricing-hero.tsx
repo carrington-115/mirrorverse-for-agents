@@ -8,9 +8,6 @@ export function PricingHero() {
           title="Simple, transparent pricing"
           subtitle="Start free and scale as you grow. No hidden fees, no surprises — just the tools your team needs."
         />
-        <p className="mt-4 text-sm text-[#737373]">
-          All plans include a 14-day free trial · No credit card required
-        </p>
       </div>
     </section>
   );

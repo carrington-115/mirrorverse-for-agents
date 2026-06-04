@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { Headphones, TrendingUp, Users, DollarSign, ArrowRight } from "lucide-react";
-import Link from "next/link";
+import { Headphones, TrendingUp, Users, DollarSign, ShoppingCart, Heart } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
 import { cn } from "@/lib/utils";
 
@@ -108,6 +107,34 @@ const useCases = [
       "Real-time spend visibility",
     ],
   },
+  {
+    icon: ShoppingCart,
+    iconBg: "bg-orange-50",
+    iconColor: "text-orange-600",
+    category: "E-commerce",
+    title: "Turn browsers into buyers",
+    description:
+      "Answer product questions, track orders, process returns, send promotional messages, and recover abandoned carts at scale.",
+    outcomes: [
+      "35% cart recovery rate",
+      "Instant order status updates",
+      "Personalized promotions at scale",
+    ],
+  },
+  {
+    icon: Heart,
+    iconBg: "bg-red-50",
+    iconColor: "text-red-500",
+    category: "Healthcare",
+    title: "Patient experience, reimagined",
+    description:
+      "Schedule appointments, send reminders, answer eligibility questions, and follow up on care plans — securely and compliantly.",
+    outcomes: [
+      "Zero missed appointments",
+      "24/7 patient availability",
+      "Automated care-plan follow-ups",
+    ],
+  },
 ];
 
 // ── Use Cases preview section ────────────────────────────────────────────────
@@ -151,28 +178,10 @@ export function Features() {
                       </li>
                     ))}
                   </ul>
-
-                  <Link
-                    href="/use-cases"
-                    className="gap-1.5 text-xs font-medium mt-auto flex items-center text-[#0a0a0a] transition-opacity hover:opacity-60"
-                  >
-                    See how it works
-                    <ArrowRight size={13} />
-                  </Link>
                 </div>
               </AnimateCard>
             );
           })}
-        </div>
-
-        <div className="mt-10 flex justify-center">
-          <Link
-            href="/use-cases"
-            className="gap-2 bg-white px-6 py-3 text-sm font-medium inline-flex items-center rounded-full border border-[#e5e5e5] text-[#0a0a0a] transition-colors hover:bg-[#fafafa]"
-          >
-            View all use cases
-            <ArrowRight size={15} />
-          </Link>
         </div>
       </div>
     </section>

@@ -21,16 +21,6 @@ export function Footer() {
           </div>
           <div className="flex flex-col items-start gap-[5px]">
             <p className="text-xs font-semibold tracking-wider px-[8px] pb-[4px] text-muted-foreground uppercase">
-              Resources
-            </p>
-            {linkGroups.resourcesGroup.map((link) => (
-              <NavLink href={link.link} key={link.title}>
-                {link.title}
-              </NavLink>
-            ))}
-          </div>
-          <div className="flex flex-col items-start gap-[5px]">
-            <p className="text-xs font-semibold tracking-wider px-[8px] pb-[4px] text-muted-foreground uppercase">
               Use Cases
             </p>
             {linkGroups.useCasesGroup.map((link) => (

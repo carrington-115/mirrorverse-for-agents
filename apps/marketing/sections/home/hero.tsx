@@ -30,7 +30,7 @@ export function Hero() {
             style={{ animationDelay: "200ms" }}
           >
             <Link
-              href="#"
+              href="https://work.mirrro.io"
               className={cn(
                 buttonVariants({ variant: "default", size: "default" }),
                 "md:px-6 text-lg font-normal md:text-base md:font-medium h-[49px] rounded-full",

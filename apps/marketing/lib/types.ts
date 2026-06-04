@@ -34,19 +34,7 @@ export interface ProductItem {
 
 export interface NavLinkType {
   label: string;
-  href?: string;
-  children?: NavChildLink[];
-  featured?: NavFeaturedItem;
-  product?: {
-    left: ProductItem[];
-    right: ProductItem[];
-    banner: UseCasesBanner;
-  };
-  useCases?: {
-    left: UseCaseItem[];
-    right: UseCaseItem[];
-    banner: UseCasesBanner;
-  };
+  href: string;
 }
 
 export interface productLinkTypes {
@@ -87,9 +75,8 @@ type footerLink = {
 
 export interface linkGroupTypes {
   productGroup: footerLink[];
-  resourcesGroup: footerLink[];
-  legalGroup: footerLink[];
   useCasesGroup: footerLink[];
+  legalGroup: footerLink[];
 }
 
 export interface mobileLinksTypes {

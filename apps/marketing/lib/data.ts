@@ -6,12 +6,6 @@ import {
   productLinkTypes,
 } from "./types";
 
-// integration banner
-import integrationsImage from "@/assets/images/desktop-integrations.png";
-
-// product banner
-import mirrorpilotProductImage from "@/assets/images/mirrorpilot-product.png";
-
 // product images
 import superagentImage from "@/assets/images/superagent.png";
 import onememoryImage from "@/assets/images/one-memory.png";
@@ -57,112 +51,11 @@ import darkmultiuserImage from "@/assets/icons/multiusers-dark.svg";
 import darkmarketplaceImage from "@/assets/icons/store-dark.svg";
 
 export const navLinks: NavLinkType[] = [
-  {
-    label: "Product",
-    product: {
-      left: [
-        {
-          title: "Mirrorpilot",
-          description:
-            "AI-powered agents that hold real conversations across phone, chat, and email.",
-          href: "/product#mirrorpilot",
-        },
-        {
-          title: "Workflows",
-          description:
-            "No-code canvas to compose automation flows with triggers, conditions, and actions.",
-          href: "/product#workflows",
-        },
-        {
-          title: "Knowledge Bases",
-          description: "Upload your docs — agents retrieve exactly what they need, every time.",
-          href: "/product#knowledge",
-        },
-      ],
-      right: [
-        {
-          title: "Channels",
-          description: "Deploy across phone, WhatsApp, SMS, and email in minutes.",
-          href: "/product#channels",
-        },
-        {
-          title: "Integrations",
-          description: "Connect 200+ tools — Salesforce, HubSpot, Slack, and more via Composio.",
-          href: "/product#integrations",
-        },
-      ],
-      banner: {
-        title: "Explore the full platform",
-        description:
-          "See how Mirrorpilot, Workflows, and Knowledge Bases work together to automate your operations.",
-        image: mirrorpilotProductImage,
-        href: "/product",
-      },
-    },
-  },
-  {
-    label: "Use Cases",
-    useCases: {
-      left: [
-        {
-          title: "Sales",
-          description: "Automate outreach, follow-ups, and pipeline updates with AI agents.",
-          href: "/use-cases/sales",
-        },
-        {
-          title: "Customer Support",
-          description:
-            "Resolve tickets instantly with context-aware agents that know your customers.",
-          href: "/use-cases/customer-support",
-        },
-        {
-          title: "HR & Onboarding",
-          description: "Automate new hire paperwork, policy Q&A, and feedback collection.",
-          href: "/use-cases/hr-onboarding",
-        },
-      ],
-      right: [
-        {
-          title: "Finance Operations",
-          description: "Process expenses, approvals, and reports automatically.",
-          href: "/use-cases/finance-operations",
-        },
-        {
-          title: "E-commerce",
-          description:
-            "Recover carts, answer product questions, and personalize promotions at scale.",
-          href: "/use-cases/e-commerce",
-        },
-        {
-          title: "Healthcare",
-          description:
-            "Schedule appointments, send reminders, and follow up on care plans compliantly.",
-          href: "/use-cases/healthcare",
-        },
-      ],
-      banner: {
-        title: "Works with your existing stack",
-        description:
-          "Connect Mirrorverse to your CRM, helpdesk, and communication tools — no migration required.",
-        image: integrationsImage,
-        href: "/product",
-      },
-    },
-  },
-  {
-    label: "Resources",
-    children: [
-      { label: "Blog", href: "/blog" },
-      { label: "Terms & Conditions", href: "/terms" },
-      { label: "Privacy Policy", href: "/privacy" },
-    ],
-    featured: {
-      label: "User Guide",
-      href: "/user-guide",
-      description: "Step-by-step guides to help you get the most out of Mirrorverse.",
-    },
-  },
+  { label: "Product", href: "/#product" },
+  { label: "Use Cases", href: "/#use-cases" },
+  { label: "FAQs", href: "/#faqs" },
   { label: "Pricing", href: "/pricing" },
+  { label: "How it works", href: "/#how-it-works" },
 ];
 
 export const productData: productLinkTypes[] = [
@@ -330,26 +223,21 @@ export const darkFeatureData: featureDataProps[] = [
 
 export const linkGroups: linkGroupTypes = {
   productGroup: [
-    { title: "Product", link: "/product" },
+    { title: "Product", link: "/#product" },
+    { title: "How it works", link: "/#how-it-works" },
+    { title: "FAQs", link: "/#faqs" },
     { title: "Pricing", link: "/pricing" },
-    { title: "Use Cases", link: "/use-cases" },
-    { title: "Login", link: "#" },
-  ],
-  resourcesGroup: [
-    { title: "Blog", link: "/blog" },
-    { title: "Changelog", link: "/changelog" },
-    { title: "User Guide", link: "/user-guide" },
-  ],
-  legalGroup: [
-    { title: "Terms & Conditions", link: "/terms" },
-    { title: "Privacy Policy", link: "/privacy" },
   ],
   useCasesGroup: [
-    { title: "Sales", link: "/use-cases/sales" },
-    { title: "Customer Support", link: "/use-cases/customer-support" },
-    { title: "HR & Onboarding", link: "/use-cases/hr-onboarding" },
-    { title: "Finance Operations", link: "/use-cases/finance-operations" },
-    { title: "E-commerce", link: "/use-cases/e-commerce" },
-    { title: "Healthcare", link: "/use-cases/healthcare" },
+    { title: "Customer Support", link: "/#use-cases" },
+    { title: "Sales", link: "/#use-cases" },
+    { title: "HR & Onboarding", link: "/#use-cases" },
+    { title: "Finance Operations", link: "/#use-cases" },
+    { title: "E-commerce", link: "/#use-cases" },
+    { title: "Healthcare", link: "/#use-cases" },
+  ],
+  legalGroup: [
+    { title: "Privacy Policy", link: "/privacy" },
+    { title: "Terms of Service", link: "/terms" },
   ],
 };

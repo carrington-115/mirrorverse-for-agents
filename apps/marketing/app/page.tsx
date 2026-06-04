@@ -14,7 +14,7 @@ export default function Home() {
         title="Start automating today — it's free"
         subtitle="Join thousands of teams using mirrorverse to eliminate busywork and scale without limits."
         primaryLabel="Try for free"
-        primaryHref="#"
+        primaryHref="https://work.mirrro.io"
         secondaryLabel="Book a demo"
         secondaryHref="https://cal.com/frumark/mirrroagents"
       />

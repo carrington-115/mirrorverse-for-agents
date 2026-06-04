@@ -13,7 +13,7 @@ export function ProductHero() {
         />
         <div className="gap-3 flex flex-wrap items-center justify-center">
           <Link
-            href="#"
+            href="https://work.mirrro.io"
             className={cn(
               buttonVariants({ variant: "default", size: "default" }),
               "px-6 text-base font-normal md:text-base md:font-medium h-[45px] rounded-full",

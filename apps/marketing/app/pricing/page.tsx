@@ -1,4 +1,4 @@
-import { PricingHero, PricingPlans, PricingCompare, PricingFaq } from "@/sections/pricing";
+import { PricingHero, PricingPlans, PricingFaq } from "@/sections/pricing";
 import { CtaBanner } from "@/components/cta-banner";
 
 export default function PricingPage() {
@@ -6,7 +6,6 @@ export default function PricingPage() {
     <>
       <PricingHero />
       <PricingPlans />
-      <PricingCompare />
       <PricingFaq />
       <CtaBanner
         title="Ready to automate your workflows?"
