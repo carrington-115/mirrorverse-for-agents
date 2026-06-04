@@ -18,3 +18,8 @@ export function useUsagePeriodQuery() {
   const trpc = useTRPC();
   return useQuery(trpc.billing.usageThisPeriod.queryOptions());
 }
+
+export function useUsageByDayQuery() {
+  const trpc = useTRPC();
+  return useQuery(trpc.billing.usageByDay.queryOptions());
+}

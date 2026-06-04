@@ -34,6 +34,7 @@ import { ChatEmptyState } from "./chat-empty-state";
 import { ChatPromptInput } from "./chat-prompt-input";
 import { CredentialInterruptDialog } from "./credential-interrupt-dialog";
 import type { PlanProgressStep } from "./plan-progress-bar";
+import type { SessionTriggerInfo } from "./trigger-picker";
 
 interface ChatRuntimeProps {
   sessionId: string;
@@ -80,11 +81,11 @@ export function ChatRuntime({
     onFinish,
   });
 
-  const { planSteps, sessionTriggerCount } = useMemo(() => {
+  const { planSteps, sessionTriggers } = useMemo(() => {
     let foundPlan: WorkflowPlan | null = null;
     let planMsgIndex = -1;
     let hasCommit = false;
-    const triggerTypes = new Set<string>();
+    const triggerMap = new Map<string, SessionTriggerInfo>();
 
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
@@ -108,17 +109,19 @@ export function ChatRuntime({
               if (typeof node !== "object" || !node) continue;
               const n = node as Record<string, unknown>;
               const type = typeof n.type === "string" ? n.type : "";
-              if (type.startsWith("trigger.")) triggerTypes.add(type);
+              if (type.startsWith("trigger.")) {
+                triggerMap.set(type, { type, workflowTitle: result.title });
+              }
             }
           }
         }
       }
     }
 
-    const sessionTriggerCount = triggerTypes.size;
+    const sessionTriggers: SessionTriggerInfo[] = Array.from(triggerMap.values());
 
     if (hasCommit || !foundPlan || planMsgIndex < 0) {
-      return { planSteps: [] as PlanProgressStep[], sessionTriggerCount };
+      return { planSteps: [] as PlanProgressStep[], sessionTriggers };
     }
 
     const userMsgsAfter = messages.slice(planMsgIndex + 1).filter((m) => m.role === "user").length;
@@ -129,7 +132,7 @@ export function ChatRuntime({
       completed: idx < userMsgsAfter,
     }));
 
-    return { planSteps, sessionTriggerCount };
+    return { planSteps, sessionTriggers };
   }, [messages]);
 
   const { data: pendingInterrupt } = useQuery({
@@ -310,7 +313,7 @@ export function ChatRuntime({
       onConnectApp={() => setBrowseOpen(true)}
       onConnectWebhook={() => setWebhookOpen(true)}
       planSteps={planSteps}
-      sessionTriggerCount={sessionTriggerCount}
+      sessionTriggers={sessionTriggers}
       fillInputRef={fillInputRef}
     />
   );
@@ -411,17 +414,6 @@ export function ChatRuntime({
       />
       <div className="p-3">
         <div className="mx-auto w-full max-w-[780px]">{inputBlock}</div>
-        <p className="mt-1.5 text-xs md:text-xs text-center text-muted-foreground/60">
-          Mirrorpilot can make mistakes. By using Mirrorpilot, you agree to our{" "}
-          <a
-            href="https://mirrorverse.ai/terms-of-service"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-2 hover:text-muted-foreground"
-          >
-            Terms and Conditions
-          </a>
-        </p>
       </div>
       {credentialInterrupt && !interruptDismissed && (
         <CredentialInterruptDialog

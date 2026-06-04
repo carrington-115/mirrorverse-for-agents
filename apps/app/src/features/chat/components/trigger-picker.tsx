@@ -3,9 +3,10 @@
 import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import type { ComponentType } from "react";
-import { Clock, FileText, MessageSquare, Phone, Play, Webhook, Zap } from "lucide-react";
+import { Clock, FileText, MessageSquare, Phone, Play, Plus, Webhook, Zap } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -16,6 +17,13 @@ import {
   useComposioIntegrationsQuery,
   useConnectionsQuery,
 } from "@/features/integrations/api/queries";
+
+// ─── Session trigger info ─────────────────────────────────────────────────────
+
+export interface SessionTriggerInfo {
+  type: string;
+  workflowTitle: string;
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -122,36 +130,91 @@ function useTriggerItems(): TriggerItem[] {
   }, [connections, integrations]);
 }
 
+// ─── Type → system trigger lookup ────────────────────────────────────────────
+
+function getTriggerTypeInfo(type: string): SystemTrigger | undefined {
+  const id = type.startsWith("trigger.") ? type.slice("trigger.".length) : type;
+  return SYSTEM_TRIGGERS.find((t) => t.id === id);
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface TriggerPickerButtonProps {
-  triggerCount: number;
+  triggers?: SessionTriggerInfo[];
 }
 
-export function TriggerPickerButton({ triggerCount }: TriggerPickerButtonProps) {
+export function TriggerPickerButton({ triggers = [] }: TriggerPickerButtonProps) {
   const controller = usePromptInputController();
-  const [open, setOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const isMobile = useIsMobile();
   const allTriggers = useTriggerItems();
+  const triggerCount = triggers.length;
 
   const handleSelect = useCallback(
     (trigger: TriggerItem) => {
       controller.textInput.setInput(`Set up a ${trigger.label} trigger`);
-      setOpen(false);
+      setDialogOpen(false);
     },
     [controller],
   );
 
+  const handleCreateTrigger = () => {
+    setPopoverOpen(false);
+    setDialogOpen(true);
+  };
+
   return (
     <>
       <div className="relative">
-        <PromptInputButton
-          onClick={() => setOpen(true)}
-          tooltip="Add trigger"
-          className="rounded-full"
-        >
-          <Zap className="size-4" />
-        </PromptInputButton>
+        {triggerCount > 0 ? (
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <PopoverTrigger asChild>
+              <PromptInputButton tooltip="View triggers" className="rounded-full">
+                <Zap className="size-4" />
+              </PromptInputButton>
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={8} className="w-64 p-1">
+              <div>
+                {triggers.map((t, i) => {
+                  const info = getTriggerTypeInfo(t.type);
+                  const Icon = info?.icon ?? Zap;
+                  return (
+                    <div key={i} className="gap-3 px-3 py-2 flex items-center rounded-md">
+                      <div className="size-7 flex shrink-0 items-center justify-center rounded-md bg-muted">
+                        <Icon className="size-3.5 text-foreground" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-snug truncate">
+                          {info?.label ?? t.type}
+                        </p>
+                        <p className="text-xs truncate text-muted-foreground">{t.workflowTitle}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-1 pt-1 border-t border-border">
+                <button
+                  type="button"
+                  onClick={handleCreateTrigger}
+                  className="gap-2 px-3 py-2 text-sm flex w-full items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <Plus className="size-4 shrink-0" />
+                  Create trigger
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <PromptInputButton
+            onClick={() => setDialogOpen(true)}
+            tooltip="Add trigger"
+            className="rounded-full"
+          >
+            <Zap className="size-4" />
+          </PromptInputButton>
+        )}
         {triggerCount > 0 && (
           <span className="-right-1 -top-1 size-4 font-bold pointer-events-none absolute flex items-center justify-center rounded-full bg-primary text-[9px] leading-none text-primary-foreground">
             {triggerCount > 9 ? "9+" : triggerCount}
@@ -159,7 +222,7 @@ export function TriggerPickerButton({ triggerCount }: TriggerPickerButtonProps) 
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
           className={cn(
             "max-h-[80vh] overflow-y-auto",
