@@ -9,6 +9,7 @@ import { workspaceProc } from "../../trpc/middleware";
 import { stripe } from "./stripe-client";
 import {
   getActiveSubscription,
+  getDailyUsageAggregates,
   listInvoices,
   getUsageThisPeriod,
 } from "./repo";
@@ -58,6 +59,20 @@ export const billingRouter = router({
     .query(async ({ ctx, input }) => {
       return listInvoices(ctx.db, ctx.workspaceId, input.limit);
     }),
+
+  usageByDay: workspaceProc.query(async ({ ctx }) => {
+    const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+    const periodStart =
+      sub?.subscription.currentPeriodStart ??
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const periodEnd = sub?.subscription.currentPeriodEnd ?? new Date();
+    return getDailyUsageAggregates(
+      ctx.db,
+      ctx.workspaceId,
+      periodStart,
+      periodEnd,
+    );
+  }),
 
   usageThisPeriod: workspaceProc.query(async ({ ctx }) => {
     const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);

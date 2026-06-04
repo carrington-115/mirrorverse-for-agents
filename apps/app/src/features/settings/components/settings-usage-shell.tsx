@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,11 +11,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useCurrentPlanQuery, useUsagePeriodQuery } from "@/features/billing/api/queries";
+import {
+  useCurrentPlanQuery,
+  useUsageByDayQuery,
+  useUsagePeriodQuery,
+} from "@/features/billing/api/queries";
 
 type UsageKind = string;
 
@@ -26,6 +39,12 @@ const KIND_LABELS: Record<UsageKind, string> = {
   voice_minute: "Voice minutes",
   sandbox_second: "Sandbox seconds",
 };
+
+const tokenChartConfig = {
+  llm_input: { label: "Input tokens", color: "var(--chart-1)" },
+  llm_output: { label: "Output tokens", color: "var(--chart-2)" },
+  llm_input_cache_read: { label: "Cached tokens", color: "var(--chart-3)" },
+} satisfies ChartConfig;
 
 function formatValue(kind: UsageKind, quantity: number): string {
   if (kind.includes("token")) return quantity.toLocaleString();
@@ -50,6 +69,7 @@ function formatDate(date: Date | string | null | undefined): string {
 export function UsageSettingsShell() {
   const { data: planData, isLoading: planLoading } = useCurrentPlanQuery();
   const { data: usageData, isLoading: usageLoading } = useUsagePeriodQuery();
+  const { data: usageByDayData, isLoading: usageByDayLoading } = useUsageByDayQuery();
 
   const limits = planData?.plan?.limits;
   const periodEnd = usageData?.periodEnd;
@@ -98,6 +118,32 @@ export function UsageSettingsShell() {
       : []),
   ];
 
+  // Build daily token chart data by pivoting kind rows into columns per date
+  const dailyRaw = usageByDayData ?? [];
+  const dateMap = new Map<
+    string,
+    { date: string; llm_input: number; llm_output: number; llm_input_cache_read: number }
+  >();
+  for (const entry of dailyRaw) {
+    if (!entry.kind.startsWith("llm")) continue;
+    const d = new Date(entry.periodStart);
+    const label = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+    const key = d.toISOString().slice(0, 10);
+    if (!dateMap.has(key)) {
+      dateMap.set(key, { date: label, llm_input: 0, llm_output: 0, llm_input_cache_read: 0 });
+    }
+    const row = dateMap.get(key)!;
+    if (entry.kind === "llm_input") row.llm_input = entry.totalQuantity;
+    else if (entry.kind === "llm_output") row.llm_output = entry.totalQuantity;
+    else if (entry.kind === "llm_input_cache_read") row.llm_input_cache_read = entry.totalQuantity;
+  }
+  const tokenChartData = Array.from(dateMap.values());
+  const hasTokenChartData = tokenChartData.length > 0;
+
   return (
     <div className="gap-6 max-w-2xl flex flex-col">
       <div>
@@ -120,6 +166,55 @@ export function UsageSettingsShell() {
               {planLoading ? <Skeleton className="h-4 w-32" /> : formatDate(periodEnd)}
             </span>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Daily token usage</CardTitle>
+          <CardDescription>LLM tokens consumed per day this billing period.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {usageByDayLoading ? (
+            <Skeleton className="h-[180px] w-full" />
+          ) : !hasTokenChartData ? (
+            <p className="text-sm py-8 text-center text-muted-foreground">
+              No token usage recorded yet this period.
+            </p>
+          ) : (
+            <ChartContainer config={tokenChartConfig} className="h-[180px] w-full">
+              <BarChart data={tokenChartData} barGap={2}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ fontSize: 11 }}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="llm_input"
+                  stackId="tokens"
+                  fill="var(--color-llm_input)"
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="llm_input_cache_read"
+                  stackId="tokens"
+                  fill="var(--color-llm_input_cache_read)"
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="llm_output"
+                  stackId="tokens"
+                  fill="var(--color-llm_output)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          )}
         </CardContent>
       </Card>
 

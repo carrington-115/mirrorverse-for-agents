@@ -10,6 +10,7 @@ export type SettingsPage =
   | "security"
   | "apps"
   | "channels"
+  | "runs"
   | "profile";
 
 export interface SettingsModalContextValue {

@@ -292,7 +292,7 @@ const ModelItem = memo(({ model, selectedModel, onSelect }: ModelItemProps) => {
   );
   return (
     <ModelSelectorItem key={model.id} onSelect={handleSelect} value={model.id}>
-      <ModelSelectorLogo provider={model.chefSlug} />
+      <ModelSelectorLogo  provider={model.chefSlug} />
       <ModelSelectorName>{model.name}</ModelSelectorName>
       <ModelSelectorLogoGroup>
         {model.providers.map((provider) => (

@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   desc,
   eq,
   gte,
@@ -285,6 +286,39 @@ export async function getHourlyUsageSince(
       ),
     )
     .groupBy(usageEvents.workspaceId, usageEvents.kind);
+}
+
+export interface DailyUsageEntry {
+  periodStart: Date;
+  kind: UsageKind;
+  totalQuantity: number;
+  totalCostCents: number;
+}
+
+export async function getDailyUsageAggregates(
+  db: Database,
+  workspaceId: string,
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<DailyUsageEntry[]> {
+  const rows = await db
+    .select({
+      periodStart: usagePeriodAggregates.periodStart,
+      kind: usagePeriodAggregates.kind,
+      totalQuantity: usagePeriodAggregates.totalQuantity,
+      totalCostCents: usagePeriodAggregates.totalCostCents,
+    })
+    .from(usagePeriodAggregates)
+    .where(
+      and(
+        eq(usagePeriodAggregates.workspaceId, workspaceId),
+        eq(usagePeriodAggregates.granularity, "day"),
+        gte(usagePeriodAggregates.periodStart, periodStart),
+        lte(usagePeriodAggregates.periodStart, periodEnd),
+      ),
+    )
+    .orderBy(asc(usagePeriodAggregates.periodStart));
+  return rows as DailyUsageEntry[];
 }
 
 export async function getPaidSubscriptions(db: Database) {

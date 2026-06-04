@@ -15,7 +15,7 @@ interface ChatEmptyStateProps {
 
 export function ChatEmptyState({ onFillInput, inputSlot }: ChatEmptyStateProps) {
   return (
-    <div className="px-4 flex h-full w-full items-center justify-center">
+    <div className="px-4 flex h-full w-full justify-center">
       <div className="max-w-3xl gap-6 flex w-full flex-col">
         <BrandHeader />
         {inputSlot}
@@ -38,7 +38,7 @@ export function ChatEmptyState({ onFillInput, inputSlot }: ChatEmptyStateProps) 
 
 function BrandHeader() {
   return (
-    <div className="gap-y-6 md:mt-[200px] mt-[450px] mb-[var(--spacing-lg)] flex items-center justify-center">
+    <div className="gap-y-6 mt-[100px] mb-[var(--spacing-lg)] flex items-center justify-center">
       <Image
         src={mirrorpilotIconLight}
         alt="Mirrro"

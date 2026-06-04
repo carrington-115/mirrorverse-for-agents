@@ -56,7 +56,7 @@ import { cn } from "@/lib/utils";
 import { CHAT_MODELS, type ModelOption } from "@/features/chat/config";
 import { useSpeechToText } from "@/features/chat/hooks/use-speech-to-text";
 import { PlanProgressBar, type PlanProgressStep } from "./plan-progress-bar";
-import { TriggerPickerButton } from "./trigger-picker";
+import { TriggerPickerButton, type SessionTriggerInfo } from "./trigger-picker";
 
 export type ChatStatus = "submitted" | "streaming" | "ready" | "error";
 
@@ -69,7 +69,7 @@ interface ChatPromptInputProps {
   onConnectApp?: () => void;
   onConnectWebhook?: () => void;
   planSteps?: PlanProgressStep[];
-  sessionTriggerCount?: number;
+  sessionTriggers?: SessionTriggerInfo[];
   fillInputRef?: MutableRefObject<((text: string) => void) | null>;
 }
 
@@ -98,7 +98,7 @@ export function ChatPromptInput({
   onConnectApp,
   onConnectWebhook,
   planSteps = [],
-  sessionTriggerCount = 0,
+  sessionTriggers = [],
   fillInputRef,
 }: ChatPromptInputProps) {
   return (
@@ -180,7 +180,7 @@ export function ChatPromptInput({
             <ChatModelPicker selectedId={model} onSelect={onModelChange} />
           </PromptInputTools>
           <div className="gap-1 flex items-center">
-            <TriggerPickerButton triggerCount={sessionTriggerCount} />
+            <TriggerPickerButton triggers={sessionTriggers} />
             <MicButton />
             <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
           </div>
@@ -439,7 +439,7 @@ function ChatModelPicker({
                 : "text-muted-foreground",
             )}
           >
-            <Grid2x2 className="size-4 md:size-4 shrink-0" />
+            <Grid2x2 className="size-4 shrink-0" />
             <span className="md:inline hidden">All</span>
           </button>
           {PROVIDERS.map(({ chef, slug }) => (

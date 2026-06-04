@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   AppWindow,
   BarChart3,
+  History,
   Megaphone,
   Receipt,
   Search,
@@ -27,6 +28,7 @@ import { PricingSettingsShell } from "./settings-pricing-shell";
 import { ProfileSettingsShell } from "./settings-profile-shell";
 import { SecuritySettingsShell } from "./settings-security-shell";
 import { UsageSettingsShell } from "./settings-usage-shell";
+import { RunsSettingsShell } from "./settings-runs-shell";
 import { type SettingsPage, useSettingsModal } from "../hooks/use-settings-modal";
 
 type NavItem = {
@@ -43,6 +45,7 @@ const WORKSPACE_ITEMS: NavItem[] = [
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "apps", label: "Apps", icon: AppWindow },
   { id: "channels", label: "Channels", icon: Megaphone },
+  { id: "runs", label: "Run History", icon: History },
 ];
 
 const ACCOUNT_ITEMS: NavItem[] = [{ id: "profile", label: "Profile", icon: User }];
@@ -57,6 +60,7 @@ const PAGE_CONTENT: Record<SettingsPage, React.ComponentType> = {
   security: SecuritySettingsShell,
   apps: AppsSettingsShell,
   channels: ChannelsSettingsShell,
+  runs: RunsSettingsShell,
   profile: ProfileSettingsShell,
 };
 
