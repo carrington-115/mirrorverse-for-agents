@@ -19,3 +19,34 @@ export function useRetryRunMutation() {
     },
   });
 }
+
+export function useTriggerManualRunMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.runs.triggerManual.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.runs.list.queryKey() });
+      toast.success("Run started.");
+    },
+    onError: () => {
+      toast.error("Failed to start run. Make sure the workflow is active.");
+    },
+  });
+}
+
+export function useCancelRunMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.runs.cancel.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.runs.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.runs.statsByDay.queryKey() });
+      toast.success("Run cancelled.");
+    },
+    onError: () => {
+      toast.error("Failed to cancel the run.");
+    },
+  });
+}

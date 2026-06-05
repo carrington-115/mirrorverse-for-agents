@@ -7,6 +7,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/onboarding/verify-account",
   "/auth/callback",
   "/invite",
+  "/review",
 ];
 
 const PROTECTED_ROUTE_PREFIXES = ["/workspace", "/onboarding"];
@@ -16,8 +17,17 @@ function matchesPrefix(pathname: string, prefixes: string[]) {
 }
 
 export default async function proxy(request: NextRequest) {
-  const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+
+  // Skip session refresh on the OAuth callback — the route handler is about to
+  // establish a new session via exchangeCodeForSession. Running updateSession
+  // here makes a network call that times out and can overwrite the cookies the
+  // route handler sets (clearing the new session before it's used).
+  if (matchesPrefix(pathname, ["/auth/callback"])) {
+    return NextResponse.next({ request });
+  }
+
+  const { response, user } = await updateSession(request);
 
   if (pathname === "/" && !user) {
     return NextResponse.redirect(new URL("/sign-in", request.url));

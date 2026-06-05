@@ -45,3 +45,14 @@ export interface HumanReviewRespondedEventData extends Record<string, unknown> {
 export const humanReviewRespondedEvent = eventType("human.review.responded", {
   schema: staticSchema<HumanReviewRespondedEventData>(),
 });
+
+export interface ChatAgentLoopEventData extends Record<string, unknown> {
+  readonly chatId: string;
+  readonly workspaceId: string;
+  readonly userId: string;
+  readonly resumeEventName?: string; // present when re-triggering after a credential interrupt
+}
+
+export const chatAgentLoopEvent = eventType("chat/agent_loop", {
+  schema: staticSchema<ChatAgentLoopEventData>(),
+});

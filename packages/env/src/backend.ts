@@ -52,6 +52,13 @@ export const env = createEnv({
 
     RESEND_API_KEY: z.string().min(1).optional(),
     RESEND_FROM_EMAIL: z.string().email().default("noreply@mirrorverse.ai"),
+    RESEND_MARKETING_FROM_EMAIL: z.string().email().default("hello@mirrorverse.ai"),
+    SUPABASE_HOOK_SECRET: z.string().min(1).optional(),
+    // Optional local JWKS cache. Paste the JSON from:
+    //   {SUPABASE_URL}/auth/v1/.well-known/jwks.json
+    // Eliminates the outbound network call for JWT verification — required when
+    // Node.js cannot reach Supabase directly (e.g. firewall restrictions in dev).
+    SUPABASE_JWKS: z.string().min(1).optional(),
     APP_URL: z.string().url().default("http://localhost:3000"),
 
     INNGEST_EVENT_KEY: z.string().min(1).optional(),

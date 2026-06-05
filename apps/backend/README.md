@@ -1,153 +1,80 @@
 # Mirrorverse Backend
 
-Backend service for the Mirrorverse application, built with Node.js, Express, and TypeScript.
+Next.js (App Router) backend serving tRPC over route handlers, with Inngest for durable background jobs. Deployed to Vercel; in dev it runs as a Next.js dev server on port 3001.
 
-## 🚀 Features
+## Tech stack
 
-- **Authentication**: User registration and login
-- **API**: RESTful API for application data
-- **Database**: MongoDB integration
-- **Security**: JWT-based authentication, password hashing
+- **Framework**: Next.js 16 (App Router, Node.js runtime)
+- **API layer**: tRPC v11 — type-safe RPC, one router per feature domain
+- **Database**: Drizzle ORM + Postgres (Supabase)
+- **Background jobs**: Inngest v4 — durable step functions, cron, pause/resume
+- **AI**: Vercel AI SDK, Anthropic, OpenAI
+- **Integrations**: Composio (tools/OAuth), Vapi (voice), Stripe (billing), Twilio, Resend
 
-## 🛠️ Tech Stack
+## Running locally
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **Database**: MongoDB
-- **Authentication**: JWT (jsonwebtoken), bcryptjs
-- **Validation**: Joi
-- **Environment**: dotenv
+From the repo root:
 
-## 📂 Project Structure
+```bash
+pnpm dev           # all apps + package watchers
+pnpm dev:backend   # backend only (port 3001)
+```
+
+## Inngest local dev
+
+Inngest functions run against a local dev server that acts as the Inngest cloud.
+
+1. Start the backend first:
+   ```bash
+   pnpm dev:backend
+   ```
+2. In a second terminal, start the Inngest dev server:
+   ```bash
+   pnpm --filter @mirrorverse/backend dev:inngest
+   ```
+3. Open **http://localhost:8288** — the Inngest Dev UI lists all registered functions and lets you trigger test events, inspect step execution, and replay runs.
+
+> The dev server auto-sets `INNGEST_DEV=true` so no signing key is needed locally.
+
+## Registered Inngest functions
+
+| Function ID              | Trigger                    | Description                                                                            |
+| ------------------------ | -------------------------- | -------------------------------------------------------------------------------------- |
+| `chat.agent_loop`        | `chat/agent_loop` event    | Durable chat orchestrator with pause/resume for credential interrupts (body: issue #5) |
+| `workflow.execute`       | `workflow/execute` event   | Walks a workflow graph step-by-step; concurrency-keyed by `workflowId`                 |
+| `workflow.cron-dispatch` | Every minute (`* * * * *`) | Polls DB for due cron workflows and fans out `workflow/execute` events                 |
+| `knowledge.ingest`       | `knowledge/ingest` event   | Chunks, embeds, and stores documents (PDF, URL, text, image, file)                     |
+| `billing.aggregator`     | Every hour (`0 * * * *`)   | Aggregates usage, upserts period summaries, reports Stripe meter events                |
+
+## Source layout
 
 ```
 src/
-├── api/
-│   ├── v1/
-│   │   ├── routes/      # API route definitions
-│   │   ├── controllers/ # Request handlers
-│   │   ├── middlewares/ # Custom middleware
-│   │   └── validators/  # Request validation schemas
-│   └── index.ts         # API router
-├── config/              # Configuration files
-├── models/              # Mongoose models
-├── services/            # Business logic
-├── utils/               # Utility functions
-└── server.ts            # Application entry point
+├── api/              Route handler implementations (chat, inngest, speech, trpc, webhooks)
+├── features/         Domain modules — each has router, service, repo, inputs
+│   ├── billing/
+│   ├── chats/
+│   ├── inngest/      Inngest client, event types, function factories
+│   ├── knowledge/
+│   ├── runs/
+│   ├── tenancy/
+│   ├── tools/
+│   ├── voice/
+│   ├── webhooks/
+│   └── workflows/
+│       └── runtime/  Graph walker, interpreters, cron dispatcher
+├── lib/              Shared infra (auth, logger, tracing, storage)
+├── mcp/              Composio integration
+└── trpc/             Router composition, context, middleware
 ```
 
-## 📦 Installation
+## Environment variables
 
-1. Clone the repository:
+`packages/env/src/backend.ts` is the source of truth for all env vars. Key ones for Inngest:
 
-   ```bash
-   git clone <repository-url>
-   cd mirrorverse-backend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-## ⚙️ Configuration
-
-Create a `.env` file in the root directory with the following variables:
-
-```env
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/mirrorverse
-JWT_SECRET=your_jwt_secret
-```
-
-## 🏃 Running the Server
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-The server will start on `http://localhost:5000`.
-
-## 🧪 Testing
-
-Run the test suite:
-
-```bash
-npm test
-```
-
-## 📝 API Documentation
-
-### Authentication
-
-#### Register
-
-```http
-POST /api/v1/auth/register
-```
-
-**Request Body:**
-
-```json
-{
-  "username": "testuser",
-  "email": "[EMAIL_ADDRESS]",
-  "password": "password123"
-}
-```
-
-**Response:**
-
-```json
-{
-  "message": "User registered successfully",
-  "user": {
-    "_id": "...",
-    "username": "testuser",
-    "email": "[EMAIL_ADDRESS]"
-  }
-}
-```
-
-#### Login
-
-```http
-POST /api/v1/auth/login
-```
-
-**Request Body:**
-
-```json
-{
-  "email": "[EMAIL_ADDRESS]",
-  "password": "password123"
-}
-```
-
-**Response:**
-
-```json
-{
-  "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "_id": "...",
-    "username": "testuser",
-    "email": "[EMAIL_ADDRESS]"
-  }
-}
-```
-
-## 🤝 Contributing
-
-1. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-2. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-3. Push to the branch (`git push origin feature/AmazingFeature`)
-4. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+| Variable                       | Required   | Description                                            |
+| ------------------------------ | ---------- | ------------------------------------------------------ |
+| `INNGEST_SIGNING_KEY`          | Production | Verifies requests from Inngest cloud                   |
+| `INNGEST_EVENT_KEY`            | Production | API key for `inngest.send()` calls                     |
+| `INNGEST_SIGNING_KEY_FALLBACK` | Optional   | For key rotation                                       |
+| `INNGEST_DEV`                  | Dev (auto) | Set by the dev server; disables signature verification |

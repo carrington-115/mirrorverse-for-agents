@@ -6,8 +6,9 @@ import { env } from "@mirrorverse/env/backend";
 
 import { stripe } from "../stripe-client";
 import { upsertSubscription, upsertInvoice } from "../repo";
+import { sendBillingEmail } from "../../notifications/email";
 
-const { workspaces, subscriptions } = schema;
+const { workspaces, subscriptions, userProfiles } = schema;
 
 async function resolveWorkspaceId(
   db: Database,
@@ -19,6 +20,28 @@ async function resolveWorkspaceId(
     .where(eq(workspaces.stripeCustomerId, stripeCustomerId))
     .limit(1);
   return ws?.id ?? null;
+}
+
+async function resolveOwnerEmail(
+  db: Database,
+  workspaceId: string,
+): Promise<string | null> {
+  const [ws] = await db
+    .select({ ownerId: workspaces.ownerId })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId))
+    .limit(1);
+  if (!ws) return null;
+
+  const [profile] = await db
+    .select({
+      email: userProfiles.email,
+      emailOptOut: userProfiles.emailOptOut,
+    })
+    .from(userProfiles)
+    .where(eq(userProfiles.id, ws.ownerId))
+    .limit(1);
+  return profile && !profile.emailOptOut ? profile.email : null;
 }
 
 async function resolveSubscriptionDbId(
@@ -156,16 +179,115 @@ export async function handleStripeWebhook(
     switch (event.type) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
-      case "customer.subscription.deleted":
-        await handleSubscriptionEvent(
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as Stripe.Subscription;
+        await handleSubscriptionEvent(db, sub);
+
+        if (event.type === "customer.subscription.updated") {
+          const prevPlanId = event.data.previous_attributes?.["metadata"]
+            ? (
+                (event.data.previous_attributes as Record<string, unknown>)[
+                  "metadata"
+                ] as Record<string, string> | undefined
+              )?.["planId"]
+            : undefined;
+          const newPlanId =
+            (sub.metadata["planId"] as string | undefined) ?? "free";
+          if (prevPlanId && prevPlanId !== newPlanId) {
+            const workspaceId = await resolveWorkspaceId(
+              db,
+              sub.customer as string,
+            );
+            if (workspaceId) {
+              const email = await resolveOwnerEmail(db, workspaceId);
+              if (email) {
+                sendBillingEmail(email, {
+                  variant: "plan_upgraded",
+                  newPlan: newPlanId,
+                  appUrl: env.APP_URL,
+                }).catch((err) =>
+                  console.error(
+                    "[stripe-webhook] plan_upgraded email failed:",
+                    err,
+                  ),
+                );
+              }
+            }
+          }
+        }
+        break;
+      }
+      case "customer.subscription.trial_will_end": {
+        const sub = event.data.object as Stripe.Subscription;
+        const workspaceId = await resolveWorkspaceId(
           db,
-          event.data.object as Stripe.Subscription,
+          sub.customer as string,
         );
+        if (workspaceId) {
+          const email = await resolveOwnerEmail(db, workspaceId);
+          if (email) {
+            const trialEnd = sub.trial_end ?? 0;
+            const daysLeft = Math.max(
+              1,
+              Math.round(
+                (trialEnd * 1000 - Date.now()) / (1000 * 60 * 60 * 24),
+              ),
+            );
+            sendBillingEmail(email, {
+              variant: "trial_ending",
+              daysLeft,
+              upgradeUrl: `${env.APP_URL}/settings/billing`,
+            }).catch((err) =>
+              console.error("[stripe-webhook] trial_ending email failed:", err),
+            );
+          }
+        }
         break;
-      case "invoice.paid":
-      case "invoice.payment_failed":
-        await handleInvoiceEvent(db, event.data.object as Stripe.Invoice);
+      }
+      case "invoice.paid": {
+        const inv = event.data.object as Stripe.Invoice;
+        await handleInvoiceEvent(db, inv);
+        const workspaceId = await resolveWorkspaceId(
+          db,
+          inv.customer as string,
+        );
+        if (workspaceId) {
+          const email = await resolveOwnerEmail(db, workspaceId);
+          if (email && inv.hosted_invoice_url) {
+            sendBillingEmail(email, {
+              variant: "invoice_paid",
+              invoiceUrl: inv.hosted_invoice_url,
+              totalCents: inv.total,
+            }).catch((err) =>
+              console.error("[stripe-webhook] invoice_paid email failed:", err),
+            );
+          }
+        }
         break;
+      }
+      case "invoice.payment_failed": {
+        const inv = event.data.object as Stripe.Invoice;
+        await handleInvoiceEvent(db, inv);
+        const workspaceId = await resolveWorkspaceId(
+          db,
+          inv.customer as string,
+        );
+        if (workspaceId) {
+          const email = await resolveOwnerEmail(db, workspaceId);
+          if (email) {
+            sendBillingEmail(email, {
+              variant: "payment_failed",
+              portalUrl: `${env.APP_URL}/settings/billing`,
+            }).catch((err) =>
+              console.error(
+                "[stripe-webhook] payment_failed email failed:",
+                err,
+              ),
+            );
+          }
+        }
+        break;
+      }
       default:
         break;
     }

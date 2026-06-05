@@ -6,6 +6,8 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
   type MutableRefObject,
   type ReactNode,
@@ -23,6 +25,7 @@ import {
   Search,
   Upload,
   X,
+  Zap,
 } from "lucide-react";
 
 import { ModelSelectorLogo, ModelSelectorName } from "@mirrorverse/ui/ai-elements/model-selector";
@@ -71,6 +74,7 @@ interface ChatPromptInputProps {
   planSteps?: PlanProgressStep[];
   sessionTriggers?: SessionTriggerInfo[];
   fillInputRef?: MutableRefObject<((text: string) => void) | null>;
+  compact?: boolean;
 }
 
 function SetInputBridge({
@@ -89,6 +93,43 @@ function SetInputBridge({
   return null;
 }
 
+function LayoutExpansionWatcher({ onExpand }: { onExpand: (expanded: boolean) => void }) {
+  const controller = usePromptInputController();
+  const value = controller.textInput.value;
+  useEffect(() => {
+    const textarea = document.querySelector<HTMLTextAreaElement>(
+      '[data-slot="input-group-control"]',
+    );
+    if (!textarea) {
+      onExpand(false);
+      return;
+    }
+    // Save cursor position before DOM manipulation so measurement doesn't displace it.
+    const selStart = textarea.selectionStart;
+    const selEnd = textarea.selectionEnd;
+    const wasFocused = document.activeElement === textarea;
+
+    // Measure the single-row baseline height by temporarily zeroing min-height and
+    // clearing content, then compare against the actual content height. This avoids
+    // a hardcoded pixel threshold that breaks when padding differs between layouts.
+    const prevMinHeight = textarea.style.minHeight;
+    const prevValue = textarea.value;
+    textarea.style.minHeight = "0px";
+    textarea.value = "";
+    const singleRowHeight = textarea.scrollHeight;
+    textarea.value = prevValue;
+    const contentHeight = textarea.scrollHeight;
+    textarea.style.minHeight = prevMinHeight;
+
+    // Restore cursor position after measurement restores the value.
+    if (wasFocused) {
+      textarea.setSelectionRange(selStart, selEnd);
+    }
+    onExpand(contentHeight > singleRowHeight);
+  }, [value, onExpand]);
+  return null;
+}
+
 export function ChatPromptInput({
   onSubmit,
   status,
@@ -100,7 +141,206 @@ export function ChatPromptInput({
   planSteps = [],
   sessionTriggers = [],
   fillInputRef,
+  compact = false,
 }: ChatPromptInputProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [mobileTriggerDialogOpen, setMobileTriggerDialogOpen] = useState(false);
+  // Save cursor position before the layout switches so it can be restored after remount.
+  const cursorRef = useRef<{ start: number | null; end: number | null }>({
+    start: null,
+    end: null,
+  });
+  // Mirror isExpanded into a ref so handleExpand can read the current value without
+  // being listed as a dep — keeping the callback reference stable prevents
+  // LayoutExpansionWatcher from re-running its effect on every state change.
+  const isExpandedRef = useRef(isExpanded);
+  useLayoutEffect(() => {
+    isExpandedRef.current = isExpanded;
+  });
+
+  const handleExpand = useCallback((expanded: boolean) => {
+    if (expanded !== isExpandedRef.current) {
+      const textarea = document.querySelector<HTMLTextAreaElement>(
+        '[data-slot="input-group-control"]',
+      );
+      if (textarea) {
+        cursorRef.current = { start: textarea.selectionStart, end: textarea.selectionEnd };
+      }
+    }
+    setIsExpanded(expanded);
+  }, []);
+
+  useEffect(() => {
+    const { start, end } = cursorRef.current;
+    if (start !== null && end !== null) {
+      const textarea = document.querySelector<HTMLTextAreaElement>(
+        '[data-slot="input-group-control"]',
+      );
+      if (textarea) {
+        textarea.setSelectionRange(start, end);
+      }
+      cursorRef.current = { start: null, end: null };
+    }
+  }, [isExpanded]);
+  const selectedModel = CHAT_MODELS.find((m) => m.id === model) ?? CHAT_MODELS[0];
+  const attachTooltip = {
+    content: (
+      <div className="space-y-1.5">
+        <p className="font-medium text-xs">Attach &amp; connect</p>
+        <ul className="space-y-0.5 text-xs text-muted-foreground">
+          <li>Images, screenshots &amp; documents</li>
+          <li>Phone numbers</li>
+          <li>Webhooks &amp; integrations</li>
+        </ul>
+      </div>
+    ),
+    side: "top" as const,
+  };
+
+  const attachMenuContent = (
+    <PromptInputActionMenuContent className="w-56">
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="md:hidden py-2.5 px-3">
+          <ModelSelectorLogo provider={selectedModel.chefSlug} className="mr-2 size-4 shrink-0" />
+          {selectedModel.name}
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="w-52">
+          {CHAT_MODELS.map((m) => (
+            <DropdownMenuItem
+              key={m.id}
+              className="py-2.5 px-3"
+              onSelect={() => onModelChange(m.id)}
+            >
+              <ModelSelectorLogo provider={m.chefSlug} className="mr-2 size-4 shrink-0" />
+              <span className="flex-1">{m.name}</span>
+              {m.id === model && <CheckIcon className="ml-1 size-3.5 shrink-0 text-primary" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuItem
+        className="md:hidden py-2.5 px-3"
+        onSelect={() => setMobileTriggerDialogOpen(true)}
+      >
+        <Zap className="mr-2 size-4 shrink-0 text-muted-foreground" />
+        {sessionTriggers.length > 0 ? `Triggers (${sessionTriggers.length})` : "Add trigger"}
+      </DropdownMenuItem>
+      <DropdownMenuSeparator className="md:hidden" />
+      <UploadFileMenuItem />
+      <PromptInputActionAddScreenshot className="py-2.5 px-3" />
+      <DropdownMenuSeparator />
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="py-2.5 px-3">
+          <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
+          Connect integration
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="w-44">
+          <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectWebhook?.()}>
+            <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
+            Connect webhook
+          </DropdownMenuItem>
+          <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectApp?.()}>
+            <Grid2x2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
+            Connect app
+          </DropdownMenuItem>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="py-2.5 px-3">
+          <Radio className="mr-2 size-4 shrink-0 text-muted-foreground" />
+          Add channel
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="w-52">
+          <ChannelMenuItem
+            icon={<Phone className="mr-2 size-4 shrink-0 text-muted-foreground" />}
+            text="Connect me to a phone number"
+            label="Connect phone"
+          />
+          <ChannelMenuItem
+            icon={<WhatsAppIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />}
+            text="Connect me to a WhatsApp number"
+            label="Connect WhatsApp number"
+          />
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    </PromptInputActionMenuContent>
+  );
+
+  if (compact) {
+    return (
+      <PromptInputProvider>
+        {fillInputRef && <SetInputBridge fillInputRef={fillInputRef} />}
+        <LayoutExpansionWatcher onExpand={handleExpand} />
+        <PlanProgressBar steps={planSteps} />
+        {isExpanded ? (
+          <PromptInput
+            globalDrop
+            multiple
+            onSubmit={onSubmit}
+            className="[&_[data-slot=input-group]]:rounded-2xl"
+          >
+            <AttachmentsBar />
+            <PromptInputBody>
+              <PromptInputTextarea
+                autoFocus
+                placeholder="How can I help you today?"
+                className="min-h-16 px-3 py-3 md:text-[14.6px]"
+              />
+            </PromptInputBody>
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger tooltip={attachTooltip} />
+                  {attachMenuContent}
+                </PromptInputActionMenu>
+                <ChatModelPicker selectedId={model} onSelect={onModelChange} />
+              </PromptInputTools>
+              <div className="gap-1 flex items-center">
+                <TriggerPickerButton triggers={sessionTriggers} />
+                <MicButton />
+                <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
+              </div>
+            </PromptInputFooter>
+          </PromptInput>
+        ) : (
+          <>
+            <AttachmentsBar />
+            <PromptInput
+              globalDrop
+              multiple
+              onSubmit={onSubmit}
+              className="[&_[data-slot=input-group]]:rounded-full"
+            >
+              <div className="py-3 pl-2.5 flex shrink-0 items-center">
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger tooltip={attachTooltip} />
+                  {attachMenuContent}
+                </PromptInputActionMenu>
+              </div>
+              <PromptInputTextarea
+                autoFocus
+                placeholder="How can I help you today?"
+                className="min-h-10 max-h-48 py-2.5 px-2 md:text-[14.6px]"
+              />
+              <div className="gap-0.5 py-1.5 pr-2.5 flex shrink-0 items-center">
+                <div className="md:contents hidden">
+                  <ChatModelPicker selectedId={model} onSelect={onModelChange} />
+                  <TriggerPickerButton
+                    triggers={sessionTriggers}
+                    externalDialogOpen={mobileTriggerDialogOpen}
+                    onExternalDialogOpenChange={setMobileTriggerDialogOpen}
+                  />
+                </div>
+                <MicButton />
+                <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
+              </div>
+            </PromptInput>
+          </>
+        )}
+      </PromptInputProvider>
+    );
+  }
+
   return (
     <PromptInputProvider>
       {fillInputRef && <SetInputBridge fillInputRef={fillInputRef} />}
@@ -122,60 +362,8 @@ export function ChatPromptInput({
         <PromptInputFooter>
           <PromptInputTools>
             <PromptInputActionMenu>
-              <PromptInputActionMenuTrigger
-                tooltip={{
-                  content: (
-                    <div className="space-y-1.5">
-                      <p className="font-medium text-xs">Attach &amp; connect</p>
-                      <ul className="space-y-0.5 text-xs text-muted-foreground">
-                        <li>Images, screenshots &amp; documents</li>
-                        <li>Phone numbers</li>
-                        <li>Webhooks &amp; integrations</li>
-                      </ul>
-                    </div>
-                  ),
-                  side: "top",
-                }}
-              />
-              <PromptInputActionMenuContent className="w-56">
-                <UploadFileMenuItem />
-                <PromptInputActionAddScreenshot className="py-2.5 px-3" />
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="py-2.5 px-3">
-                    <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                    Connect integration
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="w-44">
-                    <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectWebhook?.()}>
-                      <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                      Connect webhook
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectApp?.()}>
-                      <Grid2x2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                      Connect app
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="py-2.5 px-3">
-                    <Radio className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                    Add channel
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="w-52">
-                    <ChannelMenuItem
-                      icon={<Phone className="mr-2 size-4 shrink-0 text-muted-foreground" />}
-                      text="Connect me to a phone number"
-                      label="Connect phone"
-                    />
-                    <ChannelMenuItem
-                      icon={<WhatsAppIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />}
-                      text="Connect me to a WhatsApp number"
-                      label="Connect WhatsApp number"
-                    />
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              </PromptInputActionMenuContent>
+              <PromptInputActionMenuTrigger tooltip={attachTooltip} />
+              {attachMenuContent}
             </PromptInputActionMenu>
             <ChatModelPicker selectedId={model} onSelect={onModelChange} />
           </PromptInputTools>

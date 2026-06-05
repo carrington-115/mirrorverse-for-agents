@@ -3,11 +3,9 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import type { CostBreakdown, RunError, RunStepLog, RunStepStatus } from "@mirrorverse/types";
 import { RunStatusBadge } from "./run-status-badge";
 import { InputOutputViewer } from "./input-output-viewer";
-import { useRetryRunMutation } from "../api/mutations";
 
 interface Step {
   id: string;
@@ -59,8 +57,6 @@ export function StepDrawer({
   open: boolean;
   onClose: () => void;
 }) {
-  const retryMutation = useRetryRunMutation();
-
   return (
     <Sheet
       open={open}
@@ -82,17 +78,6 @@ export function StepDrawer({
                 <SheetTitle className="text-base">{step.nodeKind}</SheetTitle>
                 <RunStatusBadge status={step.status} />
               </div>
-              {(step.status === "failed" || step.status === "timed_out") && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="self-start"
-                  onClick={() => retryMutation.mutate({ runId: step.runId, fromStepId: step.id })}
-                  disabled={retryMutation.isPending}
-                >
-                  Re-run from here
-                </Button>
-              )}
             </SheetHeader>
 
             <Tabs defaultValue="input">

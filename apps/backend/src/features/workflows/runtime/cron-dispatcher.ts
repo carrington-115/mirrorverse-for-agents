@@ -9,9 +9,16 @@ import { findDueCronWorkflows } from "./cron-repo";
  * Runs every minute. Queries for active automation workflows whose cron
  * expression is due and fires a `workflow/execute` event for each.
  *
- * Idempotency is handled by Inngest's event deduplication: the event id
- * encodes the versionId + epoch minute, so duplicate fires in the same minute
- * produce at most one run.
+ * Design: uses a single fat-dispatcher (one Inngest function, DB poll) rather
+ * than dynamically registering one `createFunction` per workflow. Reasons:
+ * 1. Inngest caps registered functions per app; the set of cron workflows is
+ *    unbounded at runtime.
+ * 2. Dynamic `createFunction` calls require a server redeploy to take effect.
+ * 3. The DB-poll approach handles any cron schedule without Inngest API calls
+ *    on workflow activation.
+ *
+ * Idempotency: the event id encodes `cron:<versionId>:<epochMinute>`, so
+ * duplicate fires within the same minute produce at most one run.
  */
 export function makeCronDispatcherFunction(db: Database): InngestFunction.Any {
   return inngest.createFunction(

@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { and, asc, desc, eq, gte, lt, schema, sql } from "@mirrorverse/db";
-import type { JsonValue, RunStatus } from "@mirrorverse/types";
+import type {
+  JsonValue,
+  RunStatus,
+  WorkflowDocument,
+} from "@mirrorverse/types";
 
 import { inngest } from "../inngest/client";
 import { router, TRPCError } from "../../trpc/init";
@@ -20,7 +24,19 @@ export const runsRouter = router({
         response: z.unknown(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Invalidate the public token so the external link can't be used again.
+      await ctx.db
+        .update(schema.humanReviewTokens)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(schema.humanReviewTokens.runId, input.runId),
+            eq(schema.humanReviewTokens.nodeId, input.nodeId),
+            eq(schema.humanReviewTokens.workspaceId, ctx.workspaceId),
+          ),
+        );
+
       await inngest.send(
         humanReviewRespondedEvent.create({
           runId: input.runId,
@@ -89,7 +105,17 @@ export const runsRouter = router({
     .input(
       z.object({
         workflowId: z.string().optional(),
-        status: z.string().optional(),
+        status: z
+          .enum([
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "timed_out",
+            "waiting_for_input",
+          ])
+          .optional(),
         cursor: z.string().datetime({ offset: true }).optional(),
         limit: z.number().int().min(1).max(100).default(20),
       }),
@@ -100,9 +126,7 @@ export const runsRouter = router({
         conditions.push(eq(schema.workflowRuns.workflowId, input.workflowId));
       }
       if (input.status) {
-        conditions.push(
-          eq(schema.workflowRuns.status, input.status as RunStatus),
-        );
+        conditions.push(eq(schema.workflowRuns.status, input.status));
       }
       if (input.cursor) {
         conditions.push(
@@ -218,16 +242,37 @@ export const runsRouter = router({
         }
       }
 
-      return Array.from(map.values());
+      // Zero-fill days with no runs so the chart has a continuous X-axis.
+      const cursor = new Date(since);
+      cursor.setUTCHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      while (cursor <= today) {
+        const key = cursor.toISOString().slice(0, 10);
+        if (!map.has(key)) {
+          const label = cursor.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            timeZone: "UTC",
+          });
+          map.set(key, {
+            date: label,
+            succeeded: 0,
+            failed: 0,
+            running: 0,
+            cancelled: 0,
+          });
+        }
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+
+      return Array.from(map.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([, v]) => v);
     }),
 
   retry: workspaceProc
-    .input(
-      z.object({
-        runId: z.string().min(1),
-        fromStepId: z.string().optional(),
-      }),
-    )
+    .input(z.object({ runId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const [run] = await ctx.db
         .select()
@@ -242,6 +287,19 @@ export const runsRouter = router({
 
       if (!run) throw new TRPCError({ code: "NOT_FOUND" });
 
+      const TERMINAL: RunStatus[] = [
+        "failed",
+        "timed_out",
+        "cancelled",
+        "succeeded",
+      ];
+      if (!TERMINAL.includes(run.status)) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Run is not in a terminal state",
+        });
+      }
+
       await inngest.send(
         workflowExecuteEvent.create({
           workspaceId: run.workspaceId,
@@ -250,9 +308,111 @@ export const runsRouter = router({
           triggerNodeId: run.triggerNodeId,
           triggerKind: run.triggerKind,
           triggerPayload: run.triggerPayload as JsonValue,
-          initiatedBy: `retry:${run.id}${input.fromStepId ? `:from:${input.fromStepId}` : ""}`,
+          initiatedBy: `retry:${run.id}`,
         }),
       );
+
+      return { ok: true as const };
+    }),
+
+  triggerManual: workspaceProc
+    .input(z.object({ workflowId: z.string().min(1).max(128) }))
+    .mutation(async ({ ctx, input }) => {
+      const [workflow] = await ctx.db
+        .select({
+          currentVersionId: schema.workflows.currentVersionId,
+          status: schema.workflows.status,
+        })
+        .from(schema.workflows)
+        .where(
+          and(
+            eq(schema.workflows.id, input.workflowId),
+            eq(schema.workflows.workspaceId, ctx.workspaceId),
+          ),
+        )
+        .limit(1);
+
+      if (!workflow) throw new TRPCError({ code: "NOT_FOUND" });
+      if (workflow.status !== "active") {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Workflow is not active",
+        });
+      }
+      if (!workflow.currentVersionId) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Workflow has no current version",
+        });
+      }
+
+      const [version] = await ctx.db
+        .select({ document: schema.workflowVersions.document })
+        .from(schema.workflowVersions)
+        .where(eq(schema.workflowVersions.id, workflow.currentVersionId))
+        .limit(1);
+
+      if (!version) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const doc = version.document as WorkflowDocument;
+      const triggerNode = doc.nodes.find((n) => n.type === "trigger.manual");
+      if (!triggerNode) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Workflow has no manual trigger node",
+        });
+      }
+
+      await inngest.send(
+        workflowExecuteEvent.create({
+          workspaceId: ctx.workspaceId,
+          workflowId: input.workflowId,
+          workflowVersionId: workflow.currentVersionId,
+          triggerNodeId: triggerNode.id,
+          triggerKind: "trigger.manual",
+          triggerPayload: {},
+          initiatedBy: `manual:${ctx.user.id}`,
+        }),
+      );
+
+      return { ok: true as const };
+    }),
+
+  cancel: workspaceProc
+    .input(z.object({ runId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [run] = await ctx.db
+        .select()
+        .from(schema.workflowRuns)
+        .where(
+          and(
+            eq(schema.workflowRuns.id, input.runId),
+            eq(schema.workflowRuns.workspaceId, ctx.workspaceId),
+          ),
+        )
+        .limit(1);
+
+      if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const CANCELLABLE: RunStatus[] = [
+        "running",
+        "queued",
+        "waiting_for_input",
+      ];
+      if (!CANCELLABLE.includes(run.status)) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Run cannot be cancelled in its current state",
+        });
+      }
+
+      const finishedAt = new Date();
+      const durationMs = finishedAt.getTime() - run.startedAt.getTime();
+
+      await ctx.db
+        .update(schema.workflowRuns)
+        .set({ status: "cancelled", finishedAt, durationMs })
+        .where(eq(schema.workflowRuns.id, run.id));
 
       return { ok: true as const };
     }),

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { InngestFunction } from "inngest";
 import { load } from "cheerio";
-import { schema, type Database } from "@mirrorverse/db";
+import { count, eq, schema, type Database } from "@mirrorverse/db";
 import { PDFParse } from "pdf-parse";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -17,6 +17,7 @@ import {
 import * as repo from "../../knowledge/repo";
 import { inngest } from "../client";
 import { knowledgeIngestEvent } from "../events";
+import { sendFirstKbEmail } from "../../notifications/email";
 
 // Approx 4 chars per token; ~400 token chunks with 50-token overlap
 const CHARS_PER_TOKEN = 4;
@@ -406,6 +407,34 @@ export function makeKnowledgeIngestFunction(db: Database): InngestFunction.Any {
           .onConflictDoNothing();
 
         return { chunkCount: rows.length, tokens };
+      });
+
+      // Check if this is the first ready document for the workspace and notify owner
+      await step.run("notify-first-kb", async () => {
+        const [{ value: docCount }] = await db
+          .select({ value: count() })
+          .from(schema.knowledgeDocuments)
+          .where(eq(schema.knowledgeDocuments.workspaceId, workspaceId));
+        if (docCount !== 1) return;
+
+        const [ws] = await db
+          .select({ ownerId: schema.workspaces.ownerId })
+          .from(schema.workspaces)
+          .where(eq(schema.workspaces.id, workspaceId))
+          .limit(1);
+        if (!ws) return;
+
+        const [profile] = await db
+          .select({
+            email: schema.userProfiles.email,
+            emailOptOut: schema.userProfiles.emailOptOut,
+          })
+          .from(schema.userProfiles)
+          .where(eq(schema.userProfiles.id, ws.ownerId))
+          .limit(1);
+        if (!profile || profile.emailOptOut) return;
+
+        await sendFirstKbEmail(profile.email, ws.ownerId);
       });
 
       return {

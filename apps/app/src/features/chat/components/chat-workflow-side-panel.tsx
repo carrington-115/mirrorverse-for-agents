@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useWorkflowQuery } from "@/features/workflows/api/queries";
 import { DocumentCanvas } from "@/features/workflows/components/document-canvas";
 import { extractIconHints, type NodeIconHints } from "@/features/workflows/lib/node-icon";
+import { WorkflowDeployButton } from "@/features/workflows/components/workflow-deploy-button";
 
 interface ChatWorkflowSidePanelProps {
   workflowId: string;
@@ -72,12 +73,15 @@ export function ChatWorkflowSidePanel({
           <span className="text-sm font-medium text-foreground">{data.workflow.name}</span>
           <span className="text-xs block text-muted-foreground">{data.workflow.kind}</span>
         </div>
-        {onClose && (
-          <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={onClose}>
-            <X className="size-4" />
-            <span className="sr-only">Close panel</span>
-          </Button>
-        )}
+        <div className="gap-1 flex shrink-0 items-center">
+          <WorkflowDeployButton workflowId={workflowId} size="sm" />
+          {onClose && (
+            <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={onClose}>
+              <X className="size-4" />
+              <span className="sr-only">Close panel</span>
+            </Button>
+          )}
+        </div>
       </div>
       <div className="min-h-0 flex-1">
         <DocumentCanvas
