@@ -78,6 +78,13 @@
       "when": 1780014573510,
       "tag": "0010_slippery_captain_america",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780645701241,
+      "tag": "0011_tough_starhawk",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: ["/", "/sign-in", "/sign-up"],
         disallow: [
           "/onboarding/",
+          "/review/",
           "/mirrorpilot/",
           "/workflows/",
           "/integrations/",

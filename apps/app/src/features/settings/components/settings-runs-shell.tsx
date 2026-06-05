@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ExternalLink, RefreshCw } from "lucide-react";
+import { Ban, ChevronLeft, ExternalLink, RefreshCw } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,8 +23,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkflowsListQuery } from "@/features/workflows/api/queries";
-import { useRunQuery, useRunsListQuery, useRunStatsByDayQuery } from "@/features/runs/api/queries";
-import { useRetryRunMutation } from "@/features/runs/api/mutations";
+import {
+  useRunQuery,
+  useRunsListQuery,
+  useRunStatsByDayQuery,
+  type RunStatusFilter,
+} from "@/features/runs/api/queries";
+import { useCancelRunMutation, useRetryRunMutation } from "@/features/runs/api/mutations";
 import { RunStatusBadge } from "@/features/runs/components/run-status-badge";
 import { RunTimeline } from "@/features/runs/components/run-timeline";
 import { StepDrawer } from "@/features/runs/components/step-drawer";
@@ -60,7 +65,7 @@ export function RunsSettingsShell() {
   const [view, setView] = useState<RunsView>({ kind: "list" });
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [workflowId, setWorkflowId] = useState<string | undefined>();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<RunStatusFilter | "all">("all");
 
   const { data: workflowsData, isLoading: workflowsLoading } = useWorkflowsListQuery();
   const { data: statsData, isLoading: statsLoading } = useRunStatsByDayQuery();
@@ -76,6 +81,7 @@ export function RunsSettingsShell() {
     view.kind === "detail" ? view.runId : null,
   );
   const retryMutation = useRetryRunMutation();
+  const cancelMutation = useCancelRunMutation();
 
   const statsChartData = statsData ?? [];
   const hasStatsData = statsChartData.length > 0;
@@ -171,7 +177,10 @@ export function RunsSettingsShell() {
               </SelectContent>
             </Select>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v as RunStatusFilter | "all")}
+            >
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -290,15 +299,32 @@ export function RunsSettingsShell() {
                           </a>
                         </Button>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => retryMutation.mutate({ runId: runDetail.run.id })}
-                        disabled={retryMutation.isPending}
-                      >
-                        <RefreshCw className="mr-1 size-3" />
-                        Re-run
-                      </Button>
+                      {["running", "queued", "waiting_for_input"].includes(
+                        runDetail.run.status,
+                      ) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => cancelMutation.mutate({ runId: runDetail.run.id })}
+                          disabled={cancelMutation.isPending}
+                        >
+                          <Ban className="mr-1 size-3" />
+                          Cancel
+                        </Button>
+                      )}
+                      {["failed", "timed_out", "cancelled", "succeeded"].includes(
+                        runDetail.run.status,
+                      ) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => retryMutation.mutate({ runId: runDetail.run.id })}
+                          disabled={retryMutation.isPending}
+                        >
+                          <RefreshCw className="mr-1 size-3" />
+                          Re-run
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

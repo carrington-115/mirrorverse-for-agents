@@ -2,6 +2,7 @@ import type { Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
 import { appError, ErrCode } from "../../lib/errors";
+import { sendWelcomeEmail } from "../notifications/email";
 
 import * as repo from "./repo";
 import type { CompleteOnboardingInput, SyncProfileInput } from "./inputs";
@@ -71,6 +72,11 @@ export const authService = {
     if (!updated) {
       throw appError(ErrCode.Internal, "Failed to complete onboarding");
     }
+
+    // Fire-and-forget: welcome email doesn't block the onboarding response
+    sendWelcomeEmail(ctx.email, input.name, ctx.userId).catch((err) =>
+      console.error("[auth] sendWelcomeEmail failed:", err),
+    );
 
     return {
       profile: updated,

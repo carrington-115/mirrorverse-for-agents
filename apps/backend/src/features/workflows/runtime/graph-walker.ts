@@ -306,11 +306,38 @@ export async function walkGraph(
   const adj = buildMainAdjacency(doc);
   const incomingCount = buildIncomingCount(doc);
 
-  // For merge nodes: track how many inputs have arrived.
+  // For merge nodes: track how many inputs have arrived and how many are expected.
+  // expectedCount starts at the static edge count but is decremented when a
+  // branch terminates early (stop signal, filter with no output, unmatched port)
+  // so the merge can still fire with the branches that actually ran.
   const mergeInputs = new Map<
     string,
     { received: number; accumulated: JsonValue[] }
   >();
+  const mergeExpected = new Map<string, number>(incomingCount);
+
+  // Decrement a merge node's expected count and, if all outstanding branches
+  // have now been accounted for, push the merge onto the queue.
+  function notifyMergeSkipped(
+    mergeNodeId: string,
+    queueRef: QueueEntry[],
+  ): void {
+    const prev = mergeExpected.get(mergeNodeId) ?? 1;
+    const next = Math.max(prev - 1, 0);
+    mergeExpected.set(mergeNodeId, next);
+    const existing = mergeInputs.get(mergeNodeId) ?? {
+      received: 0,
+      accumulated: [],
+    };
+    if (existing.received >= next && next > 0) {
+      // All remaining branches have arrived — unblock the merge.
+      mergeInputs.delete(mergeNodeId);
+      queueRef.unshift({
+        nodeId: mergeNodeId,
+        input: existing.accumulated as JsonValue,
+      });
+    }
+  }
 
   const queue: QueueEntry[] = [
     { nodeId: triggerNodeId, input: triggerPayload },
@@ -324,7 +351,7 @@ export async function walkGraph(
 
       // Handle merge node gating.
       if (node.type === "flow.merge") {
-        const expected = incomingCount.get(node.id) ?? 1;
+        const expected = mergeExpected.get(node.id) ?? 1;
         const existing = mergeInputs.get(node.id) ?? {
           received: 0,
           accumulated: [],
@@ -354,8 +381,17 @@ export async function walkGraph(
         entry.iterIndex,
       );
 
-      // Stop signal.
-      if (result === STOP_SIGNAL) break;
+      // Stop signal — notify any merge nodes directly reachable from here.
+      if (result === STOP_SIGNAL) {
+        const downstream = adj.get(node.id) ?? [];
+        for (const edge of downstream) {
+          const target = findNode(doc, edge.toNodeId);
+          if (target?.type === "flow.merge") {
+            notifyMergeSkipped(edge.toNodeId, queue);
+          }
+        }
+        break;
+      }
 
       // Loop signal — fan out iterations.
       if (
@@ -380,6 +416,7 @@ export async function walkGraph(
       state.set(node.id, ir.output);
 
       // Queue downstream nodes for each chosen output port.
+      // For edges NOT followed, notify merge nodes so they aren't left waiting.
       const downstream = adj.get(node.id) ?? [];
       for (const edge of downstream) {
         const portMatches =
@@ -390,6 +427,11 @@ export async function walkGraph(
           );
         if (portMatches) {
           queue.push({ nodeId: edge.toNodeId, input: ir.output });
+        } else {
+          const target = findNode(doc, edge.toNodeId);
+          if (target?.type === "flow.merge") {
+            notifyMergeSkipped(edge.toNodeId, queue);
+          }
         }
       }
 

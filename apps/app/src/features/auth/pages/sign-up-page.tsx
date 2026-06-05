@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { AuthForm } from "@/features/auth/components/auth-form";
 
@@ -10,7 +11,9 @@ export const metadata = buildMetadata({
 export function SignUpPage() {
   return (
     <div>
-      <AuthForm mode="sign-up" />
+      <Suspense>
+        <AuthForm mode="sign-up" />
+      </Suspense>
     </div>
   );
 }

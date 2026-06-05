@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type {
   ApiKeyScope,
   CompanySize,
@@ -74,6 +74,7 @@ export const userProfiles = pgTable(
     hearAboutUs: text("hear_about_us"),
     role: text("role"),
     otherRole: text("other_role"),
+    emailOptOut: boolean("email_opt_out").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

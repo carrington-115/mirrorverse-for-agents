@@ -41,7 +41,7 @@ export function IntegrationsBar() {
             <span className="text-xs font-medium w-[93px] leading-[16px]">
               Connects with your 24/7 stack
             </span>
-            <span className="md:block text-xl font-semibold hidden text-[#171717]">20+ apps</span>
+            <span className="md:block text-xl font-semibold hidden text-[#171717]">30+ apps</span>
           </div>
         </div>
 

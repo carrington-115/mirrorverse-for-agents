@@ -3,9 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 
+export type RunStatusFilter =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "cancelled"
+  | "timed_out"
+  | "waiting_for_input";
+
 export function useRunsListQuery(opts: {
   workflowId?: string;
-  status?: string;
+  status?: RunStatusFilter;
   cursor?: string;
   limit?: number;
 }) {

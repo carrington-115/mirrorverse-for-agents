@@ -1,7 +1,8 @@
 ﻿"use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -54,7 +55,13 @@ function copyFor(mode: AuthMode): ModeCopy {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const copy = copyFor(mode);
+
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err) toast.error(err);
+  }, [searchParams]);
 
   const {
     handleSubmit,
@@ -66,25 +73,30 @@ export function AuthForm({ mode }: AuthFormProps) {
   });
 
   const onSubmit = async (data: SignInValues) => {
+    toast.dismiss();
     const supabase = createClient();
     const { email } = data;
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(copy.next)}`,
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(copy.next)}`,
+        },
+      });
 
-    if (error) {
-      toast.error(error.message);
-      return;
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success("Check your email for a 6-digit code");
+      const params = new URLSearchParams({ email, next: copy.next });
+      router.push(`/onboarding/verify-account?${params.toString()}`);
+    } catch {
+      toast.error("Something went wrong. Please try again.");
     }
-
-    toast.success("Check your email for a 6-digit code");
-    const params = new URLSearchParams({ email, next: copy.next });
-    router.push(`/onboarding/verify-account?${params.toString()}`);
   };
 
   return (

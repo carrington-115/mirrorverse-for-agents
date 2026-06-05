@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from "jose";
+import { createLocalJWKSet, createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from "jose";
 import { env } from "@mirrorverse/env/backend";
 
 import { connectToDatabase, type Database } from "./client";
@@ -113,7 +113,10 @@ export interface VerifiedToken {
 // env vars are present — eager `new URL(..., env.SUPABASE_URL)` would throw
 // "Invalid URL" (or fail env validation) and break the build.
 let cachedJwtSecret: Uint8Array | null = null;
-let cachedJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+let cachedJwks:
+  | ReturnType<typeof createRemoteJWKSet>
+  | ReturnType<typeof createLocalJWKSet>
+  | null = null;
 
 function getJwtSecret(): Uint8Array {
   if (!cachedJwtSecret) {
@@ -122,10 +125,16 @@ function getJwtSecret(): Uint8Array {
   return cachedJwtSecret;
 }
 
-function getJwks(): ReturnType<typeof createRemoteJWKSet> {
+function getJwks(): ReturnType<typeof createRemoteJWKSet> | ReturnType<typeof createLocalJWKSet> {
   if (!cachedJwks) {
-    const jwksUrl = new URL("/auth/v1/.well-known/jwks.json", env.SUPABASE_URL);
-    cachedJwks = createRemoteJWKSet(jwksUrl);
+    if (env.SUPABASE_JWKS) {
+      cachedJwks = createLocalJWKSet(
+        JSON.parse(env.SUPABASE_JWKS) as Parameters<typeof createLocalJWKSet>[0],
+      );
+    } else {
+      const jwksUrl = new URL("/auth/v1/.well-known/jwks.json", env.SUPABASE_URL);
+      cachedJwks = createRemoteJWKSet(jwksUrl);
+    }
   }
   return cachedJwks;
 }

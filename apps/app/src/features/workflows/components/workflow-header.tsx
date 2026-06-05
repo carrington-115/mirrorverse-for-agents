@@ -7,7 +7,9 @@ import {
   ArrowLeft,
   BotMessageSquare,
   Check,
+  Loader2,
   Pencil,
+  Play,
   Redo2,
   Share2,
   Trash2,
@@ -36,6 +38,7 @@ import {
 } from "@/features/workflows/api/mutations";
 
 import { VersionSwitcher } from "./version-switcher";
+import { WorkflowDeployButton } from "./workflow-deploy-button";
 
 interface WorkflowHeaderProps {
   workflowId: string;
@@ -50,6 +53,9 @@ interface WorkflowHeaderProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  hasManualTrigger?: boolean;
+  onRunNow?: () => void;
+  isRunning?: boolean;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -83,6 +89,9 @@ export function WorkflowHeader({
   canRedo,
   onUndo,
   onRedo,
+  hasManualTrigger,
+  onRunNow,
+  isRunning,
 }: WorkflowHeaderProps) {
   const router = useRouter();
   const renameMutation = useRenameWorkflowMutation();
@@ -272,6 +281,20 @@ export function WorkflowHeader({
       </div>
 
       <div className="gap-2 flex items-center">
+        {workflowStatus === "active" && hasManualTrigger && onRunNow && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 px-2.5 text-xs"
+            onClick={onRunNow}
+            disabled={isRunning}
+            title="Trigger a manual run"
+          >
+            {isRunning ? <Loader2 className="size-3 animate-spin" /> : <Play className="size-3" />}
+            Run now
+          </Button>
+        )}
+        <WorkflowDeployButton workflowId={workflowId} size="sm" />
         <Button
           variant="ghost"
           size="icon"

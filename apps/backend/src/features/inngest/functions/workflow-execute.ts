@@ -1,5 +1,5 @@
 import type { InngestFunction } from "inngest";
-import { and, eq, schema, type Database } from "@mirrorverse/db";
+import { and, count, eq, schema, type Database } from "@mirrorverse/db";
 import type { CostBreakdown, WorkflowDocument } from "@mirrorverse/types";
 
 import { inngest } from "../client";
@@ -7,8 +7,13 @@ import { workflowExecuteEvent } from "../events";
 import { CostTracker, ZERO_COST } from "../../workflows/runtime/cost-tracker";
 import { walkGraph } from "../../workflows/runtime/graph-walker";
 import { serializeError } from "../../workflows/runtime/step-writer";
+import {
+  sendFirstWorkflowEmail,
+  sendWorkflowFailureEmail,
+} from "../../notifications/email";
 
-const { workflowRuns, workflowVersions } = schema;
+const { workflowRuns, workflowVersions, workflows, workspaces, userProfiles } =
+  schema;
 
 export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
   return inngest.createFunction(
@@ -60,7 +65,7 @@ export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
             triggerPayload,
             startedAt: new Date(),
             cost: ZERO_COST,
-            inngestRunId: null,
+            inngestRunId: event.id,
           })
           .returning({ id: workflowRuns.id });
 
@@ -118,6 +123,86 @@ export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
           })
           .where(eq(workflowRuns.id, runId));
       });
+
+      // Look up workspace owner for notification steps
+      const owner = await step.run("resolve-owner", async () => {
+        const [ws] = await db
+          .select({ ownerId: workspaces.ownerId })
+          .from(workspaces)
+          .where(eq(workspaces.id, workspaceId))
+          .limit(1);
+        if (!ws) return null;
+
+        const [profile] = await db
+          .select({
+            email: userProfiles.email,
+            fullName: userProfiles.fullName,
+            emailOptOut: userProfiles.emailOptOut,
+          })
+          .from(userProfiles)
+          .where(eq(userProfiles.id, ws.ownerId))
+          .limit(1);
+        return profile
+          ? {
+              id: ws.ownerId,
+              email: profile.email,
+              name: profile.fullName ?? "",
+              emailOptOut: profile.emailOptOut,
+            }
+          : null;
+      });
+
+      if (owner && !owner.emailOptOut) {
+        if (walkResult.status === "failed" && walkResult.error) {
+          await step.run("notify-failure", async () => {
+            const [wf] = await db
+              .select({ name: workflows.name })
+              .from(workflows)
+              .where(eq(workflows.id, workflowId))
+              .limit(1);
+            const workflowName = wf?.name ?? "Unknown workflow";
+            const errorMsg =
+              typeof walkResult.error === "object" && walkResult.error !== null
+                ? String(
+                    (walkResult.error as unknown as Record<string, unknown>)
+                      .message ?? walkResult.error,
+                  )
+                : String(walkResult.error);
+            await sendWorkflowFailureEmail(
+              owner.email,
+              workflowName,
+              errorMsg,
+              runId,
+            );
+          });
+        }
+
+        if (walkResult.status === "succeeded") {
+          await step.run("notify-first-run", async () => {
+            const [{ value: succeededCount }] = await db
+              .select({ value: count() })
+              .from(workflowRuns)
+              .where(
+                and(
+                  eq(workflowRuns.workspaceId, workspaceId),
+                  eq(workflowRuns.status, "succeeded"),
+                ),
+              );
+            if (succeededCount === 1) {
+              const [wf] = await db
+                .select({ name: workflows.name })
+                .from(workflows)
+                .where(eq(workflows.id, workflowId))
+                .limit(1);
+              await sendFirstWorkflowEmail(
+                owner.email,
+                owner.id,
+                wf?.name ?? "your workflow",
+              );
+            }
+          });
+        }
+      }
 
       return { runId, status: walkResult.status };
     },

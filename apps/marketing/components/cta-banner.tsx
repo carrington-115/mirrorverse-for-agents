@@ -18,8 +18,8 @@ export function CtaBanner({
   secondaryHref,
 }: CtaBannerProps) {
   return (
-    <section className="lg:px-20 mt-4 flex w-full justify-center px-(--spacing-16) py-(--spacing-80)">
-      <div className="border-white/[0.08] px-6 py-16 shadow-2xl lg:px-16 lg:py-24 rounded-0 md:rounded-[28px] relative w-full max-w-[1120px] overflow-hidden border bg-[#09090b] text-center">
+    <section className="lg:px-20 py-4 flex w-full justify-center bg-background px-(--spacing-16) py-(--spacing-80)">
+      <div className="border-white/[0.08] px-6 py-16 shadow-2xl lg:px-16 lg:py-24 rounded-0 md:rounded-[28px] relative w-full max-w-[1120px] overflow-hidden border bg-[#0a0a0a] text-center">
         {/* top-center violet glow */}
         <div className="top-0 bg-violet-600/30 pointer-events-none absolute left-1/2 h-[280px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px]" />
         {/* bottom-right blue accent */}

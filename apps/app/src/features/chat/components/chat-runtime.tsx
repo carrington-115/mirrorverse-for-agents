@@ -305,6 +305,7 @@ export function ChatRuntime({
 
   const inputBlock = (
     <ChatPromptInput
+      compact={!isEmpty}
       onSubmit={handleSubmit}
       status={isUploading ? "submitted" : status}
       onStop={stop}

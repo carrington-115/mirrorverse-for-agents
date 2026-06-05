@@ -141,9 +141,15 @@ function getTriggerTypeInfo(type: string): SystemTrigger | undefined {
 
 interface TriggerPickerButtonProps {
   triggers?: SessionTriggerInfo[];
+  externalDialogOpen?: boolean;
+  onExternalDialogOpenChange?: (open: boolean) => void;
 }
 
-export function TriggerPickerButton({ triggers = [] }: TriggerPickerButtonProps) {
+export function TriggerPickerButton({
+  triggers = [],
+  externalDialogOpen,
+  onExternalDialogOpenChange,
+}: TriggerPickerButtonProps) {
   const controller = usePromptInputController();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -151,12 +157,23 @@ export function TriggerPickerButton({ triggers = [] }: TriggerPickerButtonProps)
   const allTriggers = useTriggerItems();
   const triggerCount = triggers.length;
 
+  const effectiveDialogOpen = dialogOpen || (externalDialogOpen ?? false);
+
+  const handleDialogOpenChange = useCallback(
+    (open: boolean) => {
+      setDialogOpen(open);
+      if (!open) onExternalDialogOpenChange?.(false);
+    },
+    [onExternalDialogOpenChange],
+  );
+
   const handleSelect = useCallback(
     (trigger: TriggerItem) => {
       controller.textInput.setInput(`Set up a ${trigger.label} trigger`);
       setDialogOpen(false);
+      onExternalDialogOpenChange?.(false);
     },
-    [controller],
+    [controller, onExternalDialogOpenChange],
   );
 
   const handleCreateTrigger = () => {
@@ -222,7 +239,7 @@ export function TriggerPickerButton({ triggers = [] }: TriggerPickerButtonProps)
         )}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={effectiveDialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           className={cn(
             "max-h-[80vh] overflow-y-auto",

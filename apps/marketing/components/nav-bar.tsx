@@ -55,7 +55,7 @@ export default function NavBar() {
             href="https://cal.com/frumark/mirrroagents"
             className={cn(
               buttonVariants({ variant: "outline", size: "default" }),
-              "font-medium rounded-full text-[14px] leading-[20px]",
+              "font-medium text-black rounded-full text-[14px] leading-[20px]",
             )}
             target="_blank"
             rel="noopener noreferrer"

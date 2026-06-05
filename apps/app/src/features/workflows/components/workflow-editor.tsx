@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useWorkflowQuery, useWorkflowVersionQuery } from "@/features/workflows/api/queries";
 import { useSaveWorkflowVersionMutation } from "@/features/workflows/api/mutations";
+import { useTriggerManualRunMutation } from "@/features/runs/api/mutations";
 
 import { extractIconHints } from "@/features/workflows/lib/node-icon";
 
@@ -88,6 +89,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
   const { data: latestData } = useWorkflowQuery(workflowId);
   const { data: pinnedData } = useWorkflowVersionQuery(workflowId, pinnedVersion);
   const saveMutation = useSaveWorkflowVersionMutation();
+  const triggerManualMutation = useTriggerManualRunMutation();
 
   const editable = pinnedVersion === null;
 
@@ -147,6 +149,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
   const workflowName = displayDoc?.name ?? latestData?.workflow?.name ?? "New Workflow";
   const workflowKind = latestData?.workflow?.kind ?? null;
   const workflowStatus = latestData?.workflow?.status ?? null;
+  const hasManualTrigger = workingDoc?.nodes.some((n) => n.type === "trigger.manual") ?? false;
   const updatedAt = latestData?.workflow?.updatedAt ?? null;
   const originChatId =
     (latestData as unknown as { originChatId?: string | null })?.originChatId ?? null;
@@ -404,6 +407,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         canRedo={editable ? canRedo : undefined}
         onUndo={editable ? undo : undefined}
         onRedo={editable ? redo : undefined}
+        hasManualTrigger={hasManualTrigger}
+        onRunNow={() => triggerManualMutation.mutate({ workflowId })}
+        isRunning={triggerManualMutation.isPending}
       />
 
       {editable && isDirty ? (

@@ -24,6 +24,7 @@ import {
   type WorkflowCommitInput,
   type WorkflowCommitToolPart,
 } from "@/features/chat/lib/workflow-commit-tool";
+import { WorkflowDeployButton } from "@/features/workflows/components/workflow-deploy-button";
 
 interface WorkflowCommitCardProps {
   part: WorkflowCommitToolPart;
@@ -283,17 +284,20 @@ export function WorkflowCommitCard({
               )}
             </div>
 
-            <Button
-              asChild
-              variant="secondary"
-              size="sm"
-              className="h-8 gap-1.5 px-3 text-xs font-medium shrink-0"
-            >
-              <Link href={`/workflows/${result.workflowId}`}>
-                <ExternalLink className="size-3.5" />
-                Open
-              </Link>
-            </Button>
+            <div className="gap-1.5 flex shrink-0 items-center">
+              <WorkflowDeployButton workflowId={result.workflowId} size="sm" />
+              <Button
+                asChild
+                variant="secondary"
+                size="sm"
+                className="h-8 gap-1.5 px-3 text-xs font-medium"
+              >
+                <Link href={`/workflows/${result.workflowId}`}>
+                  <ExternalLink className="size-3.5" />
+                  Open
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       )}
