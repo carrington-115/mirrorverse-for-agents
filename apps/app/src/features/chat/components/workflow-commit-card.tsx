@@ -182,56 +182,60 @@ export function WorkflowCommitCard({
     <div className="space-y-2">
       {/* JSON collapsible */}
       <div className="overflow-hidden rounded-xl border border-border bg-muted/30">
-        <div className="gap-2 px-3 py-2.5 flex w-full items-center">
-          <button
-            onClick={() => canExpand && setExpanded((v) => !v)}
-            disabled={!canExpand}
-            className="gap-2 min-w-0 flex flex-1 items-center text-left disabled:cursor-default"
-            aria-expanded={expanded}
-          >
-            {isBuilding ? (
-              <Loader2 className="size-3.5 animate-spin shrink-0 text-muted-foreground" />
-            ) : expanded ? (
-              <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+        <div className="px-3 py-2.5 flex flex-col">
+          <div className="gap-2 flex w-full items-center">
+            <button
+              onClick={() => canExpand && setExpanded((v) => !v)}
+              disabled={!canExpand}
+              className="gap-2 min-w-0 flex flex-1 items-center text-left disabled:cursor-default"
+              aria-expanded={expanded}
+            >
+              {isBuilding ? (
+                <Loader2 className="size-3.5 animate-spin shrink-0 text-muted-foreground" />
+              ) : expanded ? (
+                <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+              )}
+              <span className="text-xs font-medium text-muted-foreground">Workflow</span>
+              {isBuilding && !result && (
+                <span className="text-[10px] text-muted-foreground">Building…</span>
+              )}
+            </button>
+
+            {result && (
+              <div
+                className="ml-auto flex shrink-0 items-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-[11px] text-muted-foreground"
+                  onClick={handleCopy}
+                  disabled={!json}
+                >
+                  {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
             )}
-            <span className="text-xs font-medium text-muted-foreground">Workflow</span>
-            {result ? (
-              <span className="gap-1 ml-1 min-w-0 flex items-center">
-                <span className="px-1.5 py-0.5 max-w-[120px] truncate rounded-sm bg-muted text-[10px] text-muted-foreground">
-                  {result.title}
-                </span>
-                <span className="px-1.5 py-0.5 rounded-sm bg-muted text-[10px] text-muted-foreground">
-                  {WORKFLOW_KIND_LABEL[result.kind]}
-                </span>
-                <span className="px-1.5 py-0.5 rounded-sm bg-muted text-[10px] text-muted-foreground">
-                  {nodeCount} {nodeCount === 1 ? "node" : "nodes"}
-                </span>
-                <span className="px-1.5 py-0.5 rounded-sm bg-muted text-[10px] text-muted-foreground">
-                  {connectionCount} {connectionCount === 1 ? "connection" : "connections"}
-                </span>
-              </span>
-            ) : isBuilding ? (
-              <span className="text-[10px] text-muted-foreground">Building…</span>
-            ) : null}
-          </button>
+          </div>
 
           {result && (
-            <div
-              className="ml-auto flex shrink-0 items-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 gap-1 px-2 text-[11px] text-muted-foreground"
-                onClick={handleCopy}
-                disabled={!json}
-              >
-                {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-                {copied ? "Copied" : "Copy"}
-              </Button>
+            <div className="mt-1.5 gap-1 pl-5 flex flex-wrap">
+              <span className="px-1.5 py-0.5 max-w-[160px] truncate rounded-sm bg-muted text-[10px] text-muted-foreground">
+                {result.title}
+              </span>
+              <span className="px-1.5 py-0.5 rounded-sm bg-muted text-[10px] text-muted-foreground">
+                {WORKFLOW_KIND_LABEL[result.kind]}
+              </span>
+              <span className="px-1.5 py-0.5 rounded-sm bg-muted text-[10px] text-muted-foreground">
+                {nodeCount} {nodeCount === 1 ? "node" : "nodes"}
+              </span>
+              <span className="px-1.5 py-0.5 rounded-sm bg-muted text-[10px] text-muted-foreground">
+                {connectionCount} {connectionCount === 1 ? "connection" : "connections"}
+              </span>
             </div>
           )}
         </div>
@@ -254,37 +258,39 @@ export function WorkflowCommitCard({
       {/* Workflow summary card */}
       {result && (
         <div className="px-4 py-3.5 rounded-xl border border-border bg-card">
-          <div className="gap-3 flex items-start">
-            <div className={`size-10 grid shrink-0 place-items-center rounded-lg ${kindBg}`}>
-              <KindIcon className="size-5" />
+          <div className="gap-3 sm:flex-row sm:items-start flex flex-col">
+            <div className="min-w-0 gap-3 flex flex-1 items-start">
+              <div className={`size-10 grid shrink-0 place-items-center rounded-lg ${kindBg}`}>
+                <KindIcon className="size-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-sm leading-snug">{result.title}</div>
+                {description && (
+                  <p className="mt-0.5 text-xs leading-relaxed line-clamp-2 text-muted-foreground">
+                    {description}
+                  </p>
+                )}
+
+                {(trigger || apps.length > 0) && (
+                  <div className="mt-2 gap-x-4 gap-y-1 flex flex-wrap text-[11px] text-muted-foreground">
+                    {trigger && (
+                      <span>
+                        <span className="font-medium text-foreground/70">Trigger:</span> {trigger}
+                      </span>
+                    )}
+                    {apps.length > 0 && (
+                      <span>
+                        <span className="font-medium text-foreground/70">Apps:</span>{" "}
+                        {apps.join(", ")}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="font-semibold text-sm leading-snug">{result.title}</div>
-              {description && (
-                <p className="mt-0.5 text-xs leading-relaxed line-clamp-2 text-muted-foreground">
-                  {description}
-                </p>
-              )}
-
-              {(trigger || apps.length > 0) && (
-                <div className="mt-2 gap-x-4 gap-y-1 flex flex-wrap text-[11px] text-muted-foreground">
-                  {trigger && (
-                    <span>
-                      <span className="font-medium text-foreground/70">Trigger:</span> {trigger}
-                    </span>
-                  )}
-                  {apps.length > 0 && (
-                    <span>
-                      <span className="font-medium text-foreground/70">Apps:</span>{" "}
-                      {apps.join(", ")}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="gap-1.5 flex shrink-0 items-center">
+            <div className="gap-1.5 sm:self-start flex shrink-0 items-center">
               <WorkflowDeployButton workflowId={result.workflowId} size="sm" />
               <Button
                 asChild
