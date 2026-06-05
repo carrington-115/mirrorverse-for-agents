@@ -9,7 +9,16 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowUpDown, GripVertical, MoreHorizontal, RefreshCw, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  GripVertical,
+  MoreHorizontal,
+  RefreshCw,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +73,31 @@ function formatTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
+
+// ─── Shared action menu items ─────────────────────────────────────────────────
+
+function IntegrationActionMenuItems({
+  onViewDetails,
+  onReset,
+  onRemove,
+}: {
+  onViewDetails?: () => void;
+  onReset?: () => void;
+  onRemove?: () => void;
+}) {
+  return (
+    <>
+      <DropdownMenuItem onClick={onViewDetails}>View details</DropdownMenuItem>
+      <DropdownMenuItem onClick={onReset}>Reset</DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onRemove}>
+        Delete
+      </DropdownMenuItem>
+    </>
+  );
+}
+
+// ─── Desktop sortable row ─────────────────────────────────────────────────────
 
 function SortableIntegrationRow({
   integration,
@@ -150,21 +184,19 @@ function SortableIntegrationRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onViewDetails}>View details</DropdownMenuItem>
-            <DropdownMenuItem onClick={onReset}>Reset</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={onRemove}
-            >
-              Delete
-            </DropdownMenuItem>
+            <IntegrationActionMenuItems
+              onViewDetails={onViewDetails}
+              onReset={onReset}
+              onRemove={onRemove}
+            />
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
     </TableRow>
   );
 }
+
+// ─── Desktop skeleton row ─────────────────────────────────────────────────────
 
 function SkeletonRow() {
   return (
@@ -202,6 +234,91 @@ function SkeletonRow() {
     </TableRow>
   );
 }
+
+// ─── Mobile list item ─────────────────────────────────────────────────────────
+
+function IntegrationMobileItem({
+  integration,
+  selected,
+  onToggle,
+  onRemove,
+  onReset,
+  onViewDetails,
+}: {
+  integration: ConnectedIntegration;
+  selected: boolean;
+  onToggle: () => void;
+  onRemove?: () => void;
+  onReset?: () => void;
+  onViewDetails?: () => void;
+}) {
+  return (
+    <div className="gap-3 px-4 py-3 flex items-center border-b border-border transition-colors last:border-b-0 hover:bg-muted/30">
+      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          className="size-[14px]"
+          checked={selected}
+          onCheckedChange={onToggle}
+          aria-label={`Select ${integration.name}`}
+        />
+      </div>
+      <div className="min-w-0 gap-1 flex flex-1 flex-col">
+        <p className="text-sm truncate text-foreground underline">{integration.name}</p>
+        <div className="gap-1.5 flex flex-wrap items-center">
+          <span className="text-xs font-medium text-muted-foreground">{integration.type}</span>
+          <Badge
+            className={`text-white text-xs rounded-full border-transparent ${
+              integration.status === "connected" ? "bg-green-600" : "bg-neutral-400"
+            }`}
+          >
+            {integration.status === "connected" ? "Connected" : "Disconnected"}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {formatDate(integration.dateCreated)} · {formatTime(integration.dateCreated)}
+        </p>
+      </div>
+      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="size-8 flex items-center justify-center rounded-lg transition-colors hover:bg-muted/50"
+              title="More options"
+            >
+              <MoreHorizontal className="size-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <IntegrationActionMenuItems
+              onViewDetails={onViewDetails}
+              onReset={onReset}
+              onRemove={onRemove}
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mobile skeleton item ─────────────────────────────────────────────────────
+
+function IntegrationMobileSkeletonItem() {
+  return (
+    <div className="gap-3 px-4 py-3 flex items-center border-b border-border last:border-b-0">
+      <Skeleton className="size-[14px] shrink-0 rounded-sm" />
+      <div className="gap-1.5 min-w-0 flex flex-1 flex-col">
+        <Skeleton className="h-4 w-[55%] max-w-[200px]" />
+        <Skeleton className="h-5 w-[130px] rounded-full" />
+        <Skeleton className="h-3 w-[110px]" />
+      </div>
+      <Skeleton className="size-8 shrink-0 rounded-lg" />
+    </div>
+  );
+}
+
+// ─── Main table component ─────────────────────────────────────────────────────
 
 interface IntegrationsTableProps {
   integrations: ConnectedIntegration[];
@@ -280,53 +397,56 @@ export function IntegrationsTable({
   const selectedCount = selected.size;
   const singleSelected = selectedCount === 1 ? [...selected][0] : null;
 
+  const MobileSortIcon =
+    sortField === "name" ? (sortDir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+
   return (
     <div className="gap-2 flex flex-col">
+      {/* ── Selection toolbar ─────────────────────────────────────────────── */}
       {selectedCount > 0 && (
-        <div className="gap-2 px-3 py-2 flex items-center rounded-md border border-border bg-muted/40">
+        <div className="gap-x-2 gap-y-1 px-3 py-2 flex flex-wrap items-center rounded-md border border-border bg-muted/40">
           <span className="text-sm shrink-0 text-muted-foreground">{selectedCount} selected</span>
-          <div className="gap-1 ml-auto flex items-center">
-            {singleSelected && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onViewDetails?.(singleSelected)}
-              >
-                View details
-              </Button>
-            )}
+          {singleSelected && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 text-xs"
-              onClick={handleBulkReset}
+              className="h-7 text-xs"
+              onClick={() => onViewDetails?.(singleSelected)}
             >
-              <RefreshCw className="size-3" />
-              Reset
+              View details
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
-              onClick={handleBulkDelete}
-            >
-              <Trash2 className="size-3" />
-              Delete
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={() => setSelected(new Set())}
-            >
-              <X className="size-3.5" />
-            </Button>
-          </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={handleBulkReset}
+          >
+            <RefreshCw className="size-3" />
+            Reset
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+            onClick={handleBulkDelete}
+          >
+            <Trash2 className="size-3" />
+            Delete
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 ml-auto"
+            onClick={() => setSelected(new Set())}
+          >
+            <X className="size-3.5" />
+          </Button>
         </div>
       )}
 
-      <div className="w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
+      {/* ── Desktop table (md and up) ──────────────────────────────────────── */}
+      <div className="md:block hidden w-full overflow-clip rounded-(--radius,10px) border border-border bg-background">
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <Table>
             <TableHeader>
@@ -398,6 +518,47 @@ export function IntegrationsTable({
         </DndContext>
       </div>
 
+      {/* ── Mobile list (below md) ─────────────────────────────────────────── */}
+      <div className="md:hidden w-full overflow-hidden rounded-(--radius,10px) border border-border bg-background">
+        {/* Mobile header */}
+        <div className="h-9 flex w-full items-center border-b border-border bg-(--accent-0,#fafafa)">
+          <div
+            className="flex w-[42px] shrink-0 items-center justify-center px-(--xs,8px) py-[10px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Checkbox
+              className="size-[14px]"
+              checked={allSelected}
+              onCheckedChange={toggleAll}
+              aria-label="Select all"
+            />
+          </div>
+          <button
+            type="button"
+            className="flex flex-1 items-center gap-(--xs,8px) px-(--xs,8px) py-[8px] text-left"
+            onClick={() => handleSort("name")}
+          >
+            <span className="text-sm font-medium leading-5 text-foreground">Integrations</span>
+            <MobileSortIcon className="size-4 shrink-0 opacity-50" />
+          </button>
+        </div>
+
+        {isLoading
+          ? Array.from({ length: 5 }).map((_, i) => <IntegrationMobileSkeletonItem key={i} />)
+          : displayed.map((integration) => (
+              <IntegrationMobileItem
+                key={integration.id}
+                integration={integration}
+                selected={selected.has(integration.id)}
+                onToggle={() => toggleOne(integration.id)}
+                onRemove={() => setPendingDeleteId(integration.id)}
+                onReset={() => onReset?.(integration.id)}
+                onViewDetails={() => onViewDetails?.(integration.id)}
+              />
+            ))}
+      </div>
+
+      {/* ── Delete dialogs ─────────────────────────────────────────────────── */}
       <AlertDialog
         open={pendingDeleteId !== null}
         onOpenChange={(open) => {

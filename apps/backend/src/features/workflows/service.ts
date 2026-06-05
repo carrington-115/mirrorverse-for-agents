@@ -1,7 +1,8 @@
 import type { Database } from "@mirrorverse/db";
 
 import { appError, ErrCode } from "../../lib/errors";
-
+import { inngest } from "../inngest/client";
+import { workflowExecuteEvent } from "../inngest/events";
 import {
   createOrReactivateEndpoint,
   disableEndpointsByWorkflowId,
@@ -178,5 +179,55 @@ export const workflowsService = {
     ]);
 
     return { workflowId: input.workflowId };
+  },
+
+  // Dispatch a one-off manual run via Inngest without changing workflow status.
+  async run(ctx: WorkspaceCtx, input: { workflowId: string }) {
+    const [workflow, version] = await Promise.all([
+      repo.getWorkflowForWorkspace(ctx.db, input.workflowId, ctx.workspaceId),
+      repo.getLatestVersion(ctx.db, input.workflowId, ctx.workspaceId),
+    ]);
+    if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+    if (!version)
+      throw appError(ErrCode.BadInput, "Workflow has no saved version to run");
+
+    const triggerNode = version.document.nodes.find((n) =>
+      n.type.startsWith("trigger."),
+    );
+    if (!triggerNode)
+      throw appError(ErrCode.BadInput, "Workflow has no trigger node");
+
+    await inngest.send(
+      workflowExecuteEvent.create({
+        workspaceId: ctx.workspaceId,
+        workflowId: input.workflowId,
+        workflowVersionId: version.id,
+        triggerNodeId: triggerNode.id,
+        triggerKind: "manual",
+        triggerPayload: {},
+        initiatedBy: ctx.userId,
+      }),
+    );
+
+    return { ok: true as const };
+  },
+
+  // Re-register all triggers by cycling deactivate → activate.
+  // Only active workflows need this; inactive/draft workflows should be activated normally.
+  async restart(ctx: WorkspaceCtx, input: { workflowId: string }) {
+    const workflow = await repo.getWorkflowForWorkspace(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+    );
+    if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+    if (workflow.status !== "active")
+      throw appError(
+        ErrCode.BadInput,
+        "Only active workflows can be restarted. Activate the workflow first.",
+      );
+
+    await workflowsService.deactivate(ctx, input);
+    return workflowsService.activate(ctx, input);
   },
 };

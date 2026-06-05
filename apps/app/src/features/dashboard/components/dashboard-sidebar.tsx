@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpen,
+  ChevronDown,
   Loader2,
   Megaphone,
   MessageCirclePlus,
@@ -27,6 +28,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
@@ -135,9 +137,51 @@ function NewChatButton() {
 }
 
 function ChannelsItem() {
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const pathname = usePathname();
+  const isActive = pathname.startsWith("/deploy");
 
+  // Mobile: inline collapsible — hover doesn't exist on touch
+  if (isMobile) {
+    return (
+      <Collapsible defaultOpen={isActive} className="group/channels">
+        <SidebarMenuItem>
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton isActive={isActive}>
+              <Megaphone className="size-4" />
+              <span>Channels</span>
+              <ChevronDown className="size-4 ml-auto transition-transform group-data-[state=open]/channels:rotate-180" />
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+        </SidebarMenuItem>
+        <CollapsibleContent>
+          <SidebarGroupContent className="ml-2 pl-4 border-l border-border">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/deploy/phone"}>
+                  <Link href="/deploy/phone">
+                    <Phone className="size-4" />
+                    <span>Phone</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/deploy/whatsapp"}>
+                  <Link href="/deploy/whatsapp">
+                    <SiWhatsapp className="size-4" />
+                    <span>WhatsApp</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  }
+
+  // Desktop: HoverCard (unchanged)
   return (
     <HoverCard openDelay={120} closeDelay={120}>
       <SidebarMenuItem>

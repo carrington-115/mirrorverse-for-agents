@@ -107,4 +107,22 @@ export const workflowsRouter = router({
         input,
       ),
     ),
+
+  run: workspaceProc
+    .input(workflowIdInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.run(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
+
+  restart: workspaceProc
+    .input(workflowIdInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.restart(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
 });

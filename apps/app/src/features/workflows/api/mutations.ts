@@ -80,3 +80,27 @@ export function useDeactivateWorkflowMutation() {
     },
   });
 }
+
+export function useRunWorkflowMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.workflows.run.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.runs.list.queryKey() });
+    },
+  });
+}
+
+export function useRestartWorkflowMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.workflows.restart.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.get.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.webhooks.listEndpoints.queryKey() });
+    },
+  });
+}

@@ -101,6 +101,7 @@ export function PhoneShell() {
     {
       key: "purpose",
       header: "Purpose",
+      mobileHide: true,
       render: (row) => <span className="text-muted-foreground">{row.purpose}</span>,
     },
     {
@@ -111,6 +112,7 @@ export function PhoneShell() {
     {
       key: "createdAt",
       header: "Date added",
+      mobileHide: true,
       render: (row) => (
         <span className="text-muted-foreground">
           {row.createdAt.toLocaleDateString("en-US", {
@@ -183,6 +185,7 @@ export function PhoneShell() {
           rows={filtered}
           columns={columns}
           actions={actions}
+          title="Phone numbers"
           showDragHandle
           showCheckbox
         />
