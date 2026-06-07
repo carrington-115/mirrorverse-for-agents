@@ -95,25 +95,19 @@ function SetInputBridge({
   return null;
 }
 
-function LayoutExpansionWatcher({ onExpand }: { onExpand: (expanded: boolean) => void }) {
+// Only ever signals "should expand" — never collapse. Collapse is handled by ValueResetWatcher.
+function LayoutExpansionWatcher({ onExpand }: { onExpand: () => void }) {
   const controller = usePromptInputController();
   const value = controller.textInput.value;
   useEffect(() => {
+    if (!value) return;
     const textarea = document.querySelector<HTMLTextAreaElement>(
       '[data-slot="input-group-control"]',
     );
-    if (!textarea) {
-      onExpand(false);
-      return;
-    }
-    // Save cursor position before DOM manipulation so measurement doesn't displace it.
+    if (!textarea) return;
     const selStart = textarea.selectionStart;
     const selEnd = textarea.selectionEnd;
     const wasFocused = document.activeElement === textarea;
-
-    // Measure the single-row baseline height by temporarily zeroing min-height and
-    // clearing content, then compare against the actual content height. This avoids
-    // a hardcoded pixel threshold that breaks when padding differs between layouts.
     const prevMinHeight = textarea.style.minHeight;
     const prevValue = textarea.value;
     textarea.style.minHeight = "0px";
@@ -122,13 +116,19 @@ function LayoutExpansionWatcher({ onExpand }: { onExpand: (expanded: boolean) =>
     textarea.value = prevValue;
     const contentHeight = textarea.scrollHeight;
     textarea.style.minHeight = prevMinHeight;
-
-    // Restore cursor position after measurement restores the value.
-    if (wasFocused) {
-      textarea.setSelectionRange(selStart, selEnd);
-    }
-    onExpand(contentHeight > singleRowHeight);
+    if (wasFocused) textarea.setSelectionRange(selStart, selEnd);
+    if (contentHeight > singleRowHeight) onExpand();
   }, [value, onExpand]);
+  return null;
+}
+
+// Collapses back to single-line when the textarea is cleared (after submit or manual erase).
+function ValueResetWatcher({ onReset }: { onReset: () => void }) {
+  const controller = usePromptInputController();
+  const value = controller.textInput.value;
+  useEffect(() => {
+    if (value === "") onReset();
+  }, [value, onReset]);
   return null;
 }
 
@@ -153,29 +153,28 @@ export function ChatPromptInput({
   const [mobileChannelDrawerOpen, setMobileChannelDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Save cursor position before the layout switches so it can be restored after remount.
   const cursorRef = useRef<{ start: number | null; end: number | null }>({
     start: null,
     end: null,
   });
-  // Mirror isExpanded into a ref so handleExpand can read the current value without
-  // being listed as a dep — keeping the callback reference stable prevents
-  // LayoutExpansionWatcher from re-running its effect on every state change.
   const isExpandedRef = useRef(isExpanded);
   useLayoutEffect(() => {
     isExpandedRef.current = isExpanded;
   });
 
-  const handleExpand = useCallback((expanded: boolean) => {
-    if (expanded !== isExpandedRef.current) {
-      const textarea = document.querySelector<HTMLTextAreaElement>(
-        '[data-slot="input-group-control"]',
-      );
-      if (textarea) {
-        cursorRef.current = { start: textarea.selectionStart, end: textarea.selectionEnd };
-      }
+  const handleExpand = useCallback(() => {
+    if (isExpandedRef.current) return;
+    const textarea = document.querySelector<HTMLTextAreaElement>(
+      '[data-slot="input-group-control"]',
+    );
+    if (textarea) {
+      cursorRef.current = { start: textarea.selectionStart, end: textarea.selectionEnd };
     }
-    setIsExpanded(expanded);
+    setIsExpanded(true);
+  }, []);
+
+  const handleCollapse = useCallback(() => {
+    setIsExpanded(false);
   }, []);
 
   useEffect(() => {
@@ -310,23 +309,56 @@ export function ChatPromptInput({
       <PromptInputProvider>
         {fillInputRef && <SetInputBridge fillInputRef={fillInputRef} />}
         <LayoutExpansionWatcher onExpand={handleExpand} />
+        <ValueResetWatcher onReset={handleCollapse} />
         <PlanProgressBar steps={planSteps} />
-        {isExpanded ? (
-          <PromptInput
-            globalDrop
-            multiple
-            onSubmit={onSubmit}
-            className="[&_[data-slot=input-group]]:rounded-2xl"
-          >
-            <AttachmentsBar />
-            <PromptInputBody>
-              <PromptInputTextarea
-                autoFocus
-                placeholder="How can I help you today?"
-                className="min-h-16 px-3 py-3 md:text-[14.6px]"
-              />
-            </PromptInputBody>
-            <PromptInputFooter>
+        {/* Attachments render above the pill when collapsed, inside the card when expanded */}
+        {!isExpanded && <AttachmentsBar />}
+        <PromptInput
+          globalDrop
+          multiple
+          onSubmit={onSubmit}
+          className={cn(
+            "[&_[data-slot=input-group]]:ease-out [&_[data-slot=input-group]]:transition-all [&_[data-slot=input-group]]:duration-300",
+            isExpanded
+              ? "[&_[data-slot=input-group]]:rounded-2xl"
+              : "[&_[data-slot=input-group]]:rounded-full",
+          )}
+        >
+          {isExpanded && <AttachmentsBar />}
+          {!isExpanded && (
+            <div className="py-3 pl-2.5 flex shrink-0 items-center">
+              <PromptInputActionMenu>
+                <PromptInputActionMenuTrigger tooltip={attachTooltip} />
+                {attachMenuContent}
+              </PromptInputActionMenu>
+            </div>
+          )}
+          <PromptInputTextarea
+            autoFocus
+            placeholder="How can I help you today?"
+            className={cn(
+              "md:text-[14.6px]",
+              isExpanded ? "min-h-10 px-3 py-3" : "min-h-10 max-h-48 py-2.5 px-2",
+            )}
+          />
+          {!isExpanded && (
+            <div className="gap-0.5 py-1.5 pr-2.5 flex shrink-0 items-center">
+              <div className="md:contents hidden">
+                <ChatModelPicker selectedId={model} onSelect={onModelChange} />
+                <TriggerPickerButton
+                  triggers={sessionTriggers}
+                  externalDialogOpen={mobileTriggerDialogOpen}
+                  onExternalDialogOpenChange={setMobileTriggerDialogOpen}
+                  externalDrawerOpen={mobileTriggerDrawerOpen}
+                  onExternalDrawerOpenChange={setMobileTriggerDrawerOpen}
+                />
+              </div>
+              <MicButton />
+              <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
+            </div>
+          )}
+          {isExpanded && (
+            <PromptInputFooter className="animate-in duration-200 fade-in slide-in-from-bottom-1">
               <PromptInputTools>
                 <PromptInputActionMenu>
                   <PromptInputActionMenuTrigger tooltip={attachTooltip} />
@@ -340,44 +372,8 @@ export function ChatPromptInput({
                 <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
               </div>
             </PromptInputFooter>
-          </PromptInput>
-        ) : (
-          <>
-            <AttachmentsBar />
-            <PromptInput
-              globalDrop
-              multiple
-              onSubmit={onSubmit}
-              className="[&_[data-slot=input-group]]:rounded-full"
-            >
-              <div className="py-3 pl-2.5 flex shrink-0 items-center">
-                <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger tooltip={attachTooltip} />
-                  {attachMenuContent}
-                </PromptInputActionMenu>
-              </div>
-              <PromptInputTextarea
-                autoFocus
-                placeholder="How can I help you today?"
-                className="min-h-10 max-h-48 py-2.5 px-2 md:text-[14.6px]"
-              />
-              <div className="gap-0.5 py-1.5 pr-2.5 flex shrink-0 items-center">
-                <div className="md:contents hidden">
-                  <ChatModelPicker selectedId={model} onSelect={onModelChange} />
-                  <TriggerPickerButton
-                    triggers={sessionTriggers}
-                    externalDialogOpen={mobileTriggerDialogOpen}
-                    onExternalDialogOpenChange={setMobileTriggerDialogOpen}
-                    externalDrawerOpen={mobileTriggerDrawerOpen}
-                    onExternalDrawerOpenChange={setMobileTriggerDrawerOpen}
-                  />
-                </div>
-                <MicButton />
-                <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
-              </div>
-            </PromptInput>
-          </>
-        )}
+          )}
+        </PromptInput>
         {mobileDrawers}
       </PromptInputProvider>
     );
