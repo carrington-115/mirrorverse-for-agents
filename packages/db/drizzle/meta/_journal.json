@@ -92,6 +92,13 @@
       "when": 1780742415872,
       "tag": "0012_breezy_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1749340800000,
+      "tag": "0013_seed_first_party_mcp_servers",
+      "breakpoints": true
     }
   ]
 }

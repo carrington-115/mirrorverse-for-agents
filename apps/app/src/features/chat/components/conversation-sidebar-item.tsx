@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2, MoreVertical, Pin, PinOff, Trash2 } from "lucide-react";
 
-import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,7 @@ interface ConversationSidebarItemProps {
 export function ConversationSidebarItem({ chatId, title, isPinned }: ConversationSidebarItemProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { setOpenMobile } = useSidebar();
   const href = `/mirrorpilot/${chatId}`;
   const isActive = pathname === href;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,7 +63,7 @@ export function ConversationSidebarItem({ chatId, title, isPinned }: Conversatio
   return (
     <div className="group/conv relative flex w-full items-center">
       <SidebarMenuButton asChild isActive={isActive} className="pr-8">
-        <Link href={href}>
+        <Link href={href} onClick={() => setOpenMobile(false)}>
           <span className="truncate">{title}</span>
         </Link>
       </SidebarMenuButton>
