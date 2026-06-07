@@ -7,6 +7,13 @@ import { Clock, FileText, MessageSquare, Phone, Play, Plus, Webhook, Zap } from 
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -143,21 +150,27 @@ interface TriggerPickerButtonProps {
   triggers?: SessionTriggerInfo[];
   externalDialogOpen?: boolean;
   onExternalDialogOpenChange?: (open: boolean) => void;
+  externalDrawerOpen?: boolean;
+  onExternalDrawerOpenChange?: (open: boolean) => void;
 }
 
 export function TriggerPickerButton({
   triggers = [],
   externalDialogOpen,
   onExternalDialogOpenChange,
+  externalDrawerOpen,
+  onExternalDrawerOpenChange,
 }: TriggerPickerButtonProps) {
   const controller = usePromptInputController();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
   const allTriggers = useTriggerItems();
   const triggerCount = triggers.length;
 
   const effectiveDialogOpen = dialogOpen || (externalDialogOpen ?? false);
+  const effectiveDrawerOpen = drawerOpen || (externalDrawerOpen ?? false);
 
   const handleDialogOpenChange = useCallback(
     (open: boolean) => {
@@ -165,6 +178,14 @@ export function TriggerPickerButton({
       if (!open) onExternalDialogOpenChange?.(false);
     },
     [onExternalDialogOpenChange],
+  );
+
+  const handleDrawerOpenChange = useCallback(
+    (open: boolean) => {
+      setDrawerOpen(open);
+      if (!open) onExternalDrawerOpenChange?.(false);
+    },
+    [onExternalDrawerOpenChange],
   );
 
   const handleSelect = useCallback(
@@ -180,6 +201,12 @@ export function TriggerPickerButton({
     setPopoverOpen(false);
     setDialogOpen(true);
   };
+
+  const handleCreateTriggerFromDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    onExternalDrawerOpenChange?.(false);
+    setDialogOpen(true);
+  }, [onExternalDrawerOpenChange]);
 
   return (
     <>
@@ -239,6 +266,51 @@ export function TriggerPickerButton({
         )}
       </div>
 
+      {/* Trigger list drawer — mobile, opened from the chat input dropdown menu */}
+      <Drawer open={effectiveDrawerOpen} onOpenChange={handleDrawerOpenChange}>
+        <DrawerContent className="flex max-h-[80vh] flex-col">
+          <DrawerHeader>
+            <DrawerTitle>Triggers</DrawerTitle>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {triggers.length === 0 ? (
+              <div className="py-10 text-sm text-center text-muted-foreground">
+                No triggers connected yet
+              </div>
+            ) : (
+              triggers.map((t, i) => {
+                const info = getTriggerTypeInfo(t.type);
+                const Icon = info?.icon ?? Zap;
+                return (
+                  <div key={i} className="gap-3 px-4 py-3 flex items-center">
+                    <div className="size-8 flex shrink-0 items-center justify-center rounded-md bg-muted">
+                      <Icon className="size-4 text-foreground" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-snug truncate">
+                        {info?.label ?? t.type}
+                      </p>
+                      <p className="text-xs truncate text-muted-foreground">{t.workflowTitle}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <DrawerFooter className="border-t border-border">
+            <button
+              type="button"
+              onClick={handleCreateTriggerFromDrawer}
+              className="gap-2 px-4 py-2.5 text-sm font-medium flex w-full items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Plus className="size-4 shrink-0" />
+              Add trigger
+            </button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Available trigger selection dialog */}
       <Dialog open={effectiveDialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           className={cn(

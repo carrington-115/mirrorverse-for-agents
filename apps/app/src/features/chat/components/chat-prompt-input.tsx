@@ -54,7 +54,9 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { CHAT_MODELS, type ModelOption } from "@/features/chat/config";
 import { useSpeechToText } from "@/features/chat/hooks/use-speech-to-text";
@@ -145,6 +147,12 @@ export function ChatPromptInput({
 }: ChatPromptInputProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [mobileTriggerDialogOpen, setMobileTriggerDialogOpen] = useState(false);
+  const [mobileModelDrawerOpen, setMobileModelDrawerOpen] = useState(false);
+  const [mobileTriggerDrawerOpen, setMobileTriggerDrawerOpen] = useState(false);
+  const [mobileIntegrationDrawerOpen, setMobileIntegrationDrawerOpen] = useState(false);
+  const [mobileChannelDrawerOpen, setMobileChannelDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
+
   // Save cursor position before the layout switches so it can be restored after remount.
   const cursorRef = useRef<{ start: number | null; end: number | null }>({
     start: null,
@@ -199,71 +207,102 @@ export function ChatPromptInput({
 
   const attachMenuContent = (
     <PromptInputActionMenuContent className="w-56">
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="md:hidden py-2.5 px-3">
-          <ModelSelectorLogo provider={selectedModel.chefSlug} className="mr-2 size-4 shrink-0" />
-          {selectedModel.name}
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="w-52">
-          {CHAT_MODELS.map((m) => (
-            <DropdownMenuItem
-              key={m.id}
-              className="py-2.5 px-3"
-              onSelect={() => onModelChange(m.id)}
-            >
-              <ModelSelectorLogo provider={m.chefSlug} className="mr-2 size-4 shrink-0" />
-              <span className="flex-1">{m.name}</span>
-              {m.id === model && <CheckIcon className="ml-1 size-3.5 shrink-0 text-primary" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
+      {/* Mobile-only model selector — opens drawer */}
       <DropdownMenuItem
         className="md:hidden py-2.5 px-3"
-        onSelect={() => setMobileTriggerDialogOpen(true)}
+        onSelect={() => setMobileModelDrawerOpen(true)}
+      >
+        <ModelSelectorLogo provider={selectedModel.chefSlug} className="mr-2 size-4 shrink-0" />
+        {selectedModel.name}
+      </DropdownMenuItem>
+      {/* Mobile-only trigger item — opens trigger drawer */}
+      <DropdownMenuItem
+        className="md:hidden py-2.5 px-3"
+        onSelect={() => setMobileTriggerDrawerOpen(true)}
       >
         <Zap className="mr-2 size-4 shrink-0 text-muted-foreground" />
         {sessionTriggers.length > 0 ? `Triggers (${sessionTriggers.length})` : "Add trigger"}
       </DropdownMenuItem>
       <DropdownMenuSeparator className="md:hidden" />
       <UploadFileMenuItem />
-      <PromptInputActionAddScreenshot className="py-2.5 px-3" />
+      {/* Screenshot — hidden on mobile */}
+      {!isMobile && <PromptInputActionAddScreenshot className="py-2.5 px-3" />}
       <DropdownMenuSeparator />
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="py-2.5 px-3">
+      {/* Integration — drawer on mobile, sub-menu on desktop */}
+      {isMobile ? (
+        <DropdownMenuItem
+          className="py-2.5 px-3"
+          onSelect={() => setMobileIntegrationDrawerOpen(true)}
+        >
           <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
           Connect integration
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="w-44">
-          <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectWebhook?.()}>
+        </DropdownMenuItem>
+      ) : (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="py-2.5 px-3">
             <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
-            Connect webhook
-          </DropdownMenuItem>
-          <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectApp?.()}>
-            <Grid2x2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
-            Connect app
-          </DropdownMenuItem>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="py-2.5 px-3">
+            Connect integration
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-44">
+            <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectWebhook?.()}>
+              <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
+              Connect webhook
+            </DropdownMenuItem>
+            <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectApp?.()}>
+              <Grid2x2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
+              Connect app
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      )}
+      {/* Channel — drawer on mobile, sub-menu on desktop */}
+      {isMobile ? (
+        <DropdownMenuItem className="py-2.5 px-3" onSelect={() => setMobileChannelDrawerOpen(true)}>
           <Radio className="mr-2 size-4 shrink-0 text-muted-foreground" />
           Add channel
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="w-52">
-          <ChannelMenuItem
-            icon={<Phone className="mr-2 size-4 shrink-0 text-muted-foreground" />}
-            text="Connect me to a phone number"
-            label="Connect phone"
-          />
-          <ChannelMenuItem
-            icon={<WhatsAppIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />}
-            text="Connect me to a WhatsApp number"
-            label="Connect WhatsApp number"
-          />
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
+        </DropdownMenuItem>
+      ) : (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="py-2.5 px-3">
+            <Radio className="mr-2 size-4 shrink-0 text-muted-foreground" />
+            Add channel
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-52">
+            <ChannelMenuItem
+              icon={<Phone className="mr-2 size-4 shrink-0 text-muted-foreground" />}
+              text="Connect me to a phone number"
+              label="Connect phone"
+            />
+            <ChannelMenuItem
+              icon={<WhatsAppIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />}
+              text="Connect me to a WhatsApp number"
+              label="Connect WhatsApp number"
+            />
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      )}
     </PromptInputActionMenuContent>
+  );
+
+  const mobileDrawers = (
+    <>
+      <MobileModelDrawer
+        open={mobileModelDrawerOpen}
+        onOpenChange={setMobileModelDrawerOpen}
+        selectedId={model}
+        onSelect={onModelChange}
+      />
+      <MobileIntegrationDrawer
+        open={mobileIntegrationDrawerOpen}
+        onOpenChange={setMobileIntegrationDrawerOpen}
+        onConnectWebhook={onConnectWebhook}
+        onConnectApp={onConnectApp}
+      />
+      <MobileChannelDrawer
+        open={mobileChannelDrawerOpen}
+        onOpenChange={setMobileChannelDrawerOpen}
+      />
+    </>
   );
 
   if (compact) {
@@ -329,6 +368,8 @@ export function ChatPromptInput({
                     triggers={sessionTriggers}
                     externalDialogOpen={mobileTriggerDialogOpen}
                     onExternalDialogOpenChange={setMobileTriggerDialogOpen}
+                    externalDrawerOpen={mobileTriggerDrawerOpen}
+                    onExternalDrawerOpenChange={setMobileTriggerDrawerOpen}
                   />
                 </div>
                 <MicButton />
@@ -337,6 +378,7 @@ export function ChatPromptInput({
             </PromptInput>
           </>
         )}
+        {mobileDrawers}
       </PromptInputProvider>
     );
   }
@@ -368,12 +410,17 @@ export function ChatPromptInput({
             <ChatModelPicker selectedId={model} onSelect={onModelChange} />
           </PromptInputTools>
           <div className="gap-1 flex items-center">
-            <TriggerPickerButton triggers={sessionTriggers} />
+            <TriggerPickerButton
+              triggers={sessionTriggers}
+              externalDrawerOpen={mobileTriggerDrawerOpen}
+              onExternalDrawerOpenChange={setMobileTriggerDrawerOpen}
+            />
             <MicButton />
             <PromptInputSubmit status={status} onStop={onStop} className="rounded-full" />
           </div>
         </PromptInputFooter>
       </PromptInput>
+      {mobileDrawers}
     </PromptInputProvider>
   );
 }
@@ -764,5 +811,211 @@ function ModelItem({
       </div>
       {selected && <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />}
     </button>
+  );
+}
+
+// ─── Mobile drawers ───────────────────────────────────────────────────────────
+
+function MobileModelDrawer({
+  open,
+  onOpenChange,
+  selectedId,
+  onSelect,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  const allModels: readonly ModelOption[] = CHAT_MODELS;
+  const [search, setSearch] = useState("");
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setSearch("");
+    onOpenChange(next);
+  };
+
+  const filtered = allModels.filter(
+    (m) =>
+      search === "" ||
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.description.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <Drawer open={open} onOpenChange={handleOpenChange}>
+      <DrawerContent className="max-h-[80vh]">
+        <DrawerHeader>
+          <DrawerTitle>Select model</DrawerTitle>
+        </DrawerHeader>
+        <div className="gap-2 px-4 pb-3 flex items-center border-b border-border">
+          <Search className="size-3.5 shrink-0 text-muted-foreground" />
+          <input
+            type="text"
+            className="py-1.5 text-sm flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+            placeholder="Search models…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="pb-6 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-sm text-center text-muted-foreground">No models found</p>
+          ) : (
+            PROVIDERS.map(({ chef, slug }) => {
+              const models = filtered.filter((m) => m.chef === chef);
+              if (models.length === 0) return null;
+              return (
+                <Fragment key={chef}>
+                  <p className="px-4 pb-1 pt-3 font-semibold tracking-wider text-[10px] text-muted-foreground/60 uppercase">
+                    {chef}
+                  </p>
+                  {models.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={cn(
+                        "gap-3 px-4 py-3 flex w-full items-center text-left transition-colors hover:bg-accent/60",
+                        selectedId === m.id && "bg-accent/50",
+                      )}
+                      onClick={() => {
+                        onSelect(m.id);
+                        handleOpenChange(false);
+                      }}
+                    >
+                      <ModelSelectorLogo provider={slug} className="size-5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="gap-1.5 text-sm font-medium flex items-center">
+                          {m.name}
+                          {m.pro && (
+                            <span className="bg-amber-500/15 px-1.5 py-0.5 font-semibold text-amber-600 dark:text-amber-400 rounded-full text-[10px]">
+                              Pro
+                            </span>
+                          )}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{m.description}</p>
+                      </div>
+                      {selectedId === m.id && (
+                        <CheckIcon className="size-3.5 shrink-0 text-primary" />
+                      )}
+                    </button>
+                  ))}
+                </Fragment>
+              );
+            })
+          )}
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+function MobileIntegrationDrawer({
+  open,
+  onOpenChange,
+  onConnectWebhook,
+  onConnectApp,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConnectWebhook?: () => void;
+  onConnectApp?: () => void;
+}) {
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Connect integration</DrawerTitle>
+        </DrawerHeader>
+        <div className="p-2 pb-8">
+          <button
+            type="button"
+            className="gap-3 px-4 py-3.5 flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent"
+            onClick={() => {
+              onOpenChange(false);
+              onConnectWebhook?.();
+            }}
+          >
+            <Link2 className="size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Connect webhook</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Trigger via an HTTP request</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="gap-3 px-4 py-3.5 flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent"
+            onClick={() => {
+              onOpenChange(false);
+              onConnectApp?.();
+            }}
+          >
+            <Grid2x2 className="size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Connect app</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Browse and connect integrations
+              </p>
+            </div>
+          </button>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+function MobileChannelDrawer({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const controller = usePromptInputController();
+
+  const handleSelect = useCallback(
+    (text: string) => {
+      controller.textInput.setInput(text);
+      onOpenChange(false);
+    },
+    [controller, onOpenChange],
+  );
+
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Add channel</DrawerTitle>
+        </DrawerHeader>
+        <div className="p-2 pb-8">
+          <button
+            type="button"
+            className="gap-3 px-4 py-3.5 flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent"
+            onClick={() => handleSelect("Connect me to a phone number")}
+          >
+            <Phone className="size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Connect phone</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Add a phone number to your agent
+              </p>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="gap-3 px-4 py-3.5 flex w-full items-center rounded-lg text-left transition-colors hover:bg-accent"
+            onClick={() => handleSelect("Connect me to a WhatsApp number")}
+          >
+            <WhatsAppIcon className="size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Connect WhatsApp number</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Add a WhatsApp number to your agent
+              </p>
+            </div>
+          </button>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }

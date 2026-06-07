@@ -65,6 +65,7 @@ import { listWorkspaceMcpServers } from "../features/tools/repo";
 import { NeedsAuthError, invokeComposioTool } from "../mcp/composio/dispatcher";
 import { createConnectionRequest } from "../mcp/composio/auth";
 import { runPreflightCheck } from "../mcp/composio/preflight";
+import { makeFirstPartyAiTools } from "../mcp/agent-tools";
 import { flushTracing } from "../lib/tracing";
 import type { Database } from "@mirrorverse/db";
 
@@ -492,6 +493,11 @@ export async function POST(req: Request): Promise<Response> {
       ),
     ]);
 
+  const firstPartyTools = makeFirstPartyAiTools({
+    db,
+    workspaceId,
+    userId: user.id,
+  });
   const phoneTools = buildPhoneTools({ db, workspaceId, userId: user.id });
   const knowledgeTools = buildKnowledgeTools({
     db,
@@ -506,6 +512,7 @@ export async function POST(req: Request): Promise<Response> {
   ).catch(() => ({}) as Record<string, Tool>);
 
   const additionalTools = {
+    ...firstPartyTools,
     ...composioTools,
     ...phoneTools,
     ...knowledgeTools,

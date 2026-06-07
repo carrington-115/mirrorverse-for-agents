@@ -24,6 +24,8 @@
     "typecheck": "tsc --noEmit",
     "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:3001/api/inngest",
     "dev:tunnel": "npx localtunnel --port 3001",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "clean": "rm -rf .turbo .next dist node_modules coverage .vercel"
   },
   "dependencies": {
@@ -32,6 +34,7 @@
     "@ai-sdk/openai": "^3.0.63",
     "@anthropic-ai/claude-agent-sdk": "^0.3.142",
     "@composio/core": "^0.10.0",
+    "@modelcontextprotocol/sdk": "^1.15.0",
     "@langfuse/otel": "^5.3.0",
     "@mirrorverse/agent": "workspace:*",
     "@mirrorverse/db": "workspace:*",
@@ -67,8 +70,10 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^3.2.0",
     "eslint": "^9.0.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.0"
   }
 }

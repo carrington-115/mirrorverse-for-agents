@@ -34,8 +34,9 @@ export function SidebarActivityButton({
   children,
 }: SidebarActivityButtonProps) {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const closeMobileSidebar = () => setOpenMobile(false);
 
   const isActive = exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
@@ -50,7 +51,9 @@ export function SidebarActivityButton({
                 isActive={isActive}
                 className={cn("flex items-center justify-center", className)}
               >
-                <Link href={href}>{Icon && <Icon className="size-4" />}</Link>
+                <Link href={href} onClick={closeMobileSidebar}>
+                  {Icon && <Icon className="size-4" />}
+                </Link>
               </SidebarMenuButton>
             </TooltipTrigger>
             <TooltipContent side="right">{name}</TooltipContent>
@@ -91,7 +94,7 @@ export function SidebarActivityButton({
         className={cn("flex items-center justify-center", className)}
         tooltip={name}
       >
-        <Link href={href}>
+        <Link href={href} onClick={closeMobileSidebar}>
           {Icon && <Icon className="size-4" />}
           {children}
         </Link>
@@ -101,7 +104,7 @@ export function SidebarActivityButton({
 
   return (
     <SidebarMenuButton asChild isActive={isActive} className={cn(className)}>
-      <Link href={href}>
+      <Link href={href} onClick={closeMobileSidebar}>
         {Icon && <Icon className="size-4" />}
         <span>{name}</span>
         {children}

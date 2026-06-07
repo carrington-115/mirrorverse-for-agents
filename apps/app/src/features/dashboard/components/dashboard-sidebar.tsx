@@ -84,12 +84,13 @@ export function DashboardSidebar() {
 }
 
 function NewChatButton() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const router = useRouter();
   const pathname = usePathname();
 
   const handleNewChatClick = () => {
+    setOpenMobile(false);
     // When already on /mirrorpilot, the URL may have been silently updated via
     // history.replaceState after the first message was sent. A full reload
     // guarantees a clean component tree in either case (same as the header button).
