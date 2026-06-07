@@ -23,7 +23,19 @@ export async function interpretHttpRequest(
   if (!rawUrl) throw new Error("core.http_request: url is required");
 
   // Append query params
-  const url = new URL(rawUrl);
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new Error(`core.http_request: invalid URL "${rawUrl}"`);
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(
+      `core.http_request: unsupported protocol "${url.protocol}" – only http and https are allowed`,
+    );
+  }
+
   if (raw.query) {
     for (const [k, v] of Object.entries(raw.query)) {
       url.searchParams.set(k, String(v));
@@ -47,12 +59,20 @@ export async function interpretHttpRequest(
     }
   }
 
-  const res = await fetch(url.toString(), {
-    method,
-    headers,
-    body: bodyPayload,
-    signal: AbortSignal.timeout(30_000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      method,
+      headers,
+      body: bodyPayload,
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `core.http_request: network error fetching ${url.toString()} – ${cause}`,
+    );
+  }
 
   let responseBody: unknown;
   const contentType = res.headers.get("content-type") ?? "";
