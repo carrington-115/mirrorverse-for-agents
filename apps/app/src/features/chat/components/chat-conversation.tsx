@@ -30,6 +30,7 @@ interface ChatConversationProps {
   onGetManagedNumber?: () => void;
   onByoTwilio?: () => void;
   onConfirmDocuments?: (documentIds: string[], labels: string[]) => void;
+  onConfirmContentBody?: (contentType: string, subject: string | undefined, body: string) => void;
 }
 
 export function ChatConversation({
@@ -46,6 +47,7 @@ export function ChatConversation({
   onGetManagedNumber,
   onByoTwilio,
   onConfirmDocuments,
+  onConfirmContentBody,
 }: ChatConversationProps) {
   const lastAssistantIndex = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -79,6 +81,7 @@ export function ChatConversation({
                 onGetManagedNumber={onGetManagedNumber}
                 onByoTwilio={onByoTwilio}
                 onConfirmDocuments={onConfirmDocuments}
+                onConfirmContentBody={onConfirmContentBody}
               />
             ))}
           {showThinking ? <ThinkingRow /> : null}

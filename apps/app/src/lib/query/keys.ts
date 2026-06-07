@@ -4,6 +4,7 @@ export const queryKeys = {
     user: () => [...queryKeys.auth.all, "user"] as const,
     profile: (userId: string, orgId: string) =>
       [...queryKeys.auth.all, "profile", userId, orgId] as const,
+    session: () => [...queryKeys.auth.all, "session"] as const,
   },
   workflows: {
     all: ["workflows"] as const,

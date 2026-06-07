@@ -1,6 +1,7 @@
 import { router } from "./init";
 
 import { auditRouter } from "../features/audit/router";
+import { envVarsRouter } from "../features/env-vars/router";
 import { authRouter } from "../features/auth/router";
 import { billingRouter } from "../features/billing/router";
 import { chatsRouter } from "../features/chats/router";
@@ -16,6 +17,7 @@ import { workflowsRouter } from "../features/workflows/router";
 
 export const appRouter = router({
   audit: auditRouter,
+  envVars: envVarsRouter,
   auth: authRouter,
   billing: billingRouter,
   chats: chatsRouter,

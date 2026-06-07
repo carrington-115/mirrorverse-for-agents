@@ -48,6 +48,7 @@ export const env = createEnv({
     VAPI_WEBHOOK_SECRET: z.string().min(1).optional(),
 
     COMPOSIO_API_KEY: z.string().min(1).optional(),
+    E2B_API_KEY: z.string().min(1).optional(),
     COMPOSIO_OAUTH_CALLBACK_URL: z.string().url().optional(),
 
     RESEND_API_KEY: z.string().min(1).optional(),

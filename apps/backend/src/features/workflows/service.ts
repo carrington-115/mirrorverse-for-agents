@@ -123,8 +123,10 @@ export const workflowsService = {
       repo.getLatestVersion(ctx.db, input.workflowId, ctx.workspaceId),
     ]);
     if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+    if (!version)
+      throw appError(ErrCode.BadInput, "Save the workflow before activating");
 
-    const webhookNodes = (version?.document.nodes ?? []).filter(
+    const webhookNodes = version.document.nodes.filter(
       (n) => n.type === "trigger.webhook",
     );
 

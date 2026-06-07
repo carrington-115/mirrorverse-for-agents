@@ -4,6 +4,7 @@ import { AlertCircle, Brain, PlugZap, Server, Sparkles, Wrench } from "lucide-re
 
 // Trigger side-effect registrations so the registry is populated before
 // buildCotTimeline is called. Each lib module calls registerTool on import.
+import "./content-body-tools";
 import "./knowledge-tools";
 import "./phone-tools";
 import { SUBMIT_PLAN_TOOL_TYPE } from "./submit-plan-tool";

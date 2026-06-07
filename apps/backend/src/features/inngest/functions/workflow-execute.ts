@@ -12,8 +12,14 @@ import {
   sendWorkflowFailureEmail,
 } from "../../notifications/email";
 
-const { workflowRuns, workflowVersions, workflows, workspaces, userProfiles } =
-  schema;
+const {
+  workflowRuns,
+  workflowVersions,
+  workflows,
+  workspaceEnvVars,
+  workspaces,
+  userProfiles,
+} = schema;
 
 export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
   return inngest.createFunction(
@@ -71,13 +77,24 @@ export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
 
         if (!row) throw new Error("workflow.execute: failed to insert run row");
 
+        const envRows = await db
+          .select({
+            name: workspaceEnvVars.name,
+            value: workspaceEnvVars.value,
+          })
+          .from(workspaceEnvVars)
+          .where(eq(workspaceEnvVars.workspaceId, workspaceId));
+
+        const env = Object.fromEntries(envRows.map((r) => [r.name, r.value]));
+
         return {
           runId: row.id,
           document: version.document as WorkflowDocument,
+          env,
         };
       });
 
-      const { runId, document } = init;
+      const { runId, document, env } = init;
       const costTracker = new CostTracker();
 
       // Steps 2..N: walk the graph. Each node executes as its own Inngest step.
@@ -90,6 +107,7 @@ export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
           workspaceId,
           runId,
           costTracker,
+          env,
         },
         step,
       ).catch((err) => ({

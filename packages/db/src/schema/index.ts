@@ -11,3 +11,4 @@ export * from "./voice.schema";
 export * from "./webhooks.schema";
 export * from "./knowledge.schema";
 export * from "./human-review-tokens.schema";
+export * from "./workspace-env-vars.schema";

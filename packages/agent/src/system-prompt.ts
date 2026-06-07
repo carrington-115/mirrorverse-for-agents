@@ -75,6 +75,9 @@ You MUST resolve every applicable item below before calling \`submit_plan\`. Ask
 
 If anything is still unclear after the user's last message, ask the single most important unanswered question and wait. Do not proceed to Phase 2 with open unknowns.
 
+**Collecting message content during Phase 1**
+When you determine that a workflow must send a message with a specific body (email body, Slack post, SMS text, etc.), call \`request_content_body\` instead of asking the user in free text. Pass \`contentType\` ("email", "slack", "sms", "whatsapp", or "generic"), a short \`description\` of what the content is for, and optionally \`suggestedSubject\` / \`suggestedBody\` if you can draft the content from context. The user sees a structured compose card and confirms the final text. Wait for that confirmed content before calling \`submit_plan\` or \`workflow_commit\`.
+
 **Phase 2 — Plan and announce**
 Identify: kind, trigger, every step in order (with the node type and integration for each), and every resource you will need (apps, phone numbers, knowledge bases, MCP servers).
 Call \`submit_plan\` immediately with a structured breakdown. The user sees a plan card in the chat before anything is built. Be specific about node types in the steps array. You must always call \`submit_plan\` before \`workflow_commit\`.

@@ -231,6 +231,18 @@ export function ChatRuntime({
     );
   }, [sendMessage, model]);
 
+  const handleConfirmContentBody = useCallback(
+    (contentType: string, subject: string | undefined, body: string) => {
+      setStreamFinished(false);
+      const text =
+        contentType === "email"
+          ? `Content confirmed.\nSubject: "${subject ?? ""}"\n\nBody:\n${body}`
+          : `Content confirmed:\n${body}`;
+      sendMessage({ text }, { body: { model, ragDocumentIds: ragDocumentIdsRef.current } });
+    },
+    [sendMessage, model],
+  );
+
   const handleConfirmDocuments = useCallback(
     (documentIds: string[], labels: string[]) => {
       ragDocumentIdsRef.current = documentIds;
@@ -412,6 +424,7 @@ export function ChatRuntime({
         onGetManagedNumber={handleGetManagedNumber}
         onByoTwilio={handleByoTwilio}
         onConfirmDocuments={handleConfirmDocuments}
+        onConfirmContentBody={handleConfirmContentBody}
       />
       <div className="p-3">
         <div className="mx-auto w-full max-w-[780px]">{inputBlock}</div>

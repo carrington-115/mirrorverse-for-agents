@@ -287,6 +287,28 @@ function buildSubmitPlanTool(): Tool {
   });
 }
 
+function buildContentBodyTool(): Tool {
+  return tool({
+    description:
+      "Show the user a structured content editor in the chat to compose or review a message body " +
+      "(email, Slack post, SMS, etc.) before it is used in a workflow. Call this during Phase 1 — " +
+      "Understand — whenever you need the exact body text for a message the workflow will send. " +
+      "Provide suggestedSubject/suggestedBody if you can draft the content from context; " +
+      "leave them empty to start from a blank form. Wait for the confirmed content before calling workflow_commit.",
+    inputSchema: z.object({
+      contentType: z.enum(["email", "slack", "sms", "whatsapp", "generic"]),
+      description: z
+        .string()
+        .describe(
+          "What this content is for, e.g. 'Welcome email to new signups'",
+        ),
+      suggestedSubject: z.string().optional(),
+      suggestedBody: z.string().optional(),
+    }),
+    execute: async (input) => ({ ok: true as const, ...input }),
+  });
+}
+
 interface ChatRequestBody {
   readonly id?: string;
   readonly chatId?: string;
@@ -489,6 +511,7 @@ export async function POST(req: Request): Promise<Response> {
     ...knowledgeTools,
     ...introspectionTools,
     submit_plan: buildSubmitPlanTool(),
+    request_content_body: buildContentBodyTool(),
   };
 
   const webhookContextLines = workspaceWebhooks.map((w) => {

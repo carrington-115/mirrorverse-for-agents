@@ -52,9 +52,14 @@ export async function findDueCronWorkflows(
     if (!expression) continue;
 
     try {
-      const cron = new Cron(expression, { timezone, maxRuns: 1 });
-      // isDue: check if the expression should have fired in the current minute.
-      const prev = cron.previousRun();
+      const cron = new Cron(expression, { timezone });
+      // isDue: find the next occurrence starting from one minute ago. If it
+      // falls within the current minute, the expression is due now.
+      // Using nextRun(minuteAgo) instead of previousRun() because previousRun()
+      // tracks actual callback execution history — a fresh Cron instance with no
+      // callback always returns undefined, so cron workflows would never fire.
+      const minuteAgo = new Date(now.getTime() - 60_000);
+      const prev = cron.nextRun(minuteAgo);
       if (prev && isWithinCurrentMinute(prev, now)) {
         due.push({
           workspaceId: row.workspaceId,

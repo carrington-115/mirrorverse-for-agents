@@ -8,6 +8,7 @@ export type SettingsPage =
   | "billing"
   | "usage"
   | "security"
+  | "environment"
   | "apps"
   | "channels"
   | "runs"

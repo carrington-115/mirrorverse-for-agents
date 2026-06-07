@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +27,7 @@ import {
   useUsageByDayQuery,
   useUsagePeriodQuery,
 } from "@/features/billing/api/queries";
+import { useSettingsModal } from "../hooks/use-settings-modal";
 
 type UsageKind = string;
 
@@ -67,6 +67,7 @@ function formatDate(date: Date | string | null | undefined): string {
 }
 
 export function UsageSettingsShell() {
+  const { navigateTo } = useSettingsModal();
   const { data: planData, isLoading: planLoading } = useCurrentPlanQuery();
   const { data: usageData, isLoading: usageLoading } = useUsagePeriodQuery();
   const { data: usageByDayData, isLoading: usageByDayLoading } = useUsageByDayQuery();
@@ -250,17 +251,17 @@ export function UsageSettingsShell() {
                           {quota.display(quota.used)} / {quota.display(quota.limit)} {quota.unit}
                         </span>
                         {isNearLimit && (
-                          <Link
-                            href="/settings/pricing"
+                          <button
+                            onClick={() => navigateTo("pricing")}
                             className={cn(
-                              "text-xs underline underline-offset-2 transition-colors",
+                              "text-xs cursor-pointer underline underline-offset-2 transition-colors",
                               pct >= 90
                                 ? "text-destructive hover:text-destructive/80"
                                 : "text-amber-500 hover:text-amber-400",
                             )}
                           >
                             Upgrade
-                          </Link>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -272,8 +273,8 @@ export function UsageSettingsShell() {
           )}
         </CardContent>
         <CardFooter>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/settings/pricing">Upgrade for more</Link>
+          <Button variant="outline" size="sm" onClick={() => navigateTo("pricing")}>
+            Upgrade for more
           </Button>
         </CardFooter>
       </Card>

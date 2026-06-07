@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CreditCard, ExternalLink } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { useCurrentPlanQuery, useInvoicesQuery } from "@/features/billing/api/queries";
 import { useOpenPortalMutation } from "@/features/billing/api/mutations";
+import { useSettingsModal } from "../hooks/use-settings-modal";
 
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "N/A";
@@ -37,6 +37,7 @@ function formatCents(cents: number): string {
 }
 
 export function BillingSettingsShell() {
+  const { navigateTo } = useSettingsModal();
   const { user } = useSupabaseUser();
   const userEmail = user?.email ?? "";
 
@@ -122,8 +123,8 @@ export function BillingSettingsShell() {
           </dl>
         </CardContent>
         <CardFooter className="gap-2 flex">
-          <Button asChild size="sm" variant="outline">
-            <Link href="/settings/pricing">Upgrade plan</Link>
+          <Button size="sm" variant="outline" onClick={() => navigateTo("pricing")}>
+            Upgrade plan
           </Button>
           {!isFree && (
             <Button

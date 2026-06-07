@@ -23,4 +23,6 @@ export interface ExecutionContext {
   readonly workspaceId: string;
   readonly runId: string;
   readonly costTracker: CostTracker;
+  /** Workspace environment variables, keyed by name. Available as {{ $env.NAME }} in templates. */
+  readonly env: Readonly<Record<string, string>>;
 }

@@ -35,6 +35,7 @@ import {
   type LoopSignal,
 } from "./interpreters/flow";
 import { interpretAgent } from "./interpreters/agent";
+import { interpretCode } from "./interpreters/code";
 import { interpretHumanReview } from "./interpreters/human-review";
 import type { ExecutionContext, InterpretResult } from "./interpreters/types";
 import type { CostBreakdown, RunError, RunStatus } from "@mirrorverse/types";
@@ -142,6 +143,10 @@ async function executeNode(
 
         case "core.tool_call":
           interpreted = await interpretToolCall(node, input, state, ctx);
+          break;
+
+        case "core.code":
+          interpreted = await interpretCode(node, input, state, ctx);
           break;
 
         case "core.respond_to_webhook":
@@ -302,7 +307,7 @@ export async function walkGraph(
   ctx: ExecutionContext,
   step: StepTools,
 ): Promise<WalkResult> {
-  const state = new RunState();
+  const state = new RunState(ctx.env as Record<string, string>);
   const adj = buildMainAdjacency(doc);
   const incomingCount = buildIncomingCount(doc);
 

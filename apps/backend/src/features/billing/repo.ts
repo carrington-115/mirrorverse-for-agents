@@ -71,6 +71,34 @@ export async function recordChatUsage(
   await input.db.insert(usageEvents).values(rows).onConflictDoNothing();
 }
 
+// ─── Sandbox usage (code node) ───────────────────────────────────────────────
+
+export async function recordSandboxUsage(
+  db: Database,
+  input: {
+    workspaceId: string;
+    runId: string;
+    nodeId: string;
+    sandboxSeconds: number;
+    costCents: number;
+  },
+): Promise<void> {
+  await db
+    .insert(usageEvents)
+    .values({
+      workspaceId: input.workspaceId,
+      runId: input.runId,
+      kind: "sandbox_second",
+      quantity: input.sandboxSeconds,
+      unit: "second",
+      model: null,
+      costCents: input.costCents,
+      billable: true,
+      idempotencyKey: `${input.runId}:${input.nodeId}:sandbox`,
+    })
+    .onConflictDoNothing();
+}
+
 // ─── Plan & subscription ──────────────────────────────────────────────────────
 
 export async function getActiveSubscription(db: Database, workspaceId: string) {

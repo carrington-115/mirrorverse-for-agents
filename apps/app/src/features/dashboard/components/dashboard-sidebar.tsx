@@ -1,18 +1,13 @@
 ﻿"use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   BookOpen,
-  ChevronDown,
   Loader2,
-  Megaphone,
   MessageCirclePlus,
-  Phone,
   Shapes,
   Workflow as WorkflowIcon,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
 import type { UserMetadata } from "@supabase/supabase-js";
 import {
   Sidebar,
@@ -28,8 +23,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { useChatsListQuery } from "@/features/chat/api/queries";
@@ -66,7 +59,6 @@ export function DashboardSidebar() {
               <SidebarActivityButton href="/workflows" name="Workflows" icon={WorkflowIcon} />
               <SidebarActivityButton href="/knowledge" name="Knowledge" icon={BookOpen} />
               <SidebarActivityButton href="/integrations" name="Integrations" icon={Shapes} />
-              <ChannelsItem />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -133,85 +125,6 @@ function NewChatButton() {
         <span>New chat</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
-  );
-}
-
-function ChannelsItem() {
-  const { state, isMobile } = useSidebar();
-  const isCollapsed = state === "collapsed";
-  const pathname = usePathname();
-  const isActive = pathname.startsWith("/deploy");
-
-  // Mobile: inline collapsible — hover doesn't exist on touch
-  if (isMobile) {
-    return (
-      <Collapsible defaultOpen={isActive} className="group/channels">
-        <SidebarMenuItem>
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton isActive={isActive}>
-              <Megaphone className="size-4" />
-              <span>Channels</span>
-              <ChevronDown className="size-4 ml-auto transition-transform group-data-[state=open]/channels:rotate-180" />
-            </SidebarMenuButton>
-          </CollapsibleTrigger>
-        </SidebarMenuItem>
-        <CollapsibleContent>
-          <SidebarGroupContent className="ml-2 pl-4 border-l border-border">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/deploy/phone"}>
-                  <Link href="/deploy/phone">
-                    <Phone className="size-4" />
-                    <span>Phone</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/deploy/whatsapp"}>
-                  <Link href="/deploy/whatsapp">
-                    <SiWhatsapp className="size-4" />
-                    <span>WhatsApp</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </CollapsibleContent>
-      </Collapsible>
-    );
-  }
-
-  // Desktop: HoverCard (unchanged)
-  return (
-    <HoverCard openDelay={120} closeDelay={120}>
-      <SidebarMenuItem>
-        <HoverCardTrigger asChild>
-          <SidebarMenuButton
-            className={cn(isCollapsed && "flex items-center justify-center")}
-            tooltip={isCollapsed ? "Channels" : undefined}
-          >
-            <Megaphone className="size-4" />
-            {!isCollapsed && <span>Channels</span>}
-          </SidebarMenuButton>
-        </HoverCardTrigger>
-      </SidebarMenuItem>
-      <HoverCardContent side="right" align="start" className="w-48 p-1">
-        <Link
-          href="/deploy/phone"
-          className="gap-2 px-2 py-1.5 text-sm flex items-center rounded-md hover:bg-accent hover:text-accent-foreground"
-        >
-          <Phone className="size-4" />
-          <span>Phone</span>
-        </Link>
-        <Link
-          href="/deploy/whatsapp"
-          className="gap-2 px-2 py-1.5 text-sm flex items-center rounded-md hover:bg-accent hover:text-accent-foreground"
-        >
-          <SiWhatsapp className="size-4" />
-          <span>WhatsApp</span>
-        </Link>
-      </HoverCardContent>
-    </HoverCard>
   );
 }
 

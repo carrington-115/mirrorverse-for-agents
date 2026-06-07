@@ -23,11 +23,16 @@ import { PhoneNumberProvisionCard } from "./phone-number-provision-card";
 import { UnassignedPhoneNumbersCard } from "./unassigned-phone-numbers-card";
 import { VoiceAgentActivateCard } from "./voice-agent-activate-card";
 import { KnowledgeBaseCard } from "./knowledge-base-card";
+import { ContentBodyCard } from "./content-body-card";
 import { ToolErrorBoundary } from "@/features/chat/lib/tool-error-boundary";
 import { isWorkflowCommitPart } from "@/features/chat/lib/workflow-commit-tool";
 import { isSubmitPlanPart, type SubmitPlanToolPart } from "@/features/chat/lib/submit-plan-tool";
 import { buildCotTimeline } from "@/features/chat/lib/cot-timeline";
 import { isKbViewPart, type KbViewToolPart } from "@/features/chat/lib/knowledge-tools";
+import {
+  isContentBodyPart,
+  type ContentBodyToolPart,
+} from "@/features/chat/lib/content-body-tools";
 import {
   isPhoneSearchPart,
   isPhoneProvisionPart,
@@ -54,6 +59,7 @@ interface MessageRowProps {
   onGetManagedNumber?: () => void;
   onByoTwilio?: () => void;
   onConfirmDocuments?: (documentIds: string[], labels: string[]) => void;
+  onConfirmContentBody?: (contentType: string, subject: string | undefined, body: string) => void;
 }
 
 function extractCopyText(message: UIMessage): string {
@@ -77,6 +83,7 @@ export function MessageRow({
   onGetManagedNumber,
   onByoTwilio,
   onConfirmDocuments,
+  onConfirmContentBody,
 }: MessageRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const initialText = extractCopyText(message);
@@ -217,6 +224,11 @@ export function MessageRow({
                   <KnowledgeBaseCard
                     part={toolPart as KbViewToolPart}
                     onConfirmDocuments={isLast && !isStreaming ? onConfirmDocuments : undefined}
+                  />
+                ) : isContentBodyPart(toolPart) ? (
+                  <ContentBodyCard
+                    part={toolPart as ContentBodyToolPart}
+                    onConfirm={isLast && !isStreaming ? onConfirmContentBody : undefined}
                   />
                 ) : (
                   <UnknownToolCard part={toolPart} />
