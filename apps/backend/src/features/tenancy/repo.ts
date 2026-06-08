@@ -1,6 +1,7 @@
 import { and, eq, isNull, schema, type Database } from "@mirrorverse/db";
 import type { UserId } from "@mirrorverse/types";
 
+import { env } from "@mirrorverse/env/backend";
 import { stripe } from "../billing/stripe-client";
 import { getFreePlan, upsertSubscription } from "../billing/repo";
 
@@ -145,15 +146,23 @@ async function bootstrapWorkspaceBilling(
 
     if (ws?.stripeCustomerId) return; // already bootstrapped
 
-    const customer = await stripe.customers.create({
-      ...(email ? { email } : {}),
-      metadata: { workspaceId },
-    });
+    let stripeCustomerId: string;
+
+    if (env.STRIPE_SECRET_KEY) {
+      const customer = await stripe.customers.create({
+        ...(email ? { email } : {}),
+        metadata: { workspaceId },
+      });
+      stripeCustomerId = customer.id;
+    } else {
+      // Stripe not configured in this environment — use a stable placeholder.
+      stripeCustomerId = `dev-local-${workspaceId}`;
+    }
 
     await db
       .update(workspaces)
       .set({
-        stripeCustomerId: customer.id,
+        stripeCustomerId,
         ...(email ? { billingEmail: email } : {}),
       })
       .where(eq(workspaces.id, workspaceId));
@@ -166,12 +175,12 @@ async function bootstrapWorkspaceBilling(
       now.getDate(),
     );
 
-    // If the free plan has a Stripe price, create a real Stripe subscription.
-    // Otherwise, record a local subscription only (placeholder until price is seeded).
+    // If Stripe is configured and the free plan has a Stripe price, create a
+    // real Stripe subscription. Otherwise use a stable manual ID as a placeholder.
     let stripeSubId = `manual-free-${workspaceId}`;
-    if (freePlan?.stripeMonthlyPriceId) {
+    if (env.STRIPE_SECRET_KEY && freePlan?.stripeMonthlyPriceId) {
       const sub = await stripe.subscriptions.create({
-        customer: customer.id,
+        customer: stripeCustomerId,
         items: [{ price: freePlan.stripeMonthlyPriceId }],
       });
       stripeSubId = sub.id;
@@ -180,7 +189,7 @@ async function bootstrapWorkspaceBilling(
     await upsertSubscription(db, {
       workspaceId,
       stripeSubscriptionId: stripeSubId,
-      stripeCustomerId: customer.id,
+      stripeCustomerId,
       planId: "free",
       status: "active",
       currentPeriodStart: now,

@@ -21,7 +21,7 @@ const homeFaqs = [
   {
     question: "What channels does mirrorverse support?",
     answer:
-      "Phone (inbound and outbound), SMS, WhatsApp, email, and live chat. All channels share the same agent context and memory, so every conversation picks up exactly where the last one left off — regardless of channel.",
+      "Phone (inbound and outbound), SMS, WhatsApp, Telegram, email, and live chat. All channels share the same agent context and memory, so every conversation picks up exactly where the last one left off — regardless of channel.",
   },
   {
     question: "How is my data protected?",

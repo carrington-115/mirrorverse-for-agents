@@ -10,7 +10,16 @@ const plans = [
     monthlyPrice: 0,
     annualPrice: 0,
     description: "Explore the platform — no card required.",
-    features: ["5 workflow generations / mo", "100 runs / mo", "1 app", "Community support"],
+    features: [
+      "200 bonus credits",
+      "100 tool calls",
+      "5 integrations",
+      "5 MB file uploads",
+      "Limited models",
+      "1,000 workflow executions",
+      "5 generations / day",
+      "100 runs / day",
+    ],
     ctaLabel: "Get started free",
     ctaHref: "https://app.mirrorverse.ai/sign-up",
     highlighted: false,
@@ -20,14 +29,18 @@ const plans = [
     slug: "starter",
     name: "Starter",
     monthlyPrice: 49,
-    annualPrice: 39,
+    annualPrice: 40,
     description: "For small teams automating their first workflows.",
     features: [
-      "50 generations / mo",
-      "2,000 runs / mo",
-      "5 apps",
-      "1 phone number",
+      "10,000 credits / mo",
+      "5 phone numbers",
+      "Unlimited integrations",
+      "Unlimited file uploads",
+      "Voice agents + tone config",
+      "Less limited models",
+      "30 generations / mo",
       "Email support",
+      "Workflow Editor (v0)",
     ],
     ctaLabel: "Start free trial",
     ctaHref: "https://app.mirrorverse.ai/sign-up",
@@ -38,16 +51,17 @@ const plans = [
     slug: "pro",
     name: "Pro",
     monthlyPrice: 149,
-    annualPrice: 119,
+    annualPrice: 120,
     description: "For growing teams with advanced needs.",
     features: [
+      "40,000 credits",
+      "20 phone numbers",
       "Unlimited generations",
-      "20,000 runs / mo",
-      "Unlimited apps",
-      "5 phone numbers",
-      "All models incl. Opus",
+      "Unlimited tool calls",
+      "1,000 runs / day",
+      "Top & latest models",
+      "Email + video support",
       "SSO / SAML",
-      "Priority support",
     ],
     ctaLabel: "Start free trial",
     ctaHref: "https://app.mirrorverse.ai/sign-up",
@@ -130,7 +144,8 @@ export function PricingPlans() {
         </div>
 
         <p className="mt-8 text-sm text-center text-[#737373]">
-          Annual plans billed upfront · Monthly billing available at 20% more
+          Annual plans billed upfront · Monthly billing available at 20% more · Tax applied at
+          checkout based on your location
         </p>
       </div>
     </section>

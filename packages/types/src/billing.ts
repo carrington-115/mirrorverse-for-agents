@@ -11,7 +11,7 @@ import type {
   WorkflowRunId,
 } from "./common";
 
-export type PlanSlug = "free" | "starter" | "pro" | "business" | "enterprise";
+export type PlanSlug = "free" | "starter" | "pro" | "custom";
 
 export interface Plan extends Timestamps {
   readonly id: PlanId;
@@ -30,24 +30,32 @@ export interface Plan extends Timestamps {
 
 export interface PlanLimits {
   readonly includedTokens: Tokens;
+  readonly includedCredits: number;
   readonly includedVoiceMinutes: number;
   readonly includedSandboxSeconds: number;
   readonly maxWorkflows: number | null;
   readonly maxVoiceAgents: number | null;
+  readonly maxPhoneNumbers: number | null;
   readonly maxConnections: number | null;
   readonly maxKnowledgeBases: number | null;
   readonly maxMembers: number | null;
+  readonly maxRunsPerDay: number | null;
+  readonly maxWorkflowGenerationsPerPeriod: number | null;
+  readonly maxFileUploadMb: number | null;
 }
 
 export interface PlanFeatures {
   readonly customMcpServers: boolean;
   readonly codeNodes: boolean;
   readonly voiceAgents: boolean;
+  readonly voiceToneConfig: boolean;
   readonly knowledgeBases: boolean;
   readonly skillsMarketplace: boolean;
+  readonly workflowEditorV0: boolean;
   readonly auditLog: boolean;
   readonly sso: boolean;
   readonly prioritySupport: boolean;
+  readonly videoSupport: boolean;
 }
 
 export type SubscriptionStatus =

@@ -344,7 +344,11 @@ export function ChatPromptInput({
           {!isExpanded && (
             <div className="gap-0.5 py-1.5 pr-2.5 flex shrink-0 items-center">
               <div className="md:contents hidden">
-                <ChatModelPicker selectedId={model} onSelect={onModelChange} />
+                <ChatModelPicker
+                  selectedId={model}
+                  onSelect={onModelChange}
+                  onMobileTrigger={() => setMobileModelDrawerOpen(true)}
+                />
                 <TriggerPickerButton
                   triggers={sessionTriggers}
                   externalDialogOpen={mobileTriggerDialogOpen}
@@ -364,7 +368,11 @@ export function ChatPromptInput({
                   <PromptInputActionMenuTrigger tooltip={attachTooltip} />
                   {attachMenuContent}
                 </PromptInputActionMenu>
-                <ChatModelPicker selectedId={model} onSelect={onModelChange} />
+                <ChatModelPicker
+                  selectedId={model}
+                  onSelect={onModelChange}
+                  onMobileTrigger={() => setMobileModelDrawerOpen(true)}
+                />
               </PromptInputTools>
               <div className="gap-1 flex items-center">
                 <TriggerPickerButton triggers={sessionTriggers} />
@@ -403,7 +411,11 @@ export function ChatPromptInput({
               <PromptInputActionMenuTrigger tooltip={attachTooltip} />
               {attachMenuContent}
             </PromptInputActionMenu>
-            <ChatModelPicker selectedId={model} onSelect={onModelChange} />
+            <ChatModelPicker
+              selectedId={model}
+              onSelect={onModelChange}
+              onMobileTrigger={() => setMobileModelDrawerOpen(true)}
+            />
           </PromptInputTools>
           <div className="gap-1 flex items-center">
             <TriggerPickerButton
@@ -594,15 +606,27 @@ const PROVIDERS = [
 function ChatModelPicker({
   selectedId,
   onSelect,
+  onMobileTrigger,
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
+  onMobileTrigger?: () => void;
 }) {
   const allModels: readonly ModelOption[] = CHAT_MODELS;
   const selected = allModels.find((m) => m.id === selectedId) ?? allModels[0];
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState<string>(ALL_PROVIDER);
   const [search, setSearch] = useState("");
+
+  if (isMobile) {
+    return (
+      <PromptInputButton className="rounded-full" onClick={() => onMobileTrigger?.()}>
+        <ModelSelectorLogo provider={selected.chefSlug} />
+        <ModelSelectorName>{selected.name}</ModelSelectorName>
+      </PromptInputButton>
+    );
+  }
 
   const handleOpenChange = (next: boolean) => {
     if (next) setActiveProvider(ALL_PROVIDER);

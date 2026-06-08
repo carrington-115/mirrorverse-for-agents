@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="lg:px-[161px] pt-4 px-4 py-12 md:py-[87px] flex w-full justify-center border-t border-(--border,#e5e5e5) bg-(--unofficial-accent-0,#fafafa)">
+    <footer className="lg:px-[161px] pt-4 px-4 py-12 md:py-[87px] flex w-full justify-center bg-(--unofficial-accent-0,#fafafa)">
       <div className="gap-10 md:flex-row md:items-start md:justify-between md:gap-0 flex w-full max-w-[1440px] flex-col">
         <div className="gap-x-8 gap-y-8 md:flex md:flex-row md:gap-[34px] grid grid-cols-2">
           <div className="flex flex-col items-start gap-[5px]">

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Check, Zap } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +18,10 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useCurrentPlanQuery } from "@/features/billing/api/queries";
-import { useOpenPortalMutation } from "@/features/billing/api/mutations";
+import {
+  useOpenPortalMutation,
+  useCreateCheckoutSessionMutation,
+} from "@/features/billing/api/mutations";
 
 const PLANS = [
   {
@@ -28,7 +30,16 @@ const PLANS = [
     monthlyPrice: 0,
     annualPrice: 0,
     description: "Explore the platform — no card required.",
-    features: ["5 workflow generations / mo", "100 runs / mo", "1 app", "Community support"],
+    features: [
+      "200 bonus credits",
+      "100 tool calls",
+      "5 integrations",
+      "5 MB file uploads",
+      "Limited models",
+      "1,000 workflow executions",
+      "20 generations / mo",
+      "100 runs / month",
+    ],
     cta: "Current plan",
     isPopular: false,
   },
@@ -36,14 +47,19 @@ const PLANS = [
     slug: "starter",
     name: "Starter",
     monthlyPrice: 49,
-    annualPrice: 39,
+    annualPrice: 40,
     description: "For small teams automating their first workflows.",
     features: [
-      "50 generations / mo",
-      "2,000 runs / mo",
-      "5 apps",
-      "1 phone number",
+      "10,000 credits / mo",
+      "5 phone numbers",
+      "Unlimited integrations",
+      "Unlimited file uploads",
+      "Voice agents",
+      "Less limited models",
+      "30 generations / mo",
+      "100 runs / day",
       "Email support",
+      "Workflow Editor (v0)",
     ],
     cta: "Upgrade",
     isPopular: false,
@@ -52,16 +68,16 @@ const PLANS = [
     slug: "pro",
     name: "Pro",
     monthlyPrice: 149,
-    annualPrice: 119,
+    annualPrice: 120,
     description: "For growing teams with advanced needs.",
     features: [
+      "40,000 credits",
+      "20 phone numbers",
       "Unlimited generations",
-      "20,000 runs / mo",
-      "Unlimited apps",
-      "5 phone numbers",
-      "All models incl. Opus",
-      "SSO / SAML",
-      "Priority support",
+      "Unlimited tool calls",
+      "1,000 runs / day",
+      "Top & latest models",
+      "Email + video support",
     ],
     cta: "Upgrade",
     isPopular: true,
@@ -72,36 +88,45 @@ const PLANS = [
     monthlyPrice: null,
     annualPrice: null,
     description: "Dedicated infrastructure and custom SLAs.",
-    features: [
-      "Everything in Pro",
-      "Unlimited phone numbers",
-      "Fine-tuned models",
-      "Custom data retention",
-      "Dedicated account manager",
-    ],
+    features: ["Everything in Pro", "Unlimited phone numbers"],
     cta: "Contact sales",
     isPopular: false,
   },
 ] as const;
 
+type PlanSlug = (typeof PLANS)[number]["slug"];
+
 export function PricingSettingsShell() {
   const [annual, setAnnual] = useState(false);
   const { data } = useCurrentPlanQuery();
   const openPortal = useOpenPortalMutation();
+  const createCheckout = useCreateCheckoutSessionMutation();
 
   const currentPlanSlug = data?.plan?.id ?? "free";
+  const hasActiveSubscription =
+    !!data?.subscription?.stripeSubscriptionId &&
+    (data.subscription.status === "active" || data.subscription.status === "trialing");
 
-  const handleUpgrade = (planSlug: string) => {
+  const handleUpgrade = (planSlug: PlanSlug) => {
     if (planSlug === "custom") {
       window.open("https://cal.com/frumark/mirrroagents", "_blank", "noopener,noreferrer");
       return;
     }
-    if (data?.subscription?.stripeCustomerId) {
+    if (planSlug === "free") return;
+
+    if (hasActiveSubscription) {
+      // Existing paid subscriber — manage via portal (plan change, cancel, etc.)
       openPortal.mutate({});
     } else {
-      toast.info(`Upgrade to ${planSlug} — coming soon`);
+      // New subscriber — launch Stripe Checkout
+      createCheckout.mutate({
+        planId: planSlug,
+        billingInterval: annual ? "annual" : "monthly",
+      });
     }
   };
+
+  const isPending = openPortal.isPending || createCheckout.isPending;
 
   return (
     <div className="gap-6 flex flex-col">
@@ -127,7 +152,7 @@ export function PricingSettingsShell() {
           const isCurrent = plan.slug === currentPlanSlug;
           return (
             <Card key={plan.slug} className={cn(isCurrent && "ring-2 ring-primary/50")}>
-              <CardHeader>
+              <CardHeader className="h-1/6">
                 <div className="gap-2 flex items-start justify-between">
                   <CardTitle>{plan.name}</CardTitle>
                   <div className="gap-1.5 flex items-center">
@@ -137,7 +162,7 @@ export function PricingSettingsShell() {
                 </div>
                 <CardDescription>{plan.description}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="h-5/6">
                 <div className="mb-4">
                   {plan.monthlyPrice === null ? (
                     <p className="text-2xl font-bold">Custom</p>
@@ -159,7 +184,7 @@ export function PricingSettingsShell() {
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="h-1/6 justify-end">
                 {plan.slug === "custom" ? (
                   <Button className="w-full" size="sm" onClick={() => handleUpgrade("custom")}>
                     <Zap className="size-3.5" />
@@ -181,7 +206,7 @@ export function PricingSettingsShell() {
                     className="w-full"
                     size="sm"
                     onClick={() => handleUpgrade(plan.slug)}
-                    disabled={openPortal.isPending}
+                    disabled={isPending}
                   >
                     {plan.cta}
                   </Button>

@@ -11,6 +11,8 @@ import {
   MessageCircle,
   MessageSquare,
   Mail,
+  Send,
+  Mic,
   Zap,
 } from "lucide-react";
 import { Icon as IconifyIcon } from "@iconify/react";
@@ -82,9 +84,9 @@ const features = [
     iconColor: "text-blue-600",
     title: "Deploy across every channel in minutes.",
     description:
-      "Connect a phone number or WhatsApp Business account and your agent is live. Manage calls, chats, and logs from one unified dashboard.",
+      "Connect a phone number, WhatsApp Business account, or Telegram bot and your agent is live. Manage calls, chats, and logs from one unified dashboard.",
     points: [
-      "Phone & WhatsApp Business",
+      "Phone, WhatsApp & Telegram",
       "Call logs & conversation history",
       "Live agent handoff",
       "Multi-number routing",
@@ -92,6 +94,25 @@ const features = [
     imagePosition: "left" as const,
     visual: "channels" as const,
     bg: "bg-[#fafafa]",
+  },
+  {
+    id: "voice",
+    tag: "Voice Agents",
+    icon: Mic,
+    iconBg: "bg-rose-50",
+    iconColor: "text-rose-600",
+    title: "Conversations that sound human.",
+    description:
+      "Your agent picks up the phone and holds natural, low-latency voice conversations — with realistic voices, real-time interruption handling, and full transcripts of every call.",
+    points: [
+      "Realistic, configurable voices",
+      "Real-time interruption handling",
+      "Live transcription & call recordings",
+      "Seamless handoff to a human rep",
+    ],
+    imagePosition: "right" as const,
+    visual: "voice" as const,
+    bg: "bg-white",
   },
   {
     id: "integrations",
@@ -108,9 +129,9 @@ const features = [
       "Custom webhook support",
       "No code, no credentials to manage",
     ],
-    imagePosition: "right" as const,
+    imagePosition: "left" as const,
     visual: "integrations" as const,
-    bg: "bg-white",
+    bg: "bg-[#fafafa]",
   },
 ];
 
@@ -270,6 +291,12 @@ const channelItems = [
     detail: "Auto-reply enabled",
     iconCls: "text-violet-600 bg-violet-50",
   },
+  {
+    Icon: Send,
+    label: "Telegram",
+    detail: "@acme_support_bot · 28 chats",
+    iconCls: "text-sky-600 bg-sky-50",
+  },
   { Icon: Mail, label: "Email", detail: "support@acme.com", iconCls: "text-amber-600 bg-amber-50" },
 ];
 
@@ -296,6 +323,42 @@ function ChannelsVisual() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+const waveformBars = [6, 14, 9, 20, 12, 26, 16, 10, 22, 14, 8, 18, 11, 24, 15, 7];
+
+function VoiceVisual() {
+  return (
+    <div className="bg-white shadow-sm overflow-hidden rounded-2xl border border-[#e5e5e5]">
+      <div className="gap-2 px-4 py-3 flex items-center border-b border-[#e5e5e5] bg-[#fafafa]">
+        <div className="size-6 flex items-center justify-center rounded-full bg-[#0a0a0a]">
+          <Phone size={11} className="text-white" />
+        </div>
+        <span className="text-xs font-semibold text-[#0a0a0a]">Live call · Sales Agent</span>
+        <span className="gap-1.5 ml-auto flex items-center text-[10px] text-[#737373]">
+          <span className="size-1.5 bg-red-500 rounded-full" />
+          02:47
+        </span>
+      </div>
+      <div className="gap-4 p-5 flex flex-col">
+        <div className="h-12 flex items-end justify-center gap-[3px]">
+          {waveformBars.map((h, i) => (
+            <div key={i} className="w-1 bg-rose-400/70 rounded-full" style={{ height: `${h}px` }} />
+          ))}
+        </div>
+        <div className="gap-2 flex flex-col">
+          <p className="text-xs leading-[18px] text-[#737373]">
+            <span className="font-semibold text-[#0a0a0a]">Caller:</span> &quot;Can you check on my
+            order from last week?&quot;
+          </p>
+          <p className="text-xs leading-[18px] text-[#737373]">
+            <span className="font-semibold text-[#0a0a0a]">Agent:</span> &quot;Of course — pulling
+            that up now. One moment…&quot;
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -339,6 +402,7 @@ const VISUALS = {
   workflow: WorkflowVisual,
   knowledge: KnowledgeBaseVisual,
   channels: ChannelsVisual,
+  voice: VoiceVisual,
   integrations: IntegrationsVisual,
 };
 

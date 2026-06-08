@@ -7,22 +7,39 @@ import { cn } from "@/lib/utils";
 const MODELS = [
   {
     id: "claude-opus-4-8",
+    provider: "Anthropic",
     label: "Claude Opus 4.8",
     description: "Most powerful — complex reasoning",
   },
   {
-    id: "claude-sonnet-4-6",
-    label: "Claude Sonnet 4.6",
-    description: "Balanced speed and intelligence",
+    id: "gpt-5-1",
+    provider: "OpenAI",
+    label: "GPT-5.1",
+    description: "Fast, reliable tool use and coding",
   },
   {
-    id: "claude-haiku-4-5",
-    label: "Claude Haiku 4.5",
-    description: "Fast and lightweight",
+    id: "gemini-3-pro",
+    provider: "Google",
+    label: "Gemini 3 Pro",
+    description: "Huge context, native multimodal",
+  },
+  {
+    id: "grok-4",
+    provider: "xAI",
+    label: "Grok 4",
+    description: "Real-time knowledge and reasoning",
   },
 ] as const;
 
 type ModelId = (typeof MODELS)[number]["id"];
+type ModelProvider = (typeof MODELS)[number]["provider"];
+
+const PROVIDER_STYLES: Record<ModelProvider, string> = {
+  Anthropic: "bg-[#E8572A]/10 text-[#E8572A]",
+  OpenAI: "bg-[#10A37F]/10 text-[#10A37F]",
+  Google: "bg-[#4285F4]/10 text-[#4285F4]",
+  xAI: "bg-[#0a0a0a]/10 text-[#0a0a0a]",
+};
 
 interface HeroChatInputProps {
   className?: string;
@@ -30,7 +47,7 @@ interface HeroChatInputProps {
 
 export function HeroChatInput({ className }: HeroChatInputProps) {
   const [message, setMessage] = useState("");
-  const [model, setModel] = useState<ModelId>("claude-sonnet-4-6");
+  const [model, setModel] = useState<ModelId>("claude-opus-4-8");
   const [modelOpen, setModelOpen] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -117,7 +134,7 @@ export function HeroChatInput({ className }: HeroChatInputProps) {
                 onClick={() => setModelOpen((v) => !v)}
                 className="gap-1.5 px-3 py-2 text-xs font-medium hover:bg-black/5 flex items-center rounded-full text-[#737373] transition-colors hover:text-[#404040]"
               >
-                <ClaudeIcon />
+                <ProviderBadge provider={currentModel.provider} />
                 <span className="max-w-[120px] truncate">{currentModel.label}</span>
                 <ChevronDown
                   size={12}
@@ -140,9 +157,12 @@ export function HeroChatInput({ className }: HeroChatInputProps) {
                       }}
                       className="px-3 py-2.5 flex w-full items-center justify-between text-left transition-colors hover:bg-[#f5f5f5]"
                     >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-[#0a0a0a]">{m.label}</p>
-                        <p className="mt-0.5 text-xs text-[#737373]">{m.description}</p>
+                      <div className="gap-2.5 min-w-0 flex items-center">
+                        <ProviderBadge provider={m.provider} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-[#0a0a0a]">{m.label}</p>
+                          <p className="mt-0.5 text-xs text-[#737373]">{m.description}</p>
+                        </div>
                       </div>
                       {model === m.id && (
                         <Check size={13} className="ml-2 shrink-0 text-[#171717]" />
@@ -172,10 +192,16 @@ export function HeroChatInput({ className }: HeroChatInputProps) {
   );
 }
 
-function ClaudeIcon() {
+function ProviderBadge({ provider }: { provider: ModelProvider }) {
   return (
-    <span className="text-sm font-bold leading-none text-[#E8572A]" aria-hidden>
-      ✳
+    <span
+      className={cn(
+        "size-4 font-bold flex shrink-0 items-center justify-center rounded-full text-[9px]",
+        PROVIDER_STYLES[provider],
+      )}
+      aria-hidden
+    >
+      {provider[0]}
     </span>
   );
 }

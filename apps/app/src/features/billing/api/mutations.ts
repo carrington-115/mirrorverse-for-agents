@@ -17,3 +17,16 @@ export function useOpenPortalMutation() {
     },
   });
 }
+
+export function useCreateCheckoutSessionMutation() {
+  const trpc = useTRPC();
+  return useMutation({
+    ...trpc.billing.createCheckoutSession.mutationOptions(),
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: () => {
+      toast.error("Could not start checkout. Please try again.");
+    },
+  });
+}

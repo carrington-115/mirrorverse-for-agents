@@ -12,8 +12,16 @@ import {
 import type { AgentUsageEntry, StepUsageBreakdown } from "@mirrorverse/agent";
 import type { UsageKind } from "@mirrorverse/types";
 
-const { usageEvents, subscriptions, plans, invoices, usagePeriodAggregates } =
-  schema;
+const {
+  usageEvents,
+  subscriptions,
+  plans,
+  invoices,
+  usagePeriodAggregates,
+  workflowRuns,
+  chats,
+  connections,
+} = schema;
 
 // ─── Chat usage (existing) ────────────────────────────────────────────────────
 
@@ -364,4 +372,93 @@ export async function getPaidSubscriptions(db: Database) {
         sql`${plans.monthlyPriceCents} > 0`,
       ),
     );
+}
+
+// ─── Lazy free-subscription bootstrap ────────────────────────────────────────
+// Called by billing procedures when a workspace has no active subscription
+// (e.g. workspaces created before billing was set up, or when Stripe was
+// unavailable at workspace-creation time). Idempotent via upsertSubscription.
+export async function ensureWorkspaceFreeSubscription(
+  db: Database,
+  workspaceId: string,
+): Promise<void> {
+  const existing = await getActiveSubscription(db, workspaceId);
+  if (existing) return;
+
+  const freePlan = await getFreePlan(db);
+  if (!freePlan) return;
+
+  const now = new Date();
+  const periodEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    now.getDate(),
+  );
+
+  await upsertSubscription(db, {
+    workspaceId,
+    stripeSubscriptionId: `manual-free-${workspaceId}`,
+    stripeCustomerId: `dev-local-${workspaceId}`,
+    planId: "free",
+    status: "active",
+    currentPeriodStart: now,
+    currentPeriodEnd: periodEnd,
+    cancelAtPeriodEnd: false,
+    trialEndsAt: null,
+    defaultPaymentMethod: null,
+  });
+}
+
+// ─── Capacity counts ──────────────────────────────────────────────────────────
+
+export async function countRunsToday(
+  db: Database,
+  workspaceId: string,
+): Promise<number> {
+  const todayUtc = new Date();
+  todayUtc.setUTCHours(0, 0, 0, 0);
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(workflowRuns)
+    .where(
+      and(
+        eq(workflowRuns.workspaceId, workspaceId),
+        gte(workflowRuns.startedAt, todayUtc),
+      ),
+    );
+  return row?.count ?? 0;
+}
+
+export async function countGenerationsThisPeriod(
+  db: Database,
+  workspaceId: string,
+  periodStart: Date,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(chats)
+    .where(
+      and(
+        eq(chats.workspaceId, workspaceId),
+        eq(chats.purpose, "generate_workflow"),
+        gte(chats.createdAt, periodStart),
+      ),
+    );
+  return row?.count ?? 0;
+}
+
+export async function countConnectionsInWorkspace(
+  db: Database,
+  workspaceId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(connections)
+    .where(
+      and(
+        eq(connections.workspaceId, workspaceId),
+        eq(connections.status, "active"),
+      ),
+    );
+  return row?.count ?? 0;
 }

@@ -23,3 +23,8 @@ export function useUsageByDayQuery() {
   const trpc = useTRPC();
   return useQuery(trpc.billing.usageByDay.queryOptions());
 }
+
+export function useCapacityCountsQuery() {
+  const trpc = useTRPC();
+  return useQuery(trpc.billing.getCapacityCounts.queryOptions());
+}

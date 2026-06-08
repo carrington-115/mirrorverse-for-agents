@@ -9,7 +9,6 @@ import {
   Check,
   CreditCardIcon,
   HelpCircleIcon,
-  LayoutGridIcon,
   Loader2,
   LogOutIcon,
   MegaphoneIcon,
@@ -58,9 +57,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { signOutAction } from "@/features/auth/actions/sign-out";
+import { useCurrentPlanQuery, useUsagePeriodQuery } from "@/features/billing/api/queries";
 import { useSettingsModal } from "@/features/settings/hooks/use-settings-modal";
+import type { SettingsPage } from "@/features/settings/hooks/use-settings-modal";
 
 interface DashboardHeaderProps {
   title: string;
@@ -78,6 +80,15 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
   const displayName = fullName || fallbackName || user?.email?.split("@")[0] || "User";
   const displayEmail = user?.email ?? "";
   const initials = displayName.charAt(0).toUpperCase();
+
+  const { data: planData, isLoading: planLoading } = useCurrentPlanQuery();
+  const { data: usageData, isLoading: usageLoading } = useUsagePeriodQuery();
+
+  const planName = planData?.plan?.name ?? "Free";
+  const planId = planData?.plan?.id ?? "free";
+  const creditsLimitCents = (planData?.plan?.limits?.includedCredits ?? 0) * 100;
+  const creditsUsedCents = (usageData?.usage ?? []).reduce((sum, u) => sum + u.totalCostCents, 0);
+  const creditsPct = creditsLimitCents > 0 ? Math.min(creditsUsedCents / creditsLimitCents, 1) : 0;
 
   const [isSigningOut, startSignOut] = React.useTransition();
   const { openSettings } = useSettingsModal();
@@ -109,7 +120,7 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
               aria-label="User menu"
               suppressHydrationWarning
             >
-              <ProfileAvatarWithRing src={displayImage} fallback={initials} pct={0.75} />
+              <ProfileAvatarWithRing src={displayImage} fallback={initials} pct={creditsPct} />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
@@ -124,7 +135,14 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
               </div>
             </div>
             <div className="px-2 pb-2">
-              <BillingCard onOpenSettings={openSettings} />
+              <BillingCard
+                onOpenSettings={openSettings}
+                planName={planName}
+                planId={planId}
+                creditsUsedCents={creditsUsedCents}
+                creditsLimitCents={creditsLimitCents}
+                isLoading={planLoading || usageLoading}
+              />
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
@@ -235,40 +253,72 @@ function ProfileAvatarWithRing({
   );
 }
 
-function BillingCard({ onOpenSettings }: { onOpenSettings: (page: "pricing") => void }) {
+interface BillingCardProps {
+  onOpenSettings: (page: SettingsPage) => void;
+  planName: string;
+  planId: string;
+  creditsUsedCents: number;
+  creditsLimitCents: number;
+  isLoading: boolean;
+}
+
+function BillingCard({
+  onOpenSettings,
+  planName,
+  planId,
+  creditsUsedCents,
+  creditsLimitCents,
+  isLoading,
+}: BillingCardProps) {
+  const isUpgradeable = planId !== "pro" && planId !== "custom";
+  const creditsPct = creditsLimitCents > 0 ? Math.min(creditsUsedCents / creditsLimitCents, 1) : 0;
+  const fmtCredits = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
   return (
     <div className="p-3 space-y-2.5 rounded-lg border border-border bg-muted/30">
       <div className="flex items-center justify-between">
         <div className="gap-1.5 flex items-center">
-          <span className="text-xs font-semibold text-foreground">Pro Plan</span>
-          <span className="px-1.5 font-medium inline-flex items-center rounded-full bg-primary/10 py-px text-[10px] text-primary">
-            Current
-          </span>
+          {isLoading ? (
+            <Skeleton className="h-3.5 w-20" />
+          ) : (
+            <>
+              <span className="text-xs font-semibold text-foreground">{planName} Plan</span>
+              <span className="px-1.5 font-medium inline-flex items-center rounded-full bg-primary/10 py-px text-[10px] text-primary">
+                Current
+              </span>
+            </>
+          )}
         </div>
-        <button
-          onClick={() => onOpenSettings("pricing")}
-          className="h-5 gap-1 px-1.5 font-medium inline-flex cursor-pointer items-center rounded-sm border border-primary/30 bg-primary/10 text-[10px] text-primary transition-colors hover:bg-primary/20"
-        >
-          <ZapIcon className="size-2.5" />
-          Upgrade
-        </button>
+        {!isLoading && isUpgradeable && (
+          <button
+            onClick={() => onOpenSettings("pricing")}
+            className="h-5 gap-1 px-1.5 font-medium inline-flex cursor-pointer items-center rounded-sm border border-primary/30 bg-primary/10 text-[10px] text-primary transition-colors hover:bg-primary/20"
+          >
+            <ZapIcon className="size-2.5" />
+            Upgrade
+          </button>
+        )}
       </div>
       <div className="space-y-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-muted-foreground">Credits</span>
-          <span className="font-medium text-[11px]">750 / 1,000</span>
+          {isLoading ? (
+            <Skeleton className="h-3 w-20" />
+          ) : (
+            <span className="font-medium text-[11px]">
+              {fmtCredits(creditsUsedCents)} / {fmtCredits(creditsLimitCents)}
+            </span>
+          )}
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full w-3/4 rounded-full bg-primary" />
-        </div>
-      </div>
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">LLM tokens</span>
-          <span className="font-medium text-[11px]">0 / 100K</span>
-        </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: "0%" }} />
+          {isLoading ? (
+            <Skeleton className="h-full w-full rounded-full" />
+          ) : (
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-700"
+              style={{ width: `${creditsPct * 100}%` }}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -436,10 +486,6 @@ function HeaderCommand() {
               <CommandItem onSelect={() => runCommand(() => openSettings("security"))}>
                 <ShieldIcon />
                 <span>Security</span>
-              </CommandItem>
-              <CommandItem onSelect={() => runCommand(() => openSettings("apps"))}>
-                <LayoutGridIcon />
-                <span>Connected apps</span>
               </CommandItem>
               <CommandItem onSelect={() => runCommand(() => openSettings("channels"))}>
                 <MegaphoneIcon />

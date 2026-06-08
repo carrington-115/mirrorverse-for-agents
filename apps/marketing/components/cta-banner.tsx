@@ -44,7 +44,7 @@ export function CtaBanner({
           </h2>
 
           {subtitle && (
-            <p className="text-xl font-normal md:font-medium lg:text-[18px] text-white/50 max-w-[440px] leading-[1.65]">
+            <p className="text-xl font-normal lg:text-[18px] text-white/50 max-w-[440px] leading-[1.65]">
               {subtitle}
             </p>
           )}

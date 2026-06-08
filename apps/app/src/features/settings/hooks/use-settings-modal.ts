@@ -9,7 +9,6 @@ export type SettingsPage =
   | "usage"
   | "security"
   | "environment"
-  | "apps"
   | "channels"
   | "runs"
   | "profile";

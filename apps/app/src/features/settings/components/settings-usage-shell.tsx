@@ -23,39 +23,18 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
+  useCapacityCountsQuery,
   useCurrentPlanQuery,
   useUsageByDayQuery,
   useUsagePeriodQuery,
 } from "@/features/billing/api/queries";
 import { useSettingsModal } from "../hooks/use-settings-modal";
 
-type UsageKind = string;
-
-const KIND_LABELS: Record<UsageKind, string> = {
-  llm_input: "LLM input tokens",
-  llm_output: "LLM output tokens",
-  llm_input_cache_read: "Cached input tokens",
-  llm_input_cache_write: "Cache-write tokens",
-  voice_minute: "Voice minutes",
-  sandbox_second: "Sandbox seconds",
-};
-
 const tokenChartConfig = {
   llm_input: { label: "Input tokens", color: "var(--chart-1)" },
   llm_output: { label: "Output tokens", color: "var(--chart-2)" },
   llm_input_cache_read: { label: "Cached tokens", color: "var(--chart-3)" },
 } satisfies ChartConfig;
-
-function formatValue(kind: UsageKind, quantity: number): string {
-  if (kind.includes("token")) return quantity.toLocaleString();
-  return String(quantity);
-}
-
-function progressColorClass(pct: number) {
-  if (pct >= 90) return "[&>div]:bg-destructive";
-  if (pct >= 75) return "[&>div]:bg-amber-500";
-  return "";
-}
 
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "—";
@@ -66,60 +45,94 @@ function formatDate(date: Date | string | null | undefined): string {
   });
 }
 
+function progressColorClass(pct: number) {
+  if (pct >= 90) return "[&>div]:bg-destructive";
+  if (pct >= 75) return "[&>div]:bg-amber-500";
+  return "";
+}
+
+interface MetricRowProps {
+  label: string;
+  used: number;
+  limit: number;
+  formatValue?: (n: number) => string;
+  onUpgrade?: () => void;
+}
+
+function MetricRow({ label, used, limit, formatValue, onUpgrade }: MetricRowProps) {
+  const fmt = formatValue ?? ((n: number) => n.toLocaleString());
+  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+  const isNearLimit = pct >= 75;
+
+  return (
+    <div className="py-2.5 gap-1.5 flex flex-col">
+      <div className="text-sm gap-2 flex items-center justify-between">
+        <span>{label}</span>
+        <div className="gap-2 flex items-center">
+          <span
+            className={cn(
+              "text-muted-foreground tabular-nums",
+              pct >= 90 && "text-destructive",
+              pct >= 75 && pct < 90 && "text-amber-500",
+            )}
+          >
+            {fmt(used)} / {fmt(limit)}
+          </span>
+          {isNearLimit && onUpgrade && (
+            <button
+              onClick={onUpgrade}
+              className={cn(
+                "text-xs cursor-pointer underline underline-offset-2 transition-colors",
+                pct >= 90
+                  ? "text-destructive hover:text-destructive/80"
+                  : "text-amber-500 hover:text-amber-400",
+              )}
+            >
+              Upgrade
+            </button>
+          )}
+        </div>
+      </div>
+      <Progress value={pct} className={progressColorClass(pct)} />
+    </div>
+  );
+}
+
+interface InfoRowProps {
+  label: string;
+  value: string;
+}
+
+function InfoRow({ label, value }: InfoRowProps) {
+  return (
+    <div className="py-2.5 flex items-center justify-between">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium tabular-nums">{value}</span>
+    </div>
+  );
+}
+
 export function UsageSettingsShell() {
   const { navigateTo } = useSettingsModal();
   const { data: planData, isLoading: planLoading } = useCurrentPlanQuery();
   const { data: usageData, isLoading: usageLoading } = useUsagePeriodQuery();
   const { data: usageByDayData, isLoading: usageByDayLoading } = useUsageByDayQuery();
+  const { data: capacityData, isLoading: capacityLoading } = useCapacityCountsQuery();
 
   const limits = planData?.plan?.limits;
   const periodEnd = usageData?.periodEnd;
 
-  const tokenLimit = limits?.includedTokens ?? 100_000;
-  const voiceLimit = limits?.includedVoiceMinutes ?? 0;
-  const sandboxLimit = limits?.includedSandboxSeconds ?? 0;
+  const usageMap = new Map<string, { quantity: number; costCents: number }>();
+  for (const u of usageData?.usage ?? []) {
+    usageMap.set(u.kind, { quantity: u.totalQuantity, costCents: u.totalCostCents });
+  }
 
-  const usage = usageData?.usage ?? [];
+  const totalTokensUsed =
+    (usageMap.get("llm_input")?.quantity ?? 0) + (usageMap.get("llm_output")?.quantity ?? 0);
+  const voiceMinutesUsed = usageMap.get("voice_minute")?.quantity ?? 0;
+  const sandboxSecondsUsed = usageMap.get("sandbox_second")?.quantity ?? 0;
+  const totalCostCents = [...usageMap.values()].reduce((sum, u) => sum + u.costCents, 0);
 
-  const tokenUsed = usage
-    .filter((u) => u.kind.startsWith("llm"))
-    .reduce((sum, u) => sum + u.totalQuantity, 0);
-  const voiceUsed = usage.find((u) => u.kind === "voice_minute")?.totalQuantity ?? 0;
-  const sandboxUsed = usage.find((u) => u.kind === "sandbox_second")?.totalQuantity ?? 0;
-
-  const quotas = [
-    {
-      label: "LLM tokens",
-      used: tokenUsed,
-      limit: tokenLimit,
-      unit: "tokens",
-      display: (n: number) => n.toLocaleString(),
-    },
-    ...(voiceLimit > 0
-      ? [
-          {
-            label: "Voice minutes",
-            used: voiceUsed,
-            limit: voiceLimit,
-            unit: "min",
-            display: (n: number) => String(n),
-          },
-        ]
-      : []),
-    ...(sandboxLimit > 0
-      ? [
-          {
-            label: "Sandbox seconds",
-            used: sandboxUsed,
-            limit: sandboxLimit,
-            unit: "sec",
-            display: (n: number) => String(n),
-          },
-        ]
-      : []),
-  ];
-
-  // Build daily token chart data by pivoting kind rows into columns per date
   const dailyRaw = usageByDayData ?? [];
   const dateMap = new Map<
     string,
@@ -144,6 +157,11 @@ export function UsageSettingsShell() {
   }
   const tokenChartData = Array.from(dateMap.values());
   const hasTokenChartData = tokenChartData.length > 0;
+
+  const isLoading = planLoading || usageLoading || capacityLoading;
+  const upgrade = () => navigateTo("pricing");
+
+  const fmtDollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   return (
     <div className="gap-6 max-w-2xl flex flex-col">
@@ -221,84 +239,122 @@ export function UsageSettingsShell() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Current period</CardTitle>
-          <CardDescription>Usage against your plan&apos;s limits this period.</CardDescription>
+          <CardTitle>Usage breakdown</CardTitle>
+          <CardDescription>
+            Consumption and capacity against your plan&apos;s included limits.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {usageLoading ? (
-            <div className="gap-5 flex flex-col">
-              {[1, 2].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
+          {isLoading ? (
+            <div className="gap-4 flex flex-col">
+              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <div key={i} className="gap-1.5 flex flex-col">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-2 w-full" />
+                </div>
               ))}
             </div>
           ) : (
-            <div className="gap-5 flex flex-col">
-              {quotas.map((quota) => {
-                const pct = quota.limit > 0 ? Math.min((quota.used / quota.limit) * 100, 100) : 0;
-                const isNearLimit = pct >= 75;
-                return (
-                  <div key={quota.label} className="gap-1.5 flex flex-col">
-                    <div className="text-sm flex items-center justify-between">
-                      <span>{quota.label}</span>
-                      <div className="gap-2 flex items-center">
-                        <span
-                          className={cn(
-                            "text-muted-foreground",
-                            pct >= 90 && "text-destructive",
-                            pct >= 75 && pct < 90 && "text-amber-500",
-                          )}
-                        >
-                          {quota.display(quota.used)} / {quota.display(quota.limit)} {quota.unit}
-                        </span>
-                        {isNearLimit && (
-                          <button
-                            onClick={() => navigateTo("pricing")}
-                            className={cn(
-                              "text-xs cursor-pointer underline underline-offset-2 transition-colors",
-                              pct >= 90
-                                ? "text-destructive hover:text-destructive/80"
-                                : "text-amber-500 hover:text-amber-400",
-                            )}
-                          >
-                            Upgrade
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <Progress value={pct} className={progressColorClass(pct)} />
-                  </div>
-                );
-              })}
+            <div className="divide-y">
+              {limits && limits.includedCredits > 0 && (
+                <MetricRow
+                  label="Credits"
+                  used={totalCostCents}
+                  limit={limits.includedCredits * 100}
+                  formatValue={fmtDollars}
+                  onUpgrade={upgrade}
+                />
+              )}
+              {limits && limits.includedTokens > 0 && (
+                <MetricRow
+                  label="LLM tokens"
+                  used={totalTokensUsed}
+                  limit={limits.includedTokens}
+                  formatValue={(n) =>
+                    n >= 1_000_000
+                      ? `${(n / 1_000_000).toFixed(2)}M`
+                      : n >= 1_000
+                        ? `${(n / 1_000).toFixed(1)}K`
+                        : n.toLocaleString()
+                  }
+                  onUpgrade={upgrade}
+                />
+              )}
+              {limits && limits.includedVoiceMinutes > 0 && (
+                <MetricRow
+                  label="Voice minutes"
+                  used={voiceMinutesUsed}
+                  limit={limits.includedVoiceMinutes}
+                  onUpgrade={upgrade}
+                />
+              )}
+              {limits && limits.includedSandboxSeconds > 0 && (
+                <MetricRow
+                  label="Sandbox seconds"
+                  used={sandboxSecondsUsed}
+                  limit={limits.includedSandboxSeconds}
+                  onUpgrade={upgrade}
+                />
+              )}
+              {limits?.maxRunsPerDay !== null && limits?.maxRunsPerDay !== undefined && (
+                <MetricRow
+                  label="Runs today"
+                  used={capacityData?.runsToday ?? 0}
+                  limit={limits.maxRunsPerDay}
+                  onUpgrade={upgrade}
+                />
+              )}
+              {limits?.maxWorkflowGenerationsPerPeriod !== null &&
+                limits?.maxWorkflowGenerationsPerPeriod !== undefined && (
+                  <MetricRow
+                    label="Workflow generations"
+                    used={capacityData?.generationsThisPeriod ?? 0}
+                    limit={limits.maxWorkflowGenerationsPerPeriod}
+                    onUpgrade={upgrade}
+                  />
+                )}
+              {limits?.maxConnections !== null && limits?.maxConnections !== undefined && (
+                <MetricRow
+                  label="Integrations"
+                  used={capacityData?.connectionsCount ?? 0}
+                  limit={limits.maxConnections}
+                  onUpgrade={upgrade}
+                />
+              )}
+              {limits?.maxWorkflows !== null && limits?.maxWorkflows !== undefined && (
+                <InfoRow label="Workflows" value={limits.maxWorkflows.toLocaleString()} />
+              )}
+              {limits?.maxVoiceAgents !== null && limits?.maxVoiceAgents !== undefined && (
+                <InfoRow label="Voice agents" value={limits.maxVoiceAgents.toLocaleString()} />
+              )}
+              {limits?.maxKnowledgeBases !== null && limits?.maxKnowledgeBases !== undefined && (
+                <InfoRow
+                  label="Knowledge bases"
+                  value={limits.maxKnowledgeBases.toLocaleString()}
+                />
+              )}
+              {limits?.maxMembers !== null && limits?.maxMembers !== undefined && (
+                <InfoRow label="Team members" value={limits.maxMembers.toLocaleString()} />
+              )}
+              {limits?.maxFileUploadMb !== null && limits?.maxFileUploadMb !== undefined && (
+                <InfoRow label="Max file upload" value={`${limits.maxFileUploadMb} MB`} />
+              )}
+              {!limits && (
+                <p className="text-sm py-4 text-center text-muted-foreground">
+                  No plan limits to display.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
-        <CardFooter>
-          <Button variant="outline" size="sm" onClick={() => navigateTo("pricing")}>
-            Upgrade for more
-          </Button>
-        </CardFooter>
+        {!isLoading && limits && (
+          <CardFooter>
+            <Button variant="outline" size="sm" onClick={upgrade}>
+              Upgrade for more
+            </Button>
+          </CardFooter>
+        )}
       </Card>
-
-      {usage.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Usage breakdown</CardTitle>
-            <CardDescription>All usage events this billing period by type.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-sm divide-y">
-              {usage.map((u) => (
-                <li key={u.kind} className="py-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">{KIND_LABELS[u.kind] ?? u.kind}</span>
-                  <span className="font-medium tabular-nums">
-                    {formatValue(u.kind, u.totalQuantity)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

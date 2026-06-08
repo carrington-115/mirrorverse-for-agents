@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  AppWindow,
   BarChart3,
   History,
   KeyRound,
@@ -21,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@mirrorverse/ui/hooks/use-mobile";
-import { AppsSettingsShell } from "./settings-apps-shell";
 import { EnvVarsSettingsShell } from "./settings-env-vars-shell";
 import { BillingSettingsShell } from "./settings-billing-shell";
 import { ChannelsSettingsShell } from "./settings-channels-shell";
@@ -46,7 +44,6 @@ const WORKSPACE_ITEMS: NavItem[] = [
   { id: "usage", label: "Usage", icon: BarChart3 },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "environment", label: "Environment", icon: KeyRound },
-  { id: "apps", label: "Apps", icon: AppWindow },
   { id: "channels", label: "Channels", icon: Megaphone },
   { id: "runs", label: "Run History", icon: History },
 ];
@@ -62,7 +59,6 @@ const PAGE_CONTENT: Record<SettingsPage, React.ComponentType> = {
   usage: UsageSettingsShell,
   security: SecuritySettingsShell,
   environment: EnvVarsSettingsShell,
-  apps: AppsSettingsShell,
   channels: ChannelsSettingsShell,
   runs: RunsSettingsShell,
   profile: ProfileSettingsShell,
