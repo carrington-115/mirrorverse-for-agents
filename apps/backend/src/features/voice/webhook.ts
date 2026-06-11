@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 
+import { centsToCredits } from "@mirrorverse/agent";
 import {
   getDb,
   schema,
@@ -315,6 +316,7 @@ async function handleEndOfCall(
 
     if (durationSec && durationSec > 0) {
       const voiceMinutes = Math.ceil(durationSec / 60);
+      const voiceCostCents = Math.round(voiceMinutes * 5);
       await tdb
         .insert(schema.usageEvents)
         .values({
@@ -322,7 +324,8 @@ async function handleEndOfCall(
           kind: "voice_minute",
           quantity: voiceMinutes,
           unit: "minute",
-          costCents: Math.round(voiceMinutes * 5),
+          costCents: voiceCostCents,
+          credits: centsToCredits(voiceCostCents),
           billable: true,
           idempotencyKey: `voice_call:${message.call.id}:minutes`,
         })

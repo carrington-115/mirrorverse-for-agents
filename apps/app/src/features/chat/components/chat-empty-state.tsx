@@ -122,7 +122,7 @@ function UseCasesTabs({ onPick }: { onPick: (prompt: string) => void }) {
                 key={automation.title}
                 type="button"
                 onClick={() => onPick(automation.prompt)}
-                className="p-4 rounded-xl text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="p-4 cursor-pointer rounded-xl text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               >
                 <div className="gap-2 flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground">{automation.title}</span>

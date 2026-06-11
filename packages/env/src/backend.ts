@@ -18,8 +18,8 @@ export const env = createEnv({
     JWT_SECRET: z.string().min(1),
     JWT_EXPIRES_IN: z.string().default("7d"),
 
-    REDIS_URL: z.string().url().optional(),
-    REDIS_PASSWORD: z.string().optional(),
+    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 
     OPENAI_API_KEY: z.string().min(1).optional(),
     ANTHROPIC_API_KEY: z.string().min(1),

@@ -3,6 +3,7 @@ import type { Database } from "@mirrorverse/db";
 
 import { stripe } from "../../billing/stripe-client";
 import {
+  getDailyUsageSince,
   getHourlyUsageSince,
   getPaidSubscriptions,
   upsertUsagePeriodAggregates,
@@ -48,8 +49,31 @@ export function makeBillingAggregatorFunction(
             kind: r.kind as import("@mirrorverse/types").UsageKind,
             totalQuantity: r.totalQuantity,
             totalCostCents: r.totalCostCents,
+            totalCredits: r.totalCredits,
           })),
         );
+
+        // Recompute the full-day aggregate that contains this hour so the
+        // daily usage chart stays accurate as events accumulate.
+        const dayStart = new Date(hourAgo);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+        const dailyRows = await getDailyUsageSince(db, dayStart, dayEnd);
+        if (dailyRows.length > 0) {
+          await upsertUsagePeriodAggregates(
+            db,
+            dailyRows.map((r) => ({
+              workspaceId: r.workspaceId,
+              periodStart: dayStart,
+              periodEnd: dayEnd,
+              granularity: "day" as const,
+              kind: r.kind as import("@mirrorverse/types").UsageKind,
+              totalQuantity: r.totalQuantity,
+              totalCostCents: r.totalCostCents,
+              totalCredits: r.totalCredits,
+            })),
+          );
+        }
 
         const paidSubs = await getPaidSubscriptions(db);
         const paidWorkspaceIds = new Set(paidSubs.map((s) => s.workspaceId));

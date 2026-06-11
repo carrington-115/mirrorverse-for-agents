@@ -102,6 +102,7 @@ export interface UsageEvent extends Timestamps, Tenanted {
   readonly unit: string;
   readonly model: string | null;
   readonly costCents: Cents;
+  readonly credits: number;
   readonly billable: boolean;
   readonly runId: WorkflowRunId | null;
   readonly chatId: ChatId | null;
@@ -118,6 +119,7 @@ export interface UsagePeriodAggregate {
   readonly kind: UsageKind;
   readonly totalQuantity: number;
   readonly totalCostCents: Cents;
+  readonly totalCredits: number;
 }
 
 export type InvoiceStatus = "draft" | "open" | "paid" | "uncollectible" | "void";

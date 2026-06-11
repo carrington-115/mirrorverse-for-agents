@@ -9,6 +9,7 @@ import {
   sql,
   type Database,
 } from "@mirrorverse/db";
+import { centsToCredits } from "@mirrorverse/agent";
 import type { AgentUsageEntry, StepUsageBreakdown } from "@mirrorverse/agent";
 import type { UsageKind } from "@mirrorverse/types";
 
@@ -21,6 +22,8 @@ const {
   workflowRuns,
   chats,
   connections,
+  phoneNumbers,
+  voiceAgents,
 } = schema;
 
 // ─── Chat usage (existing) ────────────────────────────────────────────────────
@@ -56,6 +59,7 @@ function rowsFromBreakdown(input: RecordChatUsageInput): InsertRow[] {
     unit: entry.unit,
     model: entry.model,
     costCents: entry.costCents,
+    credits: entry.credits,
     idempotencyKey: `${input.idempotencyKey}:${entry.kind}:${index}`,
   }));
 }
@@ -68,6 +72,7 @@ type InsertRow = {
   unit: string;
   model: string;
   costCents: number;
+  credits: number;
   idempotencyKey: string;
 };
 
@@ -101,6 +106,7 @@ export async function recordSandboxUsage(
       unit: "second",
       model: null,
       costCents: input.costCents,
+      credits: centsToCredits(input.costCents),
       billable: true,
       idempotencyKey: `${input.runId}:${input.nodeId}:sandbox`,
     })
@@ -244,6 +250,7 @@ export interface UsageSummaryEntry {
   kind: UsageKind;
   totalQuantity: number;
   totalCostCents: number;
+  totalCredits: number;
 }
 
 export async function getUsageThisPeriod(
@@ -257,6 +264,7 @@ export async function getUsageThisPeriod(
       kind: usageEvents.kind,
       totalQuantity: sql<number>`coalesce(sum(${usageEvents.quantity}), 0)::bigint`,
       totalCostCents: sql<number>`coalesce(sum(${usageEvents.costCents}), 0)::int`,
+      totalCredits: sql<number>`coalesce(sum(${usageEvents.credits}), 0)::int`,
     })
     .from(usageEvents)
     .where(
@@ -282,6 +290,7 @@ export async function upsertUsagePeriodAggregates(
     kind: UsageKind;
     totalQuantity: number;
     totalCostCents: number;
+    totalCredits: number;
   }[],
 ): Promise<void> {
   if (rows.length === 0) return;
@@ -298,6 +307,7 @@ export async function upsertUsagePeriodAggregates(
       set: {
         totalQuantity: sql`excluded.total_quantity`,
         totalCostCents: sql`excluded.total_cost_cents`,
+        totalCredits: sql`excluded.total_credits`,
       },
     });
 }
@@ -313,6 +323,30 @@ export async function getHourlyUsageSince(
       kind: usageEvents.kind,
       totalQuantity: sql<number>`coalesce(sum(${usageEvents.quantity}), 0)::bigint`,
       totalCostCents: sql<number>`coalesce(sum(${usageEvents.costCents}), 0)::int`,
+      totalCredits: sql<number>`coalesce(sum(${usageEvents.credits}), 0)::int`,
+    })
+    .from(usageEvents)
+    .where(
+      and(
+        gte(usageEvents.occurredAt, since),
+        lte(usageEvents.occurredAt, until),
+      ),
+    )
+    .groupBy(usageEvents.workspaceId, usageEvents.kind);
+}
+
+export async function getDailyUsageSince(
+  db: Database,
+  since: Date,
+  until: Date,
+) {
+  return db
+    .select({
+      workspaceId: usageEvents.workspaceId,
+      kind: usageEvents.kind,
+      totalQuantity: sql<number>`coalesce(sum(${usageEvents.quantity}), 0)::bigint`,
+      totalCostCents: sql<number>`coalesce(sum(${usageEvents.costCents}), 0)::int`,
+      totalCredits: sql<number>`coalesce(sum(${usageEvents.credits}), 0)::int`,
     })
     .from(usageEvents)
     .where(
@@ -329,6 +363,7 @@ export interface DailyUsageEntry {
   kind: UsageKind;
   totalQuantity: number;
   totalCostCents: number;
+  totalCredits: number;
 }
 
 export async function getDailyUsageAggregates(
@@ -343,6 +378,7 @@ export async function getDailyUsageAggregates(
       kind: usagePeriodAggregates.kind,
       totalQuantity: usagePeriodAggregates.totalQuantity,
       totalCostCents: usagePeriodAggregates.totalCostCents,
+      totalCredits: usagePeriodAggregates.totalCredits,
     })
     .from(usagePeriodAggregates)
     .where(
@@ -461,4 +497,113 @@ export async function countConnectionsInWorkspace(
       ),
     );
   return row?.count ?? 0;
+}
+
+export async function countPhoneNumbers(
+  db: Database,
+  workspaceId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(phoneNumbers)
+    .where(
+      and(
+        eq(phoneNumbers.workspaceId, workspaceId),
+        eq(phoneNumbers.status, "active"),
+      ),
+    );
+  return row?.count ?? 0;
+}
+
+export async function countVoiceAgents(
+  db: Database,
+  workspaceId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(voiceAgents)
+    .where(
+      and(
+        eq(voiceAgents.workspaceId, workspaceId),
+        eq(voiceAgents.enabled, true),
+      ),
+    );
+  return row?.count ?? 0;
+}
+
+export interface DailyCreditEntry {
+  day: string; // ISO date string "YYYY-MM-DD"
+  totalCostCents: number;
+  totalCredits: number;
+}
+
+export async function getDailyCreditUsage(
+  db: Database,
+  workspaceId: string,
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<DailyCreditEntry[]> {
+  const rows = await db
+    .select({
+      day: sql<string>`to_char(date_trunc('day', ${usageEvents.occurredAt} AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`,
+      totalCostCents: sql<number>`coalesce(sum(${usageEvents.costCents}), 0)::int`,
+      totalCredits: sql<number>`coalesce(sum(${usageEvents.credits}), 0)::int`,
+    })
+    .from(usageEvents)
+    .where(
+      and(
+        eq(usageEvents.workspaceId, workspaceId),
+        gte(usageEvents.occurredAt, periodStart),
+        lte(usageEvents.occurredAt, periodEnd),
+      ),
+    )
+    .groupBy(
+      sql`date_trunc('day', ${usageEvents.occurredAt} AT TIME ZONE 'UTC')`,
+    )
+    .orderBy(
+      sql`date_trunc('day', ${usageEvents.occurredAt} AT TIME ZONE 'UTC')`,
+    );
+  return rows;
+}
+
+export async function getTotalCostCentsByPeriod(
+  db: Database,
+  workspaceId: string,
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<number> {
+  const [row] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${usageEvents.costCents}), 0)::int`,
+    })
+    .from(usageEvents)
+    .where(
+      and(
+        eq(usageEvents.workspaceId, workspaceId),
+        gte(usageEvents.occurredAt, periodStart),
+        lte(usageEvents.occurredAt, periodEnd),
+      ),
+    );
+  return row?.total ?? 0;
+}
+
+export async function getTotalCreditsByPeriod(
+  db: Database,
+  workspaceId: string,
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<number> {
+  const [row] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${usageEvents.credits}), 0)::int`,
+    })
+    .from(usageEvents)
+    .where(
+      and(
+        eq(usageEvents.workspaceId, workspaceId),
+        gte(usageEvents.occurredAt, periodStart),
+        lte(usageEvents.occurredAt, periodEnd),
+      ),
+    );
+  return row?.total ?? 0;
 }

@@ -86,9 +86,9 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
 
   const planName = planData?.plan?.name ?? "Free";
   const planId = planData?.plan?.id ?? "free";
-  const creditsLimitCents = (planData?.plan?.limits?.includedCredits ?? 0) * 100;
-  const creditsUsedCents = (usageData?.usage ?? []).reduce((sum, u) => sum + u.totalCostCents, 0);
-  const creditsPct = creditsLimitCents > 0 ? Math.min(creditsUsedCents / creditsLimitCents, 1) : 0;
+  const creditsLimit = planData?.plan?.limits?.includedCredits ?? 0;
+  const creditsUsed = (usageData?.usage ?? []).reduce((sum, u) => sum + u.totalCredits, 0);
+  const creditsPct = creditsLimit > 0 ? Math.min(creditsUsed / creditsLimit, 1) : 0;
 
   const [isSigningOut, startSignOut] = React.useTransition();
   const { openSettings } = useSettingsModal();
@@ -139,8 +139,8 @@ export function DashboardHeader({ title, actions }: DashboardHeaderProps) {
                 onOpenSettings={openSettings}
                 planName={planName}
                 planId={planId}
-                creditsUsedCents={creditsUsedCents}
-                creditsLimitCents={creditsLimitCents}
+                creditsUsed={creditsUsed}
+                creditsLimit={creditsLimit}
                 isLoading={planLoading || usageLoading}
               />
             </div>
@@ -257,8 +257,8 @@ interface BillingCardProps {
   onOpenSettings: (page: SettingsPage) => void;
   planName: string;
   planId: string;
-  creditsUsedCents: number;
-  creditsLimitCents: number;
+  creditsUsed: number;
+  creditsLimit: number;
   isLoading: boolean;
 }
 
@@ -266,13 +266,13 @@ function BillingCard({
   onOpenSettings,
   planName,
   planId,
-  creditsUsedCents,
-  creditsLimitCents,
+  creditsUsed,
+  creditsLimit,
   isLoading,
 }: BillingCardProps) {
   const isUpgradeable = planId !== "pro" && planId !== "custom";
-  const creditsPct = creditsLimitCents > 0 ? Math.min(creditsUsedCents / creditsLimitCents, 1) : 0;
-  const fmtCredits = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const creditsPct = creditsLimit > 0 ? Math.min(creditsUsed / creditsLimit, 1) : 0;
+  const fmtCredits = (n: number) => n.toLocaleString();
 
   return (
     <div className="p-3 space-y-2.5 rounded-lg border border-border bg-muted/30">
@@ -306,7 +306,7 @@ function BillingCard({
             <Skeleton className="h-3 w-20" />
           ) : (
             <span className="font-medium text-[11px]">
-              {fmtCredits(creditsUsedCents)} / {fmtCredits(creditsLimitCents)}
+              {fmtCredits(creditsUsed)} / {fmtCredits(creditsLimit)} credits
             </span>
           )}
         </div>

@@ -83,6 +83,7 @@ export const usagePeriodAggregates = pgTable(
     kind: text("kind").$type<UsageKind>().notNull(),
     totalQuantity: bigint("total_quantity", { mode: "number" }).notNull().default(0),
     totalCostCents: integer("total_cost_cents").notNull().default(0),
+    totalCredits: integer("total_credits").notNull().default(0),
   },
   (t) => [
     primaryKey({ columns: [t.workspaceId, t.periodStart, t.granularity, t.kind] }),
@@ -144,6 +145,7 @@ export const usageEvents = pgTable(
     unit: text("unit").notNull(),
     model: text("model"),
     costCents: integer("cost_cents").notNull().default(0),
+    credits: integer("credits").notNull().default(0),
     billable: boolean("billable").notNull().default(true),
     runId: text("run_id").references(() => workflowRuns.id, { onDelete: "set null" }),
     chatId: text("chat_id").references(() => chats.id, { onDelete: "set null" }),

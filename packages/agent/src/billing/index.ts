@@ -6,6 +6,7 @@ export {
   tokensToCents,
 } from "./pricing";
 export type { ModelPricePerMillionTokens } from "./pricing";
+export { MICROCENTS_PER_CREDIT, centsToCredits, microcentsToCredits } from "./credits";
 export { breakdownStepUsage } from "./usage";
 export type { AgentUsageEntry, AgentUsageKind, StepUsageBreakdown } from "./usage";
 export { DEFAULT_CHAT_LIMITS, checkChatLimits, describeChatLimitBreach } from "./limits";

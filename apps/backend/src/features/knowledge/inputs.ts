@@ -87,6 +87,7 @@ export const searchKbInput = z.object({
 
 export const signUploadUrlInput = z.object({
   storageKey: z.string().min(1).max(1024),
+  fileSizeMb: z.number().positive().optional(),
 });
 
 export type SignUploadUrlInput = z.infer<typeof signUploadUrlInput>;

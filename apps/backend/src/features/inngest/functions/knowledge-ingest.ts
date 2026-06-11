@@ -115,54 +115,65 @@ function extractTextFromHtml(html: string): string {
   return extracted;
 }
 
-/**
- * 3-layer URL fetch strategy:
- *
- * Layer 1 — Jina Reader (fast, handles JS-rendered pages including Notion):
- *   GET https://r.jina.ai/{encodedUrl} — returns clean Markdown in ~1–3s.
- *   Falls through if non-200 or response too short.
- *
- * Layer 2 — Local fetch + Cheerio (lightweight HTML parser, 10–20× faster than JSDOM):
- *   Plain-text/CSV responses are returned directly.
- *   HTML is parsed with cheerio targeting semantic content elements.
- *
- * Both layers use AbortSignal.timeout(FETCH_TIMEOUT_MS) to cap worst-case duration.
- */
-async function fetchAndParseUrl(rawUrl: string): Promise<string> {
-  const url = normalizeSourceUrl(rawUrl);
+const MIN_CONTENT_LENGTH = 100;
 
-  // Layer 1: Jina Reader
+// Jina Reader: fast, handles JS-rendered pages including Notion (~1–3s happy path).
+async function fetchViaJina(url: string): Promise<string | null> {
   try {
     const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
     const resp = await fetch(jinaUrl, {
       headers: { Accept: "text/plain" },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    if (resp.ok) {
-      const text = (await resp.text()).replace(/\s+/g, " ").trim();
-      if (text.length >= 100) return text;
-    }
+    if (!resp.ok) return null;
+    const text = (await resp.text()).replace(/\s+/g, " ").trim();
+    return text.length >= MIN_CONTENT_LENGTH ? text : null;
   } catch {
-    // fall through to local parse
+    return null;
   }
+}
 
-  // Layer 2: Local fetch + Cheerio
-  const resp = await fetch(url, {
-    redirect: "follow",
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${url}`);
-
-  const contentType = resp.headers.get("content-type") ?? "";
-  if (
-    contentType.startsWith("text/plain") ||
-    contentType.startsWith("text/csv")
-  ) {
-    return (await resp.text()).replace(/\s+/g, " ").trim();
+// Direct fetch + Cheerio: lightweight HTML parser, handles plain-text/CSV directly.
+async function fetchDirect(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (!resp.ok) return null;
+    const contentType = resp.headers.get("content-type") ?? "";
+    if (
+      contentType.startsWith("text/plain") ||
+      contentType.startsWith("text/csv")
+    ) {
+      return (await resp.text()).replace(/\s+/g, " ").trim();
+    }
+    const html = await resp.text();
+    return extractTextFromHtml(html);
+  } catch {
+    return null;
   }
+}
 
-  const html = await resp.text();
-  return extractTextFromHtml(html);
+/**
+ * URL fetch strategy: start Jina Reader and direct fetch simultaneously.
+ * Use whichever returns usable content first. This caps worst-case duration at
+ * FETCH_TIMEOUT_MS instead of 2×FETCH_TIMEOUT_MS from the old sequential fallback.
+ */
+async function fetchAndParseUrl(rawUrl: string): Promise<string> {
+  const url = normalizeSourceUrl(rawUrl);
+
+  // Both fetches start at the same time — total wait = max(jina, direct) not jina+direct.
+  const jinaPromise = fetchViaJina(url);
+  const directPromise = fetchDirect(url);
+
+  const jina = await jinaPromise;
+  if (jina) return jina;
+
+  const direct = await directPromise;
+  if (direct) return direct;
+
+  throw new Error(`Could not extract text from URL: ${rawUrl}`);
 }
 
 async function fetchAndParsePdf(storageKeyOrUrl: string): Promise<string> {
@@ -277,7 +288,7 @@ export function makeKnowledgeIngestFunction(db: Database): InngestFunction.Any {
       id: "knowledge.ingest",
       name: "Knowledge Document Ingest",
       triggers: [knowledgeIngestEvent],
-      retries: 3,
+      retries: 2,
     },
     async ({ event, step }) => {
       const { documentId, kbId, workspaceId, sourceType, contentOrUrl } =

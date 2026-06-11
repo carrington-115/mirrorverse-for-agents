@@ -21,7 +21,7 @@ export function SectionHeader({
         className,
       )}
     >
-      <h2 className="font-semibold md:text-[34px] lg:text-[40px] text-[28px] leading-[1.1] tracking-[-1px] text-(--general-secondary-foreground,#171717)">
+      <h2 className="font-medium md:text-[30px] lg:text-[36px] text-[28px] leading-[1.1] tracking-[-1px] text-(--general-secondary-foreground,#171717)">
         {title}
       </h2>
       {subtitle && (

@@ -242,7 +242,7 @@ export function ChatPromptInput({
             <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
             Connect integration
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-44">
+          <DropdownMenuSubContent className="w-auto">
             <DropdownMenuItem className="py-2.5 px-3" onSelect={() => onConnectWebhook?.()}>
               <Link2 className="mr-2 size-4 shrink-0 text-muted-foreground" />
               Connect webhook

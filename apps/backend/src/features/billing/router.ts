@@ -10,6 +10,7 @@ import { stripe } from "./stripe-client";
 import {
   getActiveSubscription,
   getDailyUsageAggregates,
+  getDailyCreditUsage,
   listInvoices,
   getUsageThisPeriod,
   countRunsToday,
@@ -152,6 +153,15 @@ export const billingRouter = router({
       periodEnd,
     );
     return { periodStart, periodEnd, usage };
+  }),
+
+  dailyCreditUsage: workspaceProc.query(async ({ ctx }) => {
+    const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+    const periodStart =
+      sub?.subscription.currentPeriodStart ??
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const periodEnd = sub?.subscription.currentPeriodEnd ?? new Date();
+    return getDailyCreditUsage(ctx.db, ctx.workspaceId, periodStart, periodEnd);
   }),
 
   getCapacityCounts: workspaceProc.query(async ({ ctx }) => {

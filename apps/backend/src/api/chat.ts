@@ -34,9 +34,13 @@ import {
 } from "../features/knowledge/repo";
 import { ensureUserWorkspace } from "../features/tenancy/repo";
 import { listWorkspaceWebhooks } from "../features/webhooks/repo";
-import { recordChatUsage } from "../features/billing/repo";
 import {
-  checkQuota,
+  countGenerationsThisPeriod,
+  getActiveSubscription,
+  recordChatUsage,
+} from "../features/billing/repo";
+import {
+  checkCreditQuota,
   QuotaExceededError,
 } from "../features/billing/enforcement";
 import {
@@ -435,6 +439,33 @@ export async function POST(req: Request): Promise<Response> {
     return jsonError(429, reason);
   }
 
+  // Workflow generation limit: only checked on the first message of a new chat.
+  if (!chat.title) {
+    try {
+      const sub = await getActiveSubscription(db, workspaceId);
+      const genLimit = sub?.plan.limits.maxWorkflowGenerationsPerPeriod ?? null;
+      if (genLimit !== null) {
+        const periodStart = sub?.subscription.currentPeriodStart ?? new Date(0);
+        const generationsUsed = await countGenerationsThisPeriod(
+          db,
+          workspaceId,
+          periodStart,
+        );
+        if (generationsUsed >= genLimit) {
+          return jsonError(
+            402,
+            "You have reached your plan's workflow generation limit. Please upgrade to continue.",
+          );
+        }
+      }
+    } catch (err) {
+      console.warn(
+        "[chat] generation limit check failed, proceeding:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+
   const lastUser = body.messages[body.messages.length - 1];
   if (!lastUser || lastUser.role !== "user") {
     return jsonError(400, "Expected last message to be from user");
@@ -563,20 +594,19 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    await checkQuota(db, workspaceId, "llm_input");
+    await checkCreditQuota(db, workspaceId);
   } catch (err) {
     if (err instanceof QuotaExceededError) {
       console.warn(
-        `[chat] 402 quota exceeded workspaceId=${workspaceId} kind=${err.kind} used=${err.used} limit=${err.limit}`,
+        `[chat] 402 credit quota exceeded workspaceId=${workspaceId} used=${err.used} limit=${err.limit}`,
       );
       return jsonError(
         402,
-        "You have exceeded your plan's token quota. Please upgrade your plan to continue.",
+        "You have exceeded your plan's credit budget. Please upgrade your plan to continue.",
       );
     }
-    // Non-fatal: quota read failure should not block LLM calls
     console.warn(
-      "[chat] quota check failed, proceeding:",
+      "[chat] credit quota check failed, proceeding:",
       err instanceof Error ? err.message : err,
     );
   }

@@ -5,7 +5,7 @@ import { openai } from "@ai-sdk/openai";
 export const EMBEDDING_MODEL_ID = "text-embedding-3-small";
 const MODEL = openai.embedding(EMBEDDING_MODEL_ID);
 
-const BATCH_SIZE = 96;
+const BATCH_SIZE = 512;
 
 // Dimension of text-embedding-3-small; chunks whose vector doesn't match this
 // would be rejected by the vector(1536) column, so callers validate against it.
@@ -25,7 +25,9 @@ export async function embedTexts(texts: string[]): Promise<EmbedResult> {
     batches.push(texts.slice(i, i + BATCH_SIZE));
 
   const results = await Promise.all(
-    batches.map((batch) => embedMany({ model: MODEL, values: batch })),
+    batches.map((batch) =>
+      embedMany({ model: MODEL, values: batch, maxRetries: 0 }),
+    ),
   );
 
   const embeddings = results.flatMap((r) => r.embeddings);
@@ -34,6 +36,10 @@ export async function embedTexts(texts: string[]): Promise<EmbedResult> {
 }
 
 export async function embedQuery(text: string): Promise<number[]> {
-  const { embedding } = await embed({ model: MODEL, value: text });
+  const { embedding } = await embed({
+    model: MODEL,
+    value: text,
+    maxRetries: 0,
+  });
   return embedding;
 }

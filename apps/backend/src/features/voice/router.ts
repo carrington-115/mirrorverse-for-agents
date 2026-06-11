@@ -1,5 +1,10 @@
-import { router } from "../../trpc/init";
+import { router, TRPCError } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
+import {
+  countPhoneNumbers,
+  countVoiceAgents,
+  getActiveSubscription,
+} from "../billing/repo";
 
 import {
   activateVoiceInput,
@@ -27,12 +32,23 @@ export const voiceRouter = router({
 
   buyNumber: workspaceProc
     .input(buyNumberInput)
-    .mutation(({ ctx, input }) =>
-      voiceService.buyNumber(
+    .mutation(async ({ ctx, input }) => {
+      const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+      const limit = sub?.plan.limits.maxPhoneNumbers ?? null;
+      if (limit !== null) {
+        const used = await countPhoneNumbers(ctx.db, ctx.workspaceId);
+        if (used >= limit) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Phone number limit reached. Please upgrade your plan.",
+          });
+        }
+      }
+      return voiceService.buyNumber(
         { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
-      ),
-    ),
+      );
+    }),
 
   listNumbers: workspaceProc.query(({ ctx }) =>
     voiceService.listNumbers({
@@ -55,12 +71,30 @@ export const voiceRouter = router({
 
   activate: workspaceProc
     .input(activateVoiceInput)
-    .mutation(({ ctx, input }) =>
-      voiceService.activate(
+    .mutation(async ({ ctx, input }) => {
+      const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+      if (sub?.plan.features.voiceAgents === false) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Voice agents are not available on your current plan. Please upgrade.",
+        });
+      }
+      const agentLimit = sub?.plan.limits.maxVoiceAgents ?? null;
+      if (agentLimit !== null) {
+        const used = await countVoiceAgents(ctx.db, ctx.workspaceId);
+        if (used >= agentLimit) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Voice agent limit reached. Please upgrade your plan.",
+          });
+        }
+      }
+      return voiceService.activate(
         { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
-      ),
-    ),
+      );
+    }),
 
   deactivate: workspaceProc
     .input(deactivateVoiceInput)

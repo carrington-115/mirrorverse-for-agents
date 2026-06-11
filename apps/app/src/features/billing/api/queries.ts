@@ -19,12 +19,12 @@ export function useUsagePeriodQuery() {
   return useQuery(trpc.billing.usageThisPeriod.queryOptions());
 }
 
-export function useUsageByDayQuery() {
-  const trpc = useTRPC();
-  return useQuery(trpc.billing.usageByDay.queryOptions());
-}
-
 export function useCapacityCountsQuery() {
   const trpc = useTRPC();
   return useQuery(trpc.billing.getCapacityCounts.queryOptions());
+}
+
+export function useDailyCreditUsageQuery() {
+  const trpc = useTRPC();
+  return useQuery(trpc.billing.dailyCreditUsage.queryOptions());
 }

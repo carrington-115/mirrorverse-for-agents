@@ -1,9 +1,13 @@
 import type { Database } from "@mirrorverse/db";
 import type { QuotaCheck, UsageKind } from "@mirrorverse/types";
 
-import { getActiveSubscription } from "./repo";
+import { getActiveSubscription, getTotalCreditsByPeriod } from "./repo";
 
-// Mirrors the field names in PlanLimits that map to UsageKind
+// Maps UsageKind values to the PlanLimits field that caps them via Redis quota.
+// Intentionally absent:
+//   embedding, composio_action — gated by the credit umbrella (checkCreditQuota sums all kinds)
+//   phone_number_month         — enforced by countPhoneNumbers capacity check (maxPhoneNumbers)
+//   storage_gb_month           — not yet enforced; TODO add maxStorageGb to PlanLimits + upload route check
 const KIND_TO_LIMIT_FIELD: Partial<
   Record<UsageKind, keyof import("@mirrorverse/types").PlanLimits>
 > = {
@@ -58,12 +62,12 @@ async function getRedis(): Promise<RedisLike> {
   if (_redis) return _redis;
   try {
     const { env } = await import("@mirrorverse/env/backend");
-    if (!env.REDIS_URL) {
+    if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
       _redis = new NoopRedis();
       return _redis;
     }
-    // Dynamically import @upstash/redis — only required when REDIS_URL is set.
-    // Falls back to NoopRedis if the package is not installed.
+    // Dynamically import @upstash/redis — only required when the Upstash REST
+    // credentials are set. Falls back to NoopRedis if the package is not installed.
     type RedisConstructor = new (opts: {
       url: string;
       token: string;
@@ -74,8 +78,8 @@ async function getRedis(): Promise<RedisLike> {
       Redis: RedisConstructor;
     };
     _redis = new mod.Redis({
-      url: env.REDIS_URL,
-      token: env.REDIS_PASSWORD ?? "",
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
     });
   } catch {
     _redis = new NoopRedis();
@@ -152,6 +156,32 @@ export async function checkQuota(
 
   const remaining = Math.max(0, limit - used);
   return { kind, used, limit, remaining, periodEnd, hardCap: ratio >= 1.0 };
+}
+
+export async function checkCreditQuota(
+  db: Database,
+  workspaceId: string,
+): Promise<void> {
+  const row = await getActiveSubscription(db, workspaceId);
+  const includedCredits = row?.plan.limits.includedCredits ?? null;
+  if (!includedCredits) return;
+
+  const periodStart = row?.subscription.currentPeriodStart ?? new Date(0);
+  const periodEnd =
+    row?.subscription.currentPeriodEnd ??
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  const usedCredits = await getTotalCreditsByPeriod(
+    db,
+    workspaceId,
+    periodStart,
+    periodEnd,
+  );
+  const ratio = usedCredits / includedCredits;
+
+  if (ratio >= 1.5) {
+    throw new QuotaExceededError("llm_input", usedCredits, includedCredits);
+  }
 }
 
 export async function incrementQuota(

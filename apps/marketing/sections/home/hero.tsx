@@ -9,7 +9,7 @@ export function Hero() {
         {/* ── Headline + subtext + CTAs ───────────────────────────────────── */}
         <div className="gap-4 flex max-w-[822px] flex-col items-center text-center">
           <h1
-            className="animate-fade-in-up font-semibold sm:tracking-[-1.5px] md:text-[48px] lg:text-[56px] lg:tracking-[-2px] mt-8 md:mt-0 md:text-center text-left text-[36px] leading-[1.05] tracking-[-1px] text-[#0a0a0a]"
+            className="animate-fade-in-up font-medium sm:tracking-[-1.5px] md:text-[48px] lg:text-[56px] lg:tracking-[-2px] mt-8 md:mt-0 md:text-center text-left text-[36px] leading-[1.05] tracking-[-1px] text-[#0a0a0a]"
             style={{
               animationDelay: "0ms",
             }}
@@ -18,7 +18,7 @@ export function Hero() {
           </h1>
 
           <p
-            className="animate-fade-in-up text-base font-medium lg:text-[18px] text-xl font-normal md:font-normal md:text-center max-w-[500px] text-left leading-[27px] text-muted-foreground"
+            className="animate-fade-in-up text-base font-medium lg:text-[18px] text-xl font-normal md:font-normal md:text-center max-w-[500px] text-left leading-[27px] text-[#3F3F46]"
             style={{ animationDelay: "100ms" }}
           >
             The busywork that&apos;s slowing your team down? Hand it to AI agents that just get it

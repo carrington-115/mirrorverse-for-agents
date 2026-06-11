@@ -14,12 +14,15 @@ export type { PaletteCategory, PaletteEntry } from "./schemas/node-defaults";
 export { generateChatTitle } from "./title";
 export {
   DEFAULT_CHAT_LIMITS,
+  MICROCENTS_PER_CREDIT,
   SUPPORTED_CHAT_MODEL_IDS,
   breakdownStepUsage,
+  centsToCredits,
   checkChatLimits,
   describeChatLimitBreach,
   getModelPrice,
   isSupportedModel,
+  microcentsToCredits,
 } from "./billing";
 export type {
   AgentUsageEntry,

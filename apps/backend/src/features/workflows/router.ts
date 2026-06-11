@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { router } from "../../trpc/init";
+import { router, TRPCError } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
 
 import {
@@ -14,6 +14,7 @@ import {
   saveWorkflowVersionInput,
 } from "./inputs";
 import { workflowsService } from "./service";
+import { countRunsToday, getActiveSubscription } from "../billing/repo";
 
 const workflowIdInput = z.object({ workflowId: z.string().min(1).max(128) });
 
@@ -108,14 +109,23 @@ export const workflowsRouter = router({
       ),
     ),
 
-  run: workspaceProc
-    .input(workflowIdInput)
-    .mutation(({ ctx, input }) =>
-      workflowsService.run(
-        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
-        input,
-      ),
-    ),
+  run: workspaceProc.input(workflowIdInput).mutation(async ({ ctx, input }) => {
+    const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+    const limit = sub?.plan.limits.maxRunsPerDay ?? null;
+    if (limit !== null) {
+      const used = await countRunsToday(ctx.db, ctx.workspaceId);
+      if (used >= limit) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Daily run limit reached. Please upgrade your plan.",
+        });
+      }
+    }
+    return workflowsService.run(
+      { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+      input,
+    );
+  }),
 
   restart: workspaceProc
     .input(workflowIdInput)

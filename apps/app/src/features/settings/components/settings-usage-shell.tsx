@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/card";
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -25,15 +23,13 @@ import { cn } from "@/lib/utils";
 import {
   useCapacityCountsQuery,
   useCurrentPlanQuery,
-  useUsageByDayQuery,
+  useDailyCreditUsageQuery,
   useUsagePeriodQuery,
 } from "@/features/billing/api/queries";
 import { useSettingsModal } from "../hooks/use-settings-modal";
 
-const tokenChartConfig = {
-  llm_input: { label: "Input tokens", color: "var(--chart-1)" },
-  llm_output: { label: "Output tokens", color: "var(--chart-2)" },
-  llm_input_cache_read: { label: "Cached tokens", color: "var(--chart-3)" },
+const creditChartConfig = {
+  credits: { label: "Credits", color: "hsl(var(--chart-1))" },
 } satisfies ChartConfig;
 
 function formatDate(date: Date | string | null | undefined): string {
@@ -116,52 +112,30 @@ export function UsageSettingsShell() {
   const { navigateTo } = useSettingsModal();
   const { data: planData, isLoading: planLoading } = useCurrentPlanQuery();
   const { data: usageData, isLoading: usageLoading } = useUsagePeriodQuery();
-  const { data: usageByDayData, isLoading: usageByDayLoading } = useUsageByDayQuery();
   const { data: capacityData, isLoading: capacityLoading } = useCapacityCountsQuery();
+  const { data: dailyCredits, isLoading: dailyCreditsLoading } = useDailyCreditUsageQuery();
 
   const limits = planData?.plan?.limits;
   const periodEnd = usageData?.periodEnd;
 
-  const usageMap = new Map<string, { quantity: number; costCents: number }>();
+  const usageMap = new Map<string, { quantity: number; credits: number }>();
   for (const u of usageData?.usage ?? []) {
-    usageMap.set(u.kind, { quantity: u.totalQuantity, costCents: u.totalCostCents });
+    usageMap.set(u.kind, { quantity: u.totalQuantity, credits: u.totalCredits });
   }
 
-  const totalTokensUsed =
-    (usageMap.get("llm_input")?.quantity ?? 0) + (usageMap.get("llm_output")?.quantity ?? 0);
   const voiceMinutesUsed = usageMap.get("voice_minute")?.quantity ?? 0;
   const sandboxSecondsUsed = usageMap.get("sandbox_second")?.quantity ?? 0;
-  const totalCostCents = [...usageMap.values()].reduce((sum, u) => sum + u.costCents, 0);
-
-  const dailyRaw = usageByDayData ?? [];
-  const dateMap = new Map<
-    string,
-    { date: string; llm_input: number; llm_output: number; llm_input_cache_read: number }
-  >();
-  for (const entry of dailyRaw) {
-    if (!entry.kind.startsWith("llm")) continue;
-    const d = new Date(entry.periodStart);
-    const label = d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-    const key = d.toISOString().slice(0, 10);
-    if (!dateMap.has(key)) {
-      dateMap.set(key, { date: label, llm_input: 0, llm_output: 0, llm_input_cache_read: 0 });
-    }
-    const row = dateMap.get(key)!;
-    if (entry.kind === "llm_input") row.llm_input = entry.totalQuantity;
-    else if (entry.kind === "llm_output") row.llm_output = entry.totalQuantity;
-    else if (entry.kind === "llm_input_cache_read") row.llm_input_cache_read = entry.totalQuantity;
-  }
-  const tokenChartData = Array.from(dateMap.values());
-  const hasTokenChartData = tokenChartData.length > 0;
+  const totalCreditsUsed = [...usageMap.values()].reduce((sum, u) => sum + u.credits, 0);
 
   const isLoading = planLoading || usageLoading || capacityLoading;
+
+  const creditChartData = (dailyCredits ?? []).map((d) => ({
+    day: d.day,
+    credits: d.totalCredits,
+  }));
   const upgrade = () => navigateTo("pricing");
 
-  const fmtDollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const fmtCredits = (n: number) => n.toLocaleString();
 
   return (
     <div className="gap-6 max-w-2xl flex flex-col">
@@ -190,47 +164,47 @@ export function UsageSettingsShell() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Daily token usage</CardTitle>
-          <CardDescription>LLM tokens consumed per day this billing period.</CardDescription>
+          <CardTitle>Daily credit usage</CardTitle>
+          <CardDescription>Credits spent per day in the current billing period.</CardDescription>
         </CardHeader>
         <CardContent>
-          {usageByDayLoading ? (
-            <Skeleton className="h-[180px] w-full" />
-          ) : !hasTokenChartData ? (
-            <p className="text-sm py-8 text-center text-muted-foreground">
-              No token usage recorded yet this period.
-            </p>
+          {dailyCreditsLoading ? (
+            <Skeleton className="h-48 w-full" />
+          ) : creditChartData.length === 0 ? (
+            <p className="text-sm py-8 text-center text-muted-foreground">No usage this period.</p>
           ) : (
-            <ChartContainer config={tokenChartConfig} className="h-[180px] w-full">
-              <BarChart data={tokenChartData} barGap={2}>
+            <ChartContainer config={creditChartConfig} className="h-48 w-full">
+              <BarChart data={creditChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis
-                  dataKey="date"
+                  dataKey="day"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v: string) => {
+                    const d = new Date(v + "T00:00:00Z");
+                    return d.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    });
+                  }}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar
-                  dataKey="llm_input"
-                  stackId="tokens"
-                  fill="var(--color-llm_input)"
-                  radius={[0, 0, 0, 0]}
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(v: number) => v.toLocaleString()}
+                  width={56}
                 />
-                <Bar
-                  dataKey="llm_input_cache_read"
-                  stackId="tokens"
-                  fill="var(--color-llm_input_cache_read)"
-                  radius={[0, 0, 0, 0]}
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) => [`${(+value).toLocaleString()} credits`, "Credits"]}
+                    />
+                  }
                 />
-                <Bar
-                  dataKey="llm_output"
-                  stackId="tokens"
-                  fill="var(--color-llm_output)"
-                  radius={[4, 4, 0, 0]}
-                />
+                <Bar dataKey="credits" fill="var(--color-credits)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           )}
@@ -259,24 +233,9 @@ export function UsageSettingsShell() {
               {limits && limits.includedCredits > 0 && (
                 <MetricRow
                   label="Credits"
-                  used={totalCostCents}
-                  limit={limits.includedCredits * 100}
-                  formatValue={fmtDollars}
-                  onUpgrade={upgrade}
-                />
-              )}
-              {limits && limits.includedTokens > 0 && (
-                <MetricRow
-                  label="LLM tokens"
-                  used={totalTokensUsed}
-                  limit={limits.includedTokens}
-                  formatValue={(n) =>
-                    n >= 1_000_000
-                      ? `${(n / 1_000_000).toFixed(2)}M`
-                      : n >= 1_000
-                        ? `${(n / 1_000).toFixed(1)}K`
-                        : n.toLocaleString()
-                  }
+                  used={totalCreditsUsed}
+                  limit={limits.includedCredits}
+                  formatValue={fmtCredits}
                   onUpgrade={upgrade}
                 />
               )}

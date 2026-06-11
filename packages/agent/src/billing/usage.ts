@@ -1,5 +1,6 @@
 import type { LanguageModelUsage } from "ai";
 
+import { microcentsToCredits } from "./credits";
 import { getModelPrice, microcentsToCents, tokensToCents } from "./pricing";
 
 export type AgentUsageKind =
@@ -13,12 +14,14 @@ export interface AgentUsageEntry {
   readonly quantity: number;
   readonly unit: "token";
   readonly costCents: number;
+  readonly credits: number;
   readonly model: string;
 }
 
 export interface StepUsageBreakdown {
   readonly entries: readonly AgentUsageEntry[];
   readonly totalCostCents: number;
+  readonly totalCredits: number;
 }
 
 interface ExtendedUsage extends LanguageModelUsage {
@@ -40,7 +43,7 @@ export function breakdownStepUsage(
   usage: LanguageModelUsage | undefined,
   model: string,
 ): StepUsageBreakdown {
-  if (!usage) return { entries: [], totalCostCents: 0 };
+  if (!usage) return { entries: [], totalCostCents: 0, totalCredits: 0 };
 
   const ext = usage as ExtendedUsage;
   const price = getModelPrice(model);
@@ -63,6 +66,7 @@ export function breakdownStepUsage(
       quantity: uncachedInputTokens,
       unit: "token",
       costCents: microcentsToCents(microcents),
+      credits: microcentsToCredits(microcents),
       model,
     });
   }
@@ -74,6 +78,7 @@ export function breakdownStepUsage(
       quantity: cacheReadTokens,
       unit: "token",
       costCents: microcentsToCents(microcents),
+      credits: microcentsToCredits(microcents),
       model,
     });
   }
@@ -85,6 +90,7 @@ export function breakdownStepUsage(
       quantity: cacheWriteTokens,
       unit: "token",
       costCents: microcentsToCents(microcents),
+      credits: microcentsToCredits(microcents),
       model,
     });
   }
@@ -96,9 +102,14 @@ export function breakdownStepUsage(
       quantity: outputTokens,
       unit: "token",
       costCents: microcentsToCents(microcents),
+      credits: microcentsToCredits(microcents),
       model,
     });
   }
 
-  return { entries, totalCostCents: microcentsToCents(totalMicrocents) };
+  return {
+    entries,
+    totalCostCents: microcentsToCents(totalMicrocents),
+    totalCredits: microcentsToCredits(totalMicrocents),
+  };
 }
