@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm";
-import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import type {
   DeployedAgent,
   WorkflowDocument,
@@ -27,6 +36,7 @@ export const workflows = pgTable(
     description: text("description"),
     kind: text("kind").$type<WorkflowKind>().notNull(),
     status: text("status").$type<WorkflowStatus>().notNull().default("draft"),
+    respondsToSlackMentions: boolean("responds_to_slack_mentions").notNull().default(false),
     currentVersionId: text("current_version_id"),
     createdBy: text("created_by").notNull(),
     tags: text("tags")
@@ -44,6 +54,9 @@ export const workflows = pgTable(
     index("workflows_workspace_status_idx").on(t.workspaceId, t.status),
     index("workflows_workspace_kind_idx").on(t.workspaceId, t.kind),
     index("workflows_workspace_created_idx").on(t.workspaceId, t.createdAt),
+    uniqueIndex("workflows_slack_agent_unique_idx")
+      .on(t.respondsToSlackMentions)
+      .where(sql`responds_to_slack_mentions = true`),
     tenantPolicy("workflows"),
   ],
 );

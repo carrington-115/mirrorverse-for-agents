@@ -284,6 +284,7 @@ export interface Workflow {
   status: "active" | "inactive";
   kind: WorkflowKind;
   lastUpdated: Date;
+  respondsToSlackMentions: boolean;
 }
 
 export type ConfigSidebarType =

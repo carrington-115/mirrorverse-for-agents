@@ -1,7 +1,48 @@
 import type { Database } from "@mirrorverse/db";
-import type { QuotaCheck, UsageKind } from "@mirrorverse/types";
+import type { PlanLimits, QuotaCheck, UsageKind } from "@mirrorverse/types";
 
 import { getActiveSubscription, getTotalCreditsByPeriod } from "./repo";
+
+interface SubscriptionPeriod {
+  readonly currentPeriodStart: Date;
+  readonly currentPeriodEnd: Date;
+}
+
+// Determines the window over which `includedCredits` is allotted/checked.
+// "day" plans (e.g. Free) reset at UTC midnight; "billing_period" plans use
+// the subscription's current Stripe (or bootstrap) period.
+export function getCreditPeriodBounds(
+  limits: Pick<PlanLimits, "creditsPeriod"> | null | undefined,
+  subscription: SubscriptionPeriod | null | undefined,
+): { periodStart: Date; periodEnd: Date } {
+  if (limits?.creditsPeriod === "day") {
+    const periodStart = new Date();
+    periodStart.setUTCHours(0, 0, 0, 0);
+    return {
+      periodStart,
+      periodEnd: new Date(periodStart.getTime() + 86_400_000),
+    };
+  }
+  return {
+    periodStart: subscription?.currentPeriodStart ?? new Date(0),
+    periodEnd:
+      subscription?.currentPeriodEnd ??
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  };
+}
+
+// Advances a period boundary by one cycle of `creditsPeriod`. Used by the
+// subscription-renewal cron (and initial bootstrap) to roll
+// currentPeriodStart/End forward once the previous period has elapsed.
+export function addPeriod(
+  creditsPeriod: PlanLimits["creditsPeriod"],
+  from: Date,
+): Date {
+  if (creditsPeriod === "day") {
+    return new Date(from.getTime() + 86_400_000);
+  }
+  return new Date(from.getFullYear(), from.getMonth() + 1, from.getDate());
+}
 
 // Maps UsageKind values to the PlanLimits field that caps them via Redis quota.
 // Intentionally absent:
@@ -166,10 +207,10 @@ export async function checkCreditQuota(
   const includedCredits = row?.plan.limits.includedCredits ?? null;
   if (!includedCredits) return;
 
-  const periodStart = row?.subscription.currentPeriodStart ?? new Date(0);
-  const periodEnd =
-    row?.subscription.currentPeriodEnd ??
-    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const { periodStart, periodEnd } = getCreditPeriodBounds(
+    row?.plan.limits,
+    row?.subscription,
+  );
 
   const usedCredits = await getTotalCreditsByPeriod(
     db,
@@ -196,7 +237,13 @@ export async function incrementQuota(
     for (let i = 0; i < amount; i++) {
       await redis.incr(key);
     }
-    await redis.expireat(key, Math.floor(periodEnd.getTime() / 1000) + 86400);
+    // Clamp so a stale (past) periodEnd can never cause Redis to evict the
+    // key immediately — always keep it alive for at least another minute.
+    const target = Math.max(
+      Math.floor(periodEnd.getTime() / 1000) + 86_400,
+      Math.floor(Date.now() / 1000) + 60,
+    );
+    await redis.expireat(key, target);
   } catch {
     // Non-fatal: quota increment failure should not block LLM calls
   }

@@ -190,7 +190,7 @@ export function KnowledgeShell() {
             <AlertDialogTitle>Delete knowledge base?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete{" "}
-              <span className="font-medium text-foreground">
+              <span className="font-medium break-words text-foreground">
                 {list.find((kb) => kb.id === pendingDeleteKbId)?.name ?? "this knowledge base"}
               </span>{" "}
               and all its documents. This cannot be undone.

@@ -149,8 +149,14 @@ export function UsageSettingsShell() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Billing period</CardTitle>
-          <CardDescription>Usage resets at the start of each billing period.</CardDescription>
+          <CardTitle>
+            {limits?.creditsPeriod === "day" ? "Credit reset" : "Billing period"}
+          </CardTitle>
+          <CardDescription>
+            {limits?.creditsPeriod === "day"
+              ? "Credits reset daily at midnight UTC."
+              : "Usage resets at the start of each billing period."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-sm flex items-center justify-between">
@@ -204,7 +210,7 @@ export function UsageSettingsShell() {
                     />
                   }
                 />
-                <Bar dataKey="credits" fill="var(--color-credits)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="credits" fill="var(--foreground)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           )}
@@ -232,7 +238,7 @@ export function UsageSettingsShell() {
             <div className="divide-y">
               {limits && limits.includedCredits > 0 && (
                 <MetricRow
-                  label="Credits"
+                  label={limits.creditsPeriod === "day" ? "Credits (daily)" : "Credits"}
                   used={totalCreditsUsed}
                   limit={limits.includedCredits}
                   formatValue={fmtCredits}
@@ -260,6 +266,14 @@ export function UsageSettingsShell() {
                   label="Runs today"
                   used={capacityData?.runsToday ?? 0}
                   limit={limits.maxRunsPerDay}
+                  onUpgrade={upgrade}
+                />
+              )}
+              {limits?.maxRunsPerMonth !== null && limits?.maxRunsPerMonth !== undefined && (
+                <MetricRow
+                  label="Runs this month"
+                  used={capacityData?.runsThisPeriod ?? 0}
+                  limit={limits.maxRunsPerMonth}
                   onUpgrade={upgrade}
                 />
               )}

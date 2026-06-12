@@ -81,6 +81,18 @@ export function useDeactivateWorkflowMutation() {
   });
 }
 
+export function useSetSlackAgentMutation() {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  return useMutation({
+    ...trpc.workflows.setSlackAgent.mutationOptions(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: trpc.workflows.list.queryKey() });
+      qc.invalidateQueries({ queryKey: trpc.workflows.get.queryKey() });
+    },
+  });
+}
+
 export function useRunWorkflowMutation() {
   const trpc = useTRPC();
   const qc = useQueryClient();

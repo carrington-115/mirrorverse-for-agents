@@ -31,6 +31,8 @@ export interface Plan extends Timestamps {
 export interface PlanLimits {
   readonly includedTokens: Tokens;
   readonly includedCredits: number;
+  /** Window over which `includedCredits` is allotted and checked. */
+  readonly creditsPeriod: "day" | "billing_period";
   readonly includedVoiceMinutes: number;
   readonly includedSandboxSeconds: number;
   readonly maxWorkflows: number | null;
@@ -40,6 +42,7 @@ export interface PlanLimits {
   readonly maxKnowledgeBases: number | null;
   readonly maxMembers: number | null;
   readonly maxRunsPerDay: number | null;
+  readonly maxRunsPerMonth: number | null;
   readonly maxWorkflowGenerationsPerPeriod: number | null;
   readonly maxFileUploadMb: number | null;
 }

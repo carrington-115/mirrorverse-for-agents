@@ -157,7 +157,7 @@ export function DocumentList({ kbId }: { kbId: string }) {
             <AlertDialogTitle>Delete document?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete{" "}
-              <span className="font-medium text-foreground">
+              <span className="font-medium break-words text-foreground">
                 {(() => {
                   const doc = (docs ?? []).find((d) => d.id === pendingDeleteId);
                   return doc?.fileName ?? doc?.sourceUrl ?? doc?.sourceType ?? "this document";

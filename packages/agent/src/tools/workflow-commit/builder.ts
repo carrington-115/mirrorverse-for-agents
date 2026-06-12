@@ -8,6 +8,7 @@ import {
   workflowDocumentSchema,
   workflowNode,
   type WorkflowDocumentInput,
+  type WorkflowNodeInput,
 } from "../../schemas/workflow";
 import { WORKFLOW_DOCUMENT_BUILDER_PROMPT } from "../../system-prompt";
 import { summarizeZodIssues } from "../_shared/zod-errors";
@@ -148,6 +149,44 @@ function reconcileVoiceKnowledgeBases(intent: string, state: BuilderState): void
 // Types that legitimately have no connections: annotation notes and self-contained voice agents
 const STANDALONE_NODE_TYPES = new Set(["editor.sticky_note", "ai.voice_agent"]);
 
+// Groups nodes into connected components via undirected traversal of `connections`,
+// treating `from`/`to` as an edge regardless of port name (so AI-slot wiring like
+// lm_1 --ai_languageModel--> agent_1 links those nodes together too).
+function findConnectedComponents(
+  nodes: readonly WorkflowNodeInput[],
+  connections: readonly { from: string; to: string }[],
+): WorkflowNodeInput[][] {
+  const adjacency = new Map<string, Set<string>>();
+  for (const n of nodes) adjacency.set(n.id, new Set());
+  for (const c of connections) {
+    adjacency.get(c.from)?.add(c.to);
+    adjacency.get(c.to)?.add(c.from);
+  }
+
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const visited = new Set<string>();
+  const components: WorkflowNodeInput[][] = [];
+  for (const node of nodes) {
+    if (visited.has(node.id)) continue;
+    const component: WorkflowNodeInput[] = [];
+    const stack = [node.id];
+    visited.add(node.id);
+    while (stack.length > 0) {
+      const id = stack.pop()!;
+      const found = byId.get(id);
+      if (found) component.push(found);
+      for (const next of adjacency.get(id) ?? []) {
+        if (!visited.has(next)) {
+          visited.add(next);
+          stack.push(next);
+        }
+      }
+    }
+    components.push(component);
+  }
+  return components;
+}
+
 // Returns a list of human-readable problems, or empty array if the graph looks complete.
 function checkGraphCompleteness(state: BuilderState): string[] {
   const problems: string[] = [];
@@ -156,15 +195,44 @@ function checkGraphCompleteness(state: BuilderState): string[] {
     connectedIds.add(c.from);
     connectedIds.add(c.to);
   }
-  const isolated = state.nodes.filter(
-    (n) => !STANDALONE_NODE_TYPES.has(n.type) && !connectedIds.has(n.id),
-  );
+
+  const relevant = state.nodes.filter((n) => !STANDALONE_NODE_TYPES.has(n.type));
+
+  const isolated = relevant.filter((n) => !connectedIds.has(n.id));
   if (isolated.length > 0) {
     problems.push(
       `Isolated nodes (no connections): ${isolated.map((n) => `${n.id} (${n.type})`).join(", ")}. ` +
         `Every non-annotation node must be wired into the graph.`,
     );
   }
+
+  // Among nodes that DO have connections, make sure they all form a single
+  // connected group. Two nodes wired only to each other still pass the check
+  // above but can be an "island" disconnected from the main flow.
+  const wired = relevant.filter((n) => connectedIds.has(n.id));
+  if (wired.length > 1) {
+    const wiredIds = new Set(wired.map((n) => n.id));
+    const internalConnections = state.connections.filter(
+      (c) => wiredIds.has(c.from) && wiredIds.has(c.to),
+    );
+    const components = findConnectedComponents(wired, internalConnections);
+    if (components.length > 1) {
+      const main =
+        components.find((c) => c.some((n) => n.type.startsWith("trigger."))) ??
+        components.reduce((a, b) => (a.length >= b.length ? a : b));
+      for (const component of components) {
+        if (component === main) continue;
+        problems.push(
+          `Disconnected group of nodes (not wired to the main flow): ${component
+            .map((n) => `${n.id} (${n.type})`)
+            .join(
+              ", ",
+            )}. Connect this group into the main flow with a connection, or remove these nodes.`,
+        );
+      }
+    }
+  }
+
   return problems;
 }
 

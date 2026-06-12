@@ -30,6 +30,7 @@ export async function listWorkflowsForWorkspace(
       description: workflows.description,
       kind: workflows.kind,
       status: workflows.status,
+      respondsToSlackMentions: workflows.respondsToSlackMentions,
       currentVersionId: workflows.currentVersionId,
       sortOrder: workflows.sortOrder,
       createdAt: workflows.createdAt,
@@ -219,6 +220,81 @@ export async function setWorkflowStatus(
       and(eq(workflows.id, workflowId), eq(workflows.workspaceId, workspaceId)),
     )
     .returning({ id: workflows.id, status: workflows.status });
+  return row ?? null;
+}
+
+export async function setSlackAgentWorkflow(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+  enabled: boolean,
+) {
+  return db.transaction(async (tx) => {
+    const [workflow] = await tx
+      .select({ id: workflows.id })
+      .from(workflows)
+      .where(
+        and(
+          eq(workflows.id, workflowId),
+          eq(workflows.workspaceId, workspaceId),
+        ),
+      )
+      .limit(1);
+    if (!workflow) return null;
+
+    if (enabled) {
+      await tx
+        .update(workflows)
+        .set({ respondsToSlackMentions: false })
+        .where(
+          and(
+            eq(workflows.workspaceId, workspaceId),
+            eq(workflows.respondsToSlackMentions, true),
+          ),
+        );
+    }
+
+    const [row] = await tx
+      .update(workflows)
+      .set({ respondsToSlackMentions: enabled })
+      .where(
+        and(
+          eq(workflows.id, workflowId),
+          eq(workflows.workspaceId, workspaceId),
+        ),
+      )
+      .returning({
+        id: workflows.id,
+        respondsToSlackMentions: workflows.respondsToSlackMentions,
+      });
+
+    return row ?? null;
+  });
+}
+
+// Privileged lookup (no workspace filter) for the Slack Events webhook: finds
+// whichever workflow is currently flagged to answer Slack mentions and
+// returns its current document, regardless of which workspace owns it.
+export async function getSlackAgentWorkflowDocument(db: Database): Promise<{
+  workspaceId: string;
+  workflowId: string;
+  workflowVersionId: string;
+  document: WorkflowDocument;
+} | null> {
+  const [row] = await db
+    .select({
+      workspaceId: workflows.workspaceId,
+      workflowId: workflows.id,
+      workflowVersionId: workflowVersions.id,
+      document: workflowVersions.document,
+    })
+    .from(workflows)
+    .innerJoin(
+      workflowVersions,
+      eq(workflows.currentVersionId, workflowVersions.id),
+    )
+    .where(eq(workflows.respondsToSlackMentions, true))
+    .limit(1);
   return row ?? null;
 }
 

@@ -3,7 +3,12 @@ import type { UserId } from "@mirrorverse/types";
 
 import { env } from "@mirrorverse/env/backend";
 import { stripe } from "../billing/stripe-client";
-import { getFreePlan, upsertSubscription } from "../billing/repo";
+import { addPeriod } from "../billing/enforcement";
+import {
+  ensureWorkspaceStripeCustomer,
+  getFreePlan,
+  upsertSubscription,
+} from "../billing/repo";
 
 const { workspaces, workspaceMembers, userProfiles } = schema;
 
@@ -146,33 +151,23 @@ async function bootstrapWorkspaceBilling(
 
     if (ws?.stripeCustomerId) return; // already bootstrapped
 
-    let stripeCustomerId: string;
-
-    if (env.STRIPE_SECRET_KEY) {
-      const customer = await stripe.customers.create({
-        ...(email ? { email } : {}),
-        metadata: { workspaceId },
-      });
-      stripeCustomerId = customer.id;
-    } else {
-      // Stripe not configured in this environment — use a stable placeholder.
-      stripeCustomerId = `dev-local-${workspaceId}`;
+    if (email) {
+      await db
+        .update(workspaces)
+        .set({ billingEmail: email })
+        .where(eq(workspaces.id, workspaceId));
     }
 
-    await db
-      .update(workspaces)
-      .set({
-        stripeCustomerId,
-        ...(email ? { billingEmail: email } : {}),
-      })
-      .where(eq(workspaces.id, workspaceId));
+    const stripeCustomerId = await ensureWorkspaceStripeCustomer(
+      db,
+      workspaceId,
+    );
 
     const freePlan = await getFreePlan(db);
     const now = new Date();
-    const periodEnd = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      now.getDate(),
+    const periodEnd = addPeriod(
+      freePlan?.limits.creditsPeriod ?? "billing_period",
+      now,
     );
 
     // If Stripe is configured and the free plan has a Stripe price, create a

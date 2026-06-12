@@ -183,6 +183,28 @@ export const workflowsService = {
     return { workflowId: input.workflowId };
   },
 
+  async setSlackAgent(
+    ctx: WorkspaceCtx,
+    input: { workflowId: string; enabled: boolean },
+  ) {
+    const workflow = await repo.getWorkflowForWorkspace(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+    );
+    if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+
+    const result = await repo.setSlackAgentWorkflow(
+      ctx.db,
+      input.workflowId,
+      ctx.workspaceId,
+      input.enabled,
+    );
+    if (!result) throw appError(ErrCode.NotFound, "Workflow not found");
+
+    return result;
+  },
+
   // Dispatch a one-off manual run via Inngest without changing workflow status.
   async run(ctx: WorkspaceCtx, input: { workflowId: string }) {
     const [workflow, version] = await Promise.all([

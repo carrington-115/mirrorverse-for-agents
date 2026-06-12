@@ -115,7 +115,7 @@ export function IngestDialog({ kbId, children }: { kbId: string; children: React
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[50vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add document</DialogTitle>
         </DialogHeader>
@@ -141,6 +141,7 @@ export function IngestDialog({ kbId, children }: { kbId: string; children: React
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Paste your document content here..."
                   rows={8}
+                  className="max-h-[40vh] resize-none overflow-y-auto"
                 />
               </div>
             </TabsContent>

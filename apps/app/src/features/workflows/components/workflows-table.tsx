@@ -18,6 +18,8 @@ import {
   Ellipsis,
   GripVertical,
   Loader2,
+  MessageSquare,
+  MessageSquareOff,
   Pencil,
   Play,
   Plus,
@@ -51,6 +53,7 @@ import {
   useRenameWorkflowMutation,
   useRestartWorkflowMutation,
   useRunWorkflowMutation,
+  useSetSlackAgentMutation,
 } from "@/features/workflows/api/mutations";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -137,6 +140,7 @@ function WorkflowActionMenuItems({
   const restartMutation = useRestartWorkflowMutation();
   const activateMutation = useActivateWorkflowMutation();
   const deactivateMutation = useDeactivateWorkflowMutation();
+  const setSlackAgentMutation = useSetSlackAgentMutation();
 
   const isStatusToggling = activateMutation.isPending || deactivateMutation.isPending;
 
@@ -230,6 +234,34 @@ function WorkflowActionMenuItems({
           <RefreshCw className="size-4" />
         )}
         Restart workflow
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        disabled={setSlackAgentMutation.isPending}
+        onClick={() =>
+          setSlackAgentMutation.mutate(
+            { workflowId: w.id, enabled: !w.respondsToSlackMentions },
+            {
+              onSuccess: () =>
+                toast.success(
+                  w.respondsToSlackMentions
+                    ? `Slack replies disabled for "${w.name}"`
+                    : `"${w.name}" will now reply to Slack mentions`,
+                ),
+              onError: (err) => toast.error(err.message || "Failed to update Slack agent"),
+            },
+          )
+        }
+      >
+        {setSlackAgentMutation.isPending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : w.respondsToSlackMentions ? (
+          <MessageSquareOff className="size-4" />
+        ) : (
+          <MessageSquare className="size-4" />
+        )}
+        {w.respondsToSlackMentions
+          ? "Stop replying to Slack mentions"
+          : "Respond to Slack mentions"}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>

@@ -13,6 +13,11 @@ import { centsToCredits } from "@mirrorverse/agent";
 import type { AgentUsageEntry, StepUsageBreakdown } from "@mirrorverse/agent";
 import type { UsageKind } from "@mirrorverse/types";
 
+import { env } from "@mirrorverse/env/backend";
+
+import { addPeriod } from "./enforcement";
+import { stripe } from "./stripe-client";
+
 const {
   usageEvents,
   subscriptions,
@@ -24,6 +29,7 @@ const {
   connections,
   phoneNumbers,
   voiceAgents,
+  workspaces,
 } = schema;
 
 // ─── Chat usage (existing) ────────────────────────────────────────────────────
@@ -131,6 +137,40 @@ export async function getActiveSubscription(db: Database, workspaceId: string) {
     )
     .limit(1);
   return row ?? null;
+}
+
+// Active subscriptions whose period has elapsed and need to be rolled
+// forward by the subscription-renewal cron.
+export async function getExpiredActiveSubscriptions(db: Database, now: Date) {
+  return db
+    .select({
+      subscription: subscriptions,
+      plan: plans,
+    })
+    .from(subscriptions)
+    .innerJoin(plans, eq(subscriptions.planId, plans.id))
+    .where(
+      and(
+        eq(subscriptions.status, "active"),
+        lte(subscriptions.currentPeriodEnd, now),
+      ),
+    );
+}
+
+export async function renewSubscriptionPeriod(
+  db: Database,
+  subscriptionId: string,
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<void> {
+  await db
+    .update(subscriptions)
+    .set({
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
+      updatedAt: new Date(),
+    })
+    .where(eq(subscriptions.id, subscriptionId));
 }
 
 export interface UpsertSubscriptionInput {
@@ -425,11 +465,7 @@ export async function ensureWorkspaceFreeSubscription(
   if (!freePlan) return;
 
   const now = new Date();
-  const periodEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    now.getDate(),
-  );
+  const periodEnd = addPeriod(freePlan.limits.creditsPeriod, now);
 
   await upsertSubscription(db, {
     workspaceId,
@@ -443,6 +479,45 @@ export async function ensureWorkspaceFreeSubscription(
     trialEndsAt: null,
     defaultPaymentMethod: null,
   });
+}
+
+// ─── Lazy Stripe customer bootstrap ──────────────────────────────────────────
+// Called by billing procedures (and the workspace-creation bootstrap) when a
+// workspace doesn't have a Stripe customer yet — e.g. workspaces created
+// before billing was wired up, or when the fire-and-forget creation-time
+// bootstrap failed. Idempotent: returns the existing id if already set.
+export async function ensureWorkspaceStripeCustomer(
+  db: Database,
+  workspaceId: string,
+): Promise<string> {
+  const [ws] = await db
+    .select({
+      stripeCustomerId: workspaces.stripeCustomerId,
+      billingEmail: workspaces.billingEmail,
+    })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId))
+    .limit(1);
+
+  if (ws?.stripeCustomerId) return ws.stripeCustomerId;
+
+  let stripeCustomerId: string;
+  if (env.STRIPE_SECRET_KEY) {
+    const customer = await stripe.customers.create({
+      ...(ws?.billingEmail ? { email: ws.billingEmail } : {}),
+      metadata: { workspaceId },
+    });
+    stripeCustomerId = customer.id;
+  } else {
+    stripeCustomerId = `dev-local-${workspaceId}`;
+  }
+
+  await db
+    .update(workspaces)
+    .set({ stripeCustomerId })
+    .where(eq(workspaces.id, workspaceId));
+
+  return stripeCustomerId;
 }
 
 // ─── Capacity counts ──────────────────────────────────────────────────────────
@@ -460,6 +535,23 @@ export async function countRunsToday(
       and(
         eq(workflowRuns.workspaceId, workspaceId),
         gte(workflowRuns.startedAt, todayUtc),
+      ),
+    );
+  return row?.count ?? 0;
+}
+
+export async function countRunsThisPeriod(
+  db: Database,
+  workspaceId: string,
+  periodStart: Date,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(workflowRuns)
+    .where(
+      and(
+        eq(workflowRuns.workspaceId, workspaceId),
+        gte(workflowRuns.startedAt, periodStart),
       ),
     );
   return row?.count ?? 0;

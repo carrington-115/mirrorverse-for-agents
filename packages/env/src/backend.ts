@@ -47,6 +47,9 @@ export const env = createEnv({
     VAPI_API_KEY: z.string().min(1).optional(),
     VAPI_WEBHOOK_SECRET: z.string().min(1).optional(),
 
+    SLACK_BOT_TOKEN: z.string().min(1).optional(),
+    SLACK_SIGNING_SECRET: z.string().min(1).optional(),
+
     VAULT_ENCRYPTION_KEY: z.string().length(64).optional(),
 
     COMPOSIO_API_KEY: z.string().min(1).optional(),

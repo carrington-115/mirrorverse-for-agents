@@ -30,7 +30,8 @@
     "db:studio": "drizzle-kit studio",
     "db:verify": "node scripts/verify.mjs",
     "db:sync-directory": "node scripts/sync-directory.mjs",
-    "db:seed-plans": "node scripts/seed-plans.mjs"
+    "db:seed-plans": "node scripts/seed-plans.mjs",
+    "db:setup-stripe-products": "node scripts/setup-stripe-products.mjs"
   },
   "dependencies": {
     "@mirrorverse/env": "workspace:*",
@@ -38,7 +39,8 @@
     "@supabase/supabase-js": "^2.45.4",
     "drizzle-orm": "^0.45.1",
     "jose": "^5.9.6",
-    "postgres": "^3.4.8"
+    "postgres": "^3.4.8",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@mirrorverse/eslint-config": "workspace:*",

@@ -15,6 +15,7 @@ import { env } from "@mirrorverse/env/backend";
 import { POST as chatHandler } from "./api/chat";
 import { GET as connectionsCallbackGet } from "./api/connections/callback";
 import { POST as speechHandler } from "./api/speech";
+import { slackEventsHandler } from "./features/slack/webhook";
 import { vapiWebhookHandler } from "./features/voice/webhook";
 import { handleStripeWebhook } from "./features/billing/webhooks/stripe";
 import { inboundWebhookHandler } from "./features/webhooks/inbound-handler";
@@ -107,6 +108,12 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/voice/webhook") {
       const response = await vapiWebhookHandler(request);
+      await pipeResponse(res, response);
+      return;
+    }
+
+    if (url.pathname === "/api/slack/events") {
+      const response = await slackEventsHandler(request);
       await pipeResponse(res, response);
       return;
     }

@@ -1,0 +1,2 @@
+ALTER TABLE "workflows" ADD COLUMN "responds_to_slack_mentions" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "workflows_slack_agent_unique_idx" ON "workflows" USING btree ("responds_to_slack_mentions") WHERE responds_to_slack_mentions = true;

@@ -30,6 +30,7 @@ export interface Workflow extends Timestamps, Tenanted {
   readonly description: string | null;
   readonly kind: WorkflowKind;
   readonly status: WorkflowStatus;
+  readonly respondsToSlackMentions: boolean;
   readonly currentVersionId: WorkflowVersionId | null;
   readonly createdBy: UserId;
   readonly tags: readonly string[];

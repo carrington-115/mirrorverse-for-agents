@@ -31,8 +31,7 @@ const PLANS = [
     annualPrice: 0,
     description: "Explore the platform — no card required.",
     features: [
-      "200 bonus credits",
-      "100 tool calls",
+      "200 credits / day",
       "5 integrations",
       "5 MB file uploads",
       "Limited models",
@@ -73,7 +72,6 @@ const PLANS = [
       "40,000 credits",
       "20 phone numbers",
       "Unlimited generations",
-      "Unlimited tool calls",
       "1,000 runs / day",
       "Top & latest models",
       "SSO / SAML",
@@ -105,7 +103,8 @@ export function PricingSettingsShell() {
   const currentPlanSlug = data?.plan?.id ?? "free";
   const hasActiveSubscription =
     !!data?.subscription?.stripeSubscriptionId &&
-    (data.subscription.status === "active" || data.subscription.status === "trialing");
+    (data.subscription.status === "active" || data.subscription.status === "trialing") &&
+    (data.plan?.monthlyPriceCents ?? 0) > 0;
 
   const handleUpgrade = (planSlug: PlanSlug) => {
     if (planSlug === "custom") {

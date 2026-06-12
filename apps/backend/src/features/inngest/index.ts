@@ -5,6 +5,7 @@ import { makeBillingAggregatorFunction } from "./functions/billing-aggregator";
 import { makeChatAgentLoopFunction } from "./functions/chat-agent-loop";
 import { makeEmailCronFunctions } from "./functions/email-crons";
 import { makeKnowledgeIngestFunction } from "./functions/knowledge-ingest";
+import { makeSubscriptionRenewalFunction } from "./functions/subscription-renewal";
 import { makeWorkflowExecuteFunction } from "./functions/workflow-execute";
 import { makeCronDispatcherFunction } from "../workflows/runtime/cron-dispatcher";
 
@@ -30,6 +31,7 @@ export function buildInngestFunctions(
     makeWorkflowExecuteFunction(db),
     makeKnowledgeIngestFunction(db),
     makeBillingAggregatorFunction(db),
+    makeSubscriptionRenewalFunction(db),
     makeCronDispatcherFunction(db),
     ...makeEmailCronFunctions(db),
   ];

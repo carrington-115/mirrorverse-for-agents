@@ -9,7 +9,7 @@ VALUES
     '',
     0,
     0,
-    '{"includedTokens":0,"includedCredits":200,"includedVoiceMinutes":0,"includedSandboxSeconds":0,"maxWorkflows":null,"maxVoiceAgents":0,"maxPhoneNumbers":0,"maxConnections":5,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":100,"maxWorkflowGenerationsPerPeriod":20,"maxFileUploadMb":5}'::jsonb,
+    '{"includedTokens":0,"includedCredits":200,"creditsPeriod":"day","includedVoiceMinutes":0,"includedSandboxSeconds":0,"maxWorkflows":null,"maxVoiceAgents":0,"maxPhoneNumbers":0,"maxConnections":5,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":null,"maxRunsPerMonth":100,"maxWorkflowGenerationsPerPeriod":20,"maxFileUploadMb":5}'::jsonb,
     '{"customMcpServers":false,"codeNodes":false,"voiceAgents":false,"voiceToneConfig":false,"knowledgeBases":false,"skillsMarketplace":false,"workflowEditorV0":false,"auditLog":false,"sso":false,"prioritySupport":false,"videoSupport":false}'::jsonb,
     true,
     0
@@ -20,7 +20,7 @@ VALUES
     '',
     4900,
     4000,
-    '{"includedTokens":0,"includedCredits":10000,"includedVoiceMinutes":0,"includedSandboxSeconds":0,"maxWorkflows":null,"maxVoiceAgents":null,"maxPhoneNumbers":5,"maxConnections":null,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":100,"maxWorkflowGenerationsPerPeriod":30,"maxFileUploadMb":null}'::jsonb,
+    '{"includedTokens":0,"includedCredits":10000,"creditsPeriod":"billing_period","includedVoiceMinutes":0,"includedSandboxSeconds":0,"maxWorkflows":null,"maxVoiceAgents":null,"maxPhoneNumbers":5,"maxConnections":null,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":100,"maxRunsPerMonth":null,"maxWorkflowGenerationsPerPeriod":30,"maxFileUploadMb":null}'::jsonb,
     '{"customMcpServers":false,"codeNodes":false,"voiceAgents":true,"voiceToneConfig":true,"knowledgeBases":true,"skillsMarketplace":false,"workflowEditorV0":true,"auditLog":false,"sso":false,"prioritySupport":false,"videoSupport":false}'::jsonb,
     true,
     1
@@ -31,7 +31,7 @@ VALUES
     '',
     14900,
     12000,
-    '{"includedTokens":0,"includedCredits":40000,"includedVoiceMinutes":0,"includedSandboxSeconds":0,"maxWorkflows":null,"maxVoiceAgents":null,"maxPhoneNumbers":20,"maxConnections":null,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":1000,"maxWorkflowGenerationsPerPeriod":null,"maxFileUploadMb":null}'::jsonb,
+    '{"includedTokens":0,"includedCredits":40000,"creditsPeriod":"billing_period","includedVoiceMinutes":0,"includedSandboxSeconds":0,"maxWorkflows":null,"maxVoiceAgents":null,"maxPhoneNumbers":20,"maxConnections":null,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":1000,"maxRunsPerMonth":null,"maxWorkflowGenerationsPerPeriod":null,"maxFileUploadMb":null}'::jsonb,
     '{"customMcpServers":true,"codeNodes":true,"voiceAgents":true,"voiceToneConfig":true,"knowledgeBases":true,"skillsMarketplace":false,"workflowEditorV0":true,"auditLog":true,"sso":true,"prioritySupport":true,"videoSupport":true}'::jsonb,
     true,
     2
@@ -42,7 +42,7 @@ VALUES
     '',
     0,
     0,
-    '{"includedTokens":null,"includedCredits":null,"includedVoiceMinutes":null,"includedSandboxSeconds":null,"maxWorkflows":null,"maxVoiceAgents":null,"maxPhoneNumbers":null,"maxConnections":null,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":null,"maxWorkflowGenerationsPerPeriod":null,"maxFileUploadMb":null}'::jsonb,
+    '{"includedTokens":null,"includedCredits":null,"creditsPeriod":"billing_period","includedVoiceMinutes":null,"includedSandboxSeconds":null,"maxWorkflows":null,"maxVoiceAgents":null,"maxPhoneNumbers":null,"maxConnections":null,"maxKnowledgeBases":null,"maxMembers":null,"maxRunsPerDay":null,"maxRunsPerMonth":null,"maxWorkflowGenerationsPerPeriod":null,"maxFileUploadMb":null}'::jsonb,
     '{"customMcpServers":true,"codeNodes":true,"voiceAgents":true,"voiceToneConfig":true,"knowledgeBases":true,"skillsMarketplace":true,"workflowEditorV0":true,"auditLog":true,"sso":true,"prioritySupport":true,"videoSupport":true}'::jsonb,
     true,
     3

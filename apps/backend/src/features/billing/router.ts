@@ -6,6 +6,7 @@ import { env } from "@mirrorverse/env/backend";
 
 import { router } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
+import { getCreditPeriodBounds } from "./enforcement";
 import { stripe } from "./stripe-client";
 import {
   getActiveSubscription,
@@ -14,12 +15,14 @@ import {
   listInvoices,
   getUsageThisPeriod,
   countRunsToday,
+  countRunsThisPeriod,
   countGenerationsThisPeriod,
   countConnectionsInWorkspace,
   ensureWorkspaceFreeSubscription,
+  ensureWorkspaceStripeCustomer,
 } from "./repo";
 
-const { plans, workspaces } = schema;
+const { plans } = schema;
 
 export const billingRouter = router({
   getCurrentPlan: workspaceProc.query(async ({ ctx }) => {
@@ -41,20 +44,15 @@ export const billingRouter = router({
   openCustomerPortal: workspaceProc
     .input(z.object({ returnUrl: z.string().url().optional() }))
     .mutation(async ({ ctx, input }) => {
-      const [ws] = await ctx.db
-        .select({ stripeCustomerId: workspaces.stripeCustomerId })
-        .from(workspaces)
-        .where(eq(workspaces.id, ctx.workspaceId))
-        .limit(1);
-
-      if (!ws?.stripeCustomerId) {
-        throw new Error("No Stripe customer found for this workspace");
-      }
+      const stripeCustomerId = await ensureWorkspaceStripeCustomer(
+        ctx.db,
+        ctx.workspaceId,
+      );
 
       const returnUrl = input.returnUrl ?? `${env.APP_URL}/settings/billing`;
 
       const session = await stripe.billingPortal.sessions.create({
-        customer: ws.stripeCustomerId,
+        customer: stripeCustomerId,
         return_url: returnUrl,
       });
 
@@ -91,22 +89,17 @@ export const billingRouter = router({
       }
 
       // Look up or create Stripe customer for this workspace
-      const [ws] = await ctx.db
-        .select({ stripeCustomerId: workspaces.stripeCustomerId })
-        .from(workspaces)
-        .where(eq(workspaces.id, ctx.workspaceId))
-        .limit(1);
-
-      if (!ws?.stripeCustomerId) {
-        throw new Error("No Stripe customer found for this workspace");
-      }
+      const stripeCustomerId = await ensureWorkspaceStripeCustomer(
+        ctx.db,
+        ctx.workspaceId,
+      );
 
       const successUrl = `${env.APP_URL}/settings/billing?checkout=success`;
       const cancelUrl = `${env.APP_URL}/settings/billing`;
 
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
-        customer: ws.stripeCustomerId,
+        customer: stripeCustomerId,
         line_items: [{ price: stripePriceId, quantity: 1 }],
         automatic_tax: { enabled: true },
         customer_update: { address: "auto" },
@@ -144,8 +137,10 @@ export const billingRouter = router({
 
   usageThisPeriod: workspaceProc.query(async ({ ctx }) => {
     const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
-    const periodStart = sub?.subscription.currentPeriodStart ?? new Date(0);
-    const periodEnd = sub?.subscription.currentPeriodEnd ?? new Date();
+    const { periodStart, periodEnd } = getCreditPeriodBounds(
+      sub?.plan.limits,
+      sub?.subscription,
+    );
     const usage = await getUsageThisPeriod(
       ctx.db,
       ctx.workspaceId,
@@ -170,13 +165,19 @@ export const billingRouter = router({
       sub?.subscription.currentPeriodStart ??
       new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [runsToday, generationsThisPeriod, connectionsCount] =
+    const [runsToday, runsThisPeriod, generationsThisPeriod, connectionsCount] =
       await Promise.all([
         countRunsToday(ctx.db, ctx.workspaceId),
+        countRunsThisPeriod(ctx.db, ctx.workspaceId, periodStart),
         countGenerationsThisPeriod(ctx.db, ctx.workspaceId, periodStart),
         countConnectionsInWorkspace(ctx.db, ctx.workspaceId),
       ]);
 
-    return { runsToday, generationsThisPeriod, connectionsCount };
+    return {
+      runsToday,
+      runsThisPeriod,
+      generationsThisPeriod,
+      connectionsCount,
+    };
   }),
 });

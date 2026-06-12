@@ -546,6 +546,9 @@ importers:
       postgres:
         specifier: ^3.4.8
         version: 3.4.9
+      stripe:
+        specifier: ^22.1.1
+        version: 22.1.1(@types/node@25.6.0)
     devDependencies:
       '@mirrorverse/eslint-config':
         specifier: workspace:*

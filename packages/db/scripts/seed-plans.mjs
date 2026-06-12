@@ -1,6 +1,7 @@
 // Seed the four billing plans (Free / Starter / Pro / Custom).
-// Idempotent — safe to run repeatedly. Placeholder Stripe IDs are used until
-// you create real products in the Stripe Dashboard.
+// Idempotent — safe to run repeatedly. Starter/Pro Stripe IDs come from
+// `setup-stripe-products.mjs` run against the dev Stripe test account; replace
+// them with IDs from your own Stripe account for other environments.
 //
 //   DATABASE_URL=... node packages/db/scripts/seed-plans.mjs
 
@@ -28,6 +29,7 @@ const plans = [
     limits: {
       includedTokens: 500_000,
       includedCredits: 200,
+      creditsPeriod: "day",
       includedVoiceMinutes: 0,
       includedSandboxSeconds: 0,
       maxWorkflows: 5,
@@ -36,7 +38,8 @@ const plans = [
       maxConnections: 5,
       maxKnowledgeBases: 1,
       maxMembers: 1,
-      maxRunsPerDay: 100,
+      maxRunsPerDay: null,
+      maxRunsPerMonth: 100,
       maxWorkflowGenerationsPerPeriod: 5,
       maxFileUploadMb: 5,
     },
@@ -57,15 +60,16 @@ const plans = [
   {
     id: "starter",
     name: "Starter",
-    stripe_product_id: "",
-    stripe_monthly_price_id: null,
-    stripe_annual_price_id: null,
+    stripe_product_id: "prod_Uggd12LjkJ4DCv",
+    stripe_monthly_price_id: "price_1ThJGGLJFHNVLYdNbxJA1eSH",
+    stripe_annual_price_id: "price_1ThJGHLJFHNVLYdNkCgOLLAS",
     monthly_price_cents: 5000,
     annual_price_cents: 4000,
     display_order: 1,
     limits: {
       includedTokens: 5_000_000,
       includedCredits: 10_000,
+      creditsPeriod: "billing_period",
       includedVoiceMinutes: 60,
       includedSandboxSeconds: 3600,
       maxWorkflows: null,
@@ -75,6 +79,7 @@ const plans = [
       maxKnowledgeBases: 3,
       maxMembers: 5,
       maxRunsPerDay: null,
+      maxRunsPerMonth: null,
       maxWorkflowGenerationsPerPeriod: 30,
       maxFileUploadMb: null,
     },
@@ -95,15 +100,16 @@ const plans = [
   {
     id: "pro",
     name: "Pro",
-    stripe_product_id: "",
-    stripe_monthly_price_id: null,
-    stripe_annual_price_id: null,
+    stripe_product_id: "prod_UggdnPngcqqevN",
+    stripe_monthly_price_id: "price_1ThJGJLJFHNVLYdNFT6P69rG",
+    stripe_annual_price_id: "price_1ThJGKLJFHNVLYdN5G1QnLAS",
     monthly_price_cents: 15000,
     annual_price_cents: 12000,
     display_order: 2,
     limits: {
       includedTokens: 50_000_000,
       includedCredits: 40_000,
+      creditsPeriod: "billing_period",
       includedVoiceMinutes: 600,
       includedSandboxSeconds: 36000,
       maxWorkflows: null,
@@ -113,6 +119,7 @@ const plans = [
       maxKnowledgeBases: null,
       maxMembers: 25,
       maxRunsPerDay: 1000,
+      maxRunsPerMonth: null,
       maxWorkflowGenerationsPerPeriod: null,
       maxFileUploadMb: null,
     },
@@ -142,6 +149,7 @@ const plans = [
     limits: {
       includedTokens: 500_000_000,
       includedCredits: 999_999,
+      creditsPeriod: "billing_period",
       includedVoiceMinutes: 9999,
       includedSandboxSeconds: 999999,
       maxWorkflows: null,
@@ -151,6 +159,7 @@ const plans = [
       maxKnowledgeBases: null,
       maxMembers: null,
       maxRunsPerDay: null,
+      maxRunsPerMonth: null,
       maxWorkflowGenerationsPerPeriod: null,
       maxFileUploadMb: null,
     },
@@ -188,6 +197,9 @@ for (const plan of plans) {
     )
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
+      stripe_product_id = EXCLUDED.stripe_product_id,
+      stripe_monthly_price_id = EXCLUDED.stripe_monthly_price_id,
+      stripe_annual_price_id = EXCLUDED.stripe_annual_price_id,
       monthly_price_cents = EXCLUDED.monthly_price_cents,
       annual_price_cents = EXCLUDED.annual_price_cents,
       limits = EXCLUDED.limits,

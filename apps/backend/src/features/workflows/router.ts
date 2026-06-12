@@ -14,9 +14,14 @@ import {
   saveWorkflowVersionInput,
 } from "./inputs";
 import { workflowsService } from "./service";
-import { countRunsToday, getActiveSubscription } from "../billing/repo";
+import {
+  countRunsThisPeriod,
+  countRunsToday,
+  getActiveSubscription,
+} from "../billing/repo";
 
 const workflowIdInput = z.object({ workflowId: z.string().min(1).max(128) });
+const setSlackAgentInput = workflowIdInput.extend({ enabled: z.boolean() });
 
 export const workflowsRouter = router({
   list: workspaceProc
@@ -109,18 +114,45 @@ export const workflowsRouter = router({
       ),
     ),
 
+  setSlackAgent: workspaceProc
+    .input(setSlackAgentInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.setSlackAgent(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
+
   run: workspaceProc.input(workflowIdInput).mutation(async ({ ctx, input }) => {
     const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
-    const limit = sub?.plan.limits.maxRunsPerDay ?? null;
-    if (limit !== null) {
+
+    const dailyLimit = sub?.plan.limits.maxRunsPerDay ?? null;
+    if (dailyLimit !== null) {
       const used = await countRunsToday(ctx.db, ctx.workspaceId);
-      if (used >= limit) {
+      if (used >= dailyLimit) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Daily run limit reached. Please upgrade your plan.",
         });
       }
     }
+
+    const monthlyLimit = sub?.plan.limits.maxRunsPerMonth ?? null;
+    if (monthlyLimit !== null) {
+      const periodStart = sub?.subscription.currentPeriodStart ?? new Date(0);
+      const used = await countRunsThisPeriod(
+        ctx.db,
+        ctx.workspaceId,
+        periodStart,
+      );
+      if (used >= monthlyLimit) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Monthly run limit reached. Please upgrade your plan.",
+        });
+      }
+    }
+
     return workflowsService.run(
       { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
       input,

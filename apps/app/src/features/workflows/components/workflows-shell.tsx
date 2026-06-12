@@ -19,6 +19,7 @@ type WorkflowRow = {
   status: string;
   kind: string;
   updatedAt: string | Date;
+  respondsToSlackMentions: boolean;
 };
 
 const VALID_KINDS: ReadonlySet<WorkflowKind> = new Set([
@@ -39,6 +40,7 @@ function adaptRow(row: WorkflowRow): Workflow {
     status: row.status === "active" ? "active" : "inactive",
     kind,
     lastUpdated: updated,
+    respondsToSlackMentions: row.respondsToSlackMentions,
   };
 }
 
