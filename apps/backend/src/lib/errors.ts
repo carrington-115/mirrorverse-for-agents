@@ -7,6 +7,7 @@ export const ErrCode = {
   BadInput: "BAD_INPUT",
   Conflict: "CONFLICT",
   QuotaExceeded: "QUOTA_EXCEEDED",
+  PlanLimitReached: "PLAN_LIMIT_REACHED",
   RateLimited: "RATE_LIMITED",
   Internal: "INTERNAL",
 } as const;
@@ -19,6 +20,7 @@ const TRPC_CODE: Record<ErrCode, TRPCError["code"]> = {
   BAD_INPUT: "BAD_REQUEST",
   CONFLICT: "CONFLICT",
   QUOTA_EXCEEDED: "TOO_MANY_REQUESTS",
+  PLAN_LIMIT_REACHED: "FORBIDDEN",
   RATE_LIMITED: "TOO_MANY_REQUESTS",
   INTERNAL: "INTERNAL_SERVER_ERROR",
 };

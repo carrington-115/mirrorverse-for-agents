@@ -26,6 +26,7 @@ import type {
 import type { UIMessage } from "ai";
 
 import { authenticateRequest } from "../lib/auth";
+import { ErrCode } from "../lib/errors";
 import { buildPhoneTools } from "../features/voice/chat-tools";
 import { buildKnowledgeTools } from "../features/knowledge/chat-tools";
 import {
@@ -357,11 +358,14 @@ function buildKnowledgeSelectionContext(
   ].join("\n");
 }
 
-function jsonError(status: number, message: string): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+function jsonError(status: number, message: string, code?: ErrCode): Response {
+  return new Response(
+    JSON.stringify({ error: message, ...(code ? { code } : {}) }),
+    {
+      status,
+      headers: { "content-type": "application/json" },
+    },
+  );
 }
 
 function resolveChatId(body: ChatRequestBody): string | null {
@@ -455,6 +459,7 @@ export async function POST(req: Request): Promise<Response> {
           return jsonError(
             402,
             "You have reached your plan's workflow generation limit. Please upgrade to continue.",
+            ErrCode.PlanLimitReached,
           );
         }
       }
@@ -603,6 +608,7 @@ export async function POST(req: Request): Promise<Response> {
       return jsonError(
         402,
         "You have exceeded your plan's credit budget. Please upgrade your plan to continue.",
+        ErrCode.QuotaExceeded,
       );
     }
     console.warn(

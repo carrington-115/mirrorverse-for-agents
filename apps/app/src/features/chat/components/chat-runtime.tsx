@@ -9,6 +9,7 @@ import type { PromptInputMessage } from "@mirrorverse/ui/ai-elements/prompt-inpu
 
 import { useTRPC } from "@/lib/trpc/client";
 import { DEFAULT_CHAT_MODEL } from "@/features/chat/config";
+import { handleChatError } from "@/features/chat/lib/chat-error";
 import { buildChatTransport } from "@/features/chat/lib/transport";
 import {
   useDeleteLastAssistantMutation,
@@ -79,6 +80,7 @@ export function ChatRuntime({
     transport,
     messages: initialMessages,
     onFinish,
+    onError: handleChatError,
   });
 
   const { planSteps, sessionTriggers } = useMemo(() => {

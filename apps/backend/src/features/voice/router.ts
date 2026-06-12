@@ -1,5 +1,6 @@
-import { router, TRPCError } from "../../trpc/init";
+import { router } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
+import { appError, ErrCode } from "../../lib/errors";
 import {
   countPhoneNumbers,
   countVoiceAgents,
@@ -38,10 +39,10 @@ export const voiceRouter = router({
       if (limit !== null) {
         const used = await countPhoneNumbers(ctx.db, ctx.workspaceId);
         if (used >= limit) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Phone number limit reached. Please upgrade your plan.",
-          });
+          throw appError(
+            ErrCode.PlanLimitReached,
+            "Phone number limit reached. Please upgrade your plan.",
+          );
         }
       }
       return voiceService.buyNumber(
@@ -74,20 +75,19 @@ export const voiceRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
       if (sub?.plan.features.voiceAgents === false) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            "Voice agents are not available on your current plan. Please upgrade.",
-        });
+        throw appError(
+          ErrCode.PlanLimitReached,
+          "Voice agents are not available on your current plan. Please upgrade.",
+        );
       }
       const agentLimit = sub?.plan.limits.maxVoiceAgents ?? null;
       if (agentLimit !== null) {
         const used = await countVoiceAgents(ctx.db, ctx.workspaceId);
         if (used >= agentLimit) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Voice agent limit reached. Please upgrade your plan.",
-          });
+          throw appError(
+            ErrCode.PlanLimitReached,
+            "Voice agent limit reached. Please upgrade your plan.",
+          );
         }
       }
       return voiceService.activate(

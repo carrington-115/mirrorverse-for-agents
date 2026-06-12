@@ -1,5 +1,6 @@
-import { router, TRPCError } from "../../trpc/init";
+import { router } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
+import { appError, ErrCode } from "../../lib/errors";
 import { getActiveSubscription } from "../billing/repo";
 
 import {
@@ -115,10 +116,10 @@ export const knowledgeRouter = router({
         const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
         const limit = sub?.plan.limits.maxFileUploadMb ?? null;
         if (limit !== null && input.fileSizeMb > limit) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: `File exceeds the ${limit} MB upload limit for your plan. Please upgrade.`,
-          });
+          throw appError(
+            ErrCode.PlanLimitReached,
+            `File exceeds the ${limit} MB upload limit for your plan. Please upgrade.`,
+          );
         }
       }
       return knowledgeService.signUploadUrl(

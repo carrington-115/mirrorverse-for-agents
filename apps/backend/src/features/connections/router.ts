@@ -1,5 +1,6 @@
-import { router, TRPCError } from "../../trpc/init";
+import { router } from "../../trpc/init";
 import { protectedProc, workspaceProc } from "../../trpc/middleware";
+import { appError, ErrCode } from "../../lib/errors";
 
 import { initiateAppConnectionInput, toolkitInfoInput } from "./inputs";
 import { connectionsService } from "./service";
@@ -33,10 +34,10 @@ export const connectionsRouter = router({
       if (limit !== null) {
         const used = await countConnectionsInWorkspace(ctx.db, ctx.workspaceId);
         if (used >= limit) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Integration limit reached. Please upgrade your plan.",
-          });
+          throw appError(
+            ErrCode.PlanLimitReached,
+            "Integration limit reached. Please upgrade your plan.",
+          );
         }
       }
       return connectionsService.initiateAppConnection(

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { PRICING_MODAL_EVENT } from "@/features/billing/lib/plan-limit-error";
 import { SettingsModalContext, type SettingsPage } from "../hooks/use-settings-modal";
 
 export function SettingsModalProvider({ children }: { children: ReactNode }) {
@@ -12,6 +13,12 @@ export function SettingsModalProvider({ children }: { children: ReactNode }) {
     setActivePage(page);
     setIsOpen(true);
   };
+
+  useEffect(() => {
+    const handlePricingRequest = () => openSettings("pricing");
+    window.addEventListener(PRICING_MODAL_EVENT, handlePricingRequest);
+    return () => window.removeEventListener(PRICING_MODAL_EVENT, handlePricingRequest);
+  }, []);
 
   return (
     <SettingsModalContext.Provider

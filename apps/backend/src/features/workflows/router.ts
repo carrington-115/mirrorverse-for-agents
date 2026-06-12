@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-import { router, TRPCError } from "../../trpc/init";
+import { router } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
+import { appError, ErrCode } from "../../lib/errors";
 
 import {
   deleteWorkflowInput,
@@ -130,10 +131,10 @@ export const workflowsRouter = router({
     if (dailyLimit !== null) {
       const used = await countRunsToday(ctx.db, ctx.workspaceId);
       if (used >= dailyLimit) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Daily run limit reached. Please upgrade your plan.",
-        });
+        throw appError(
+          ErrCode.PlanLimitReached,
+          "Daily run limit reached. Please upgrade your plan.",
+        );
       }
     }
 
@@ -146,10 +147,10 @@ export const workflowsRouter = router({
         periodStart,
       );
       if (used >= monthlyLimit) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Monthly run limit reached. Please upgrade your plan.",
-        });
+        throw appError(
+          ErrCode.PlanLimitReached,
+          "Monthly run limit reached. Please upgrade your plan.",
+        );
       }
     }
 
