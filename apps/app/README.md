@@ -10,7 +10,7 @@ Mirrroverse empowers every department with agents that think, adapt, and execute
 
 - 🤖 Build AI agents with custom knowledge bases and tool integrations
 - 🔄 Design no-code workflows with drag-and-drop interface
-- 📱 Deploy across phone, WhatsApp, SMS, Telegram, and web channels
+- 📱 Deploy across phone, SMS, Telegram, and web channels
 - 🧠 Shared memory system - agents remember context across conversations
 - 🔧 Connect 100+ integrations (Shopify, Salesforce, Stripe, Calendly, etc.)
 - 👥 Team collaboration with role-based access control
@@ -117,7 +117,6 @@ Visual workflow builder featuring:
 Deploy agents across:
 
 - Phone (Twilio integration)
-- WhatsApp Business
 - SMS
 - Web Widget
 - Telegram
@@ -172,7 +171,6 @@ Role-based access control:
 ### Communication
 
 - Twilio (phone, SMS)
-- Meta Graph API (WhatsApp)
 - Socket.io (real-time updates)
 
 ### Infrastructure
@@ -194,7 +192,6 @@ Role-based access control:
 
 ### Phase 2: Multi-Channel
 
-- [ ] WhatsApp integration
 - [ ] SMS support
 - [ ] Web widget
 - [ ] Conversation analytics

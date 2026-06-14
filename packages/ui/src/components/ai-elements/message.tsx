@@ -12,7 +12,10 @@ import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { AllowedTags } from "streamdown";
 import { Streamdown } from "streamdown";
+
+export type { AnimateOptions } from "streamdown";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -272,16 +275,26 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownPlugins = { cjk, code, math, mermaid };
 
+const ALLOWED_TAGS: AllowedTags = { u: [], mark: [] };
+
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
-      className={cn("[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 size-full", className)}
+      className={cn(
+        "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 size-full",
+        "[&_mark]:bg-yellow-200 [&_mark]:px-0.5 dark:[&_mark]:bg-yellow-900/40 [&_mark]:rounded-sm [&_mark]:text-foreground",
+        className,
+      )}
       plugins={streamdownPlugins}
+      allowedTags={ALLOWED_TAGS}
       {...props}
     />
   ),
   (prevProps, nextProps) =>
-    prevProps.children === nextProps.children && nextProps.isAnimating === prevProps.isAnimating,
+    prevProps.children === nextProps.children &&
+    nextProps.isAnimating === prevProps.isAnimating &&
+    nextProps.animated === prevProps.animated &&
+    nextProps.caret === prevProps.caret,
 );
 
 MessageResponse.displayName = "MessageResponse";

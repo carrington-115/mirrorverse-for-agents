@@ -40,6 +40,8 @@ export interface SuccessfulWorkflowCommit {
   readonly document: WorkflowDocumentInput;
 }
 
+export type WorkflowCommitFailureCode = "MAX_WORKFLOWS_REACHED";
+
 export type WorkflowCommitResult =
   | {
       readonly ok: true;
@@ -50,4 +52,4 @@ export type WorkflowCommitResult =
       readonly kind: WorkflowKind;
       readonly document: WorkflowDocumentInput;
     }
-  | { readonly ok: false; readonly error: string };
+  | { readonly ok: false; readonly error: string; readonly code?: WorkflowCommitFailureCode };

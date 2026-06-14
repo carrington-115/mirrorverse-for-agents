@@ -26,7 +26,6 @@ import {
   Grid2x2,
   Link2,
   Phone,
-  MessageCircle,
   Cpu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -455,10 +454,6 @@ export function ChatInput({
                   <DropdownMenuItem className="gap-2">
                     <Phone className="size-3.5 text-muted-foreground" />
                     <span className="text-sm">Phone</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="gap-2">
-                    <MessageCircle className="size-3.5 text-muted-foreground" />
-                    <span className="text-sm">WhatsApp</span>
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>

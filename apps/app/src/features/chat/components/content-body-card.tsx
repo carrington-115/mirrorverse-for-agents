@@ -21,7 +21,6 @@ const CONTENT_TYPE_META: Record<
   email: { label: "Email", icon: Mail, hasSubject: true },
   slack: { label: "Slack", icon: MessageCircle, hasSubject: false },
   sms: { label: "SMS", icon: MessageSquare, hasSubject: false },
-  whatsapp: { label: "WhatsApp", icon: MessageSquare, hasSubject: false },
   generic: { label: "Message", icon: FileText, hasSubject: false },
 };
 

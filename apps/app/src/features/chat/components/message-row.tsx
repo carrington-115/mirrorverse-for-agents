@@ -2,7 +2,12 @@ import { useState } from "react";
 import { isTextUIPart, isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
 
 import { ChainOfThoughtStep } from "@mirrorverse/ui/ai-elements/chain-of-thought";
-import { Message, MessageContent, MessageResponse } from "@mirrorverse/ui/ai-elements/message";
+import {
+  type AnimateOptions,
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@mirrorverse/ui/ai-elements/message";
 import {
   Reasoning,
   ReasoningContentRaw,
@@ -61,6 +66,8 @@ interface MessageRowProps {
   onConfirmDocuments?: (documentIds: string[], labels: string[]) => void;
   onConfirmContentBody?: (contentType: string, subject: string | undefined, body: string) => void;
 }
+
+const MESSAGE_ANIMATION_OPTIONS: AnimateOptions = { sep: "word", animation: "fadeIn" };
 
 function extractCopyText(message: UIMessage): string {
   return message.parts
@@ -191,7 +198,23 @@ export function MessageRow({
         ) : (
           message.parts.map((part, i) => {
             const key = `${message.id}-${i}`;
-            if (isTextUIPart(part)) return <MessageResponse key={key}>{part.text}</MessageResponse>;
+            if (isTextUIPart(part)) {
+              const isLivePart = isLive && i === message.parts.length - 1;
+              return (
+                <MessageResponse
+                  key={key}
+                  isAnimating={isLivePart}
+                  animated={isLivePart ? MESSAGE_ANIMATION_OPTIONS : undefined}
+                  className={
+                    isLivePart
+                      ? "[&>*:last-child]:after:inline [&>*:last-child]:after:animate-caret-blink [&>*:last-child]:after:align-baseline [&>*:last-child]:after:content-['_▋']"
+                      : undefined
+                  }
+                >
+                  {part.text}
+                </MessageResponse>
+              );
+            }
             if (!isToolUIPart(part)) return null;
             // DynamicToolUIPart matches isToolUIPart but has type "dynamic-tool"
             // (not tool-${string}), so cast once and let it fall through to UnknownToolCard.

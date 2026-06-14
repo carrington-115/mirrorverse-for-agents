@@ -16,7 +16,6 @@ const FULL_ENV = {
   TWILIO_ACCOUNT_SID: "sid",
   TWILIO_AUTH_TOKEN: "tok",
   TWILIO_PHONE_NUMBER: "+1",
-  TWILIO_WHATSAPP_NUMBER: "+1",
   POSTHOG_API_KEY: "key",
 };
 

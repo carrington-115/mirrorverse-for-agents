@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
   Bot,
   Check,
   ChevronDown,
@@ -12,13 +13,17 @@ import {
   ExternalLink,
   Loader2,
   Phone,
+  Plus,
   Zap,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { WORKFLOW_KIND_LABEL, type WorkflowKind } from "@/features/chat/config";
+import { useNewChatNavigation } from "@/features/chat/hooks/use-new-chat-navigation";
 import {
+  MAX_WORKFLOWS_REACHED_CODE,
   readWorkflowCommitError,
+  readWorkflowCommitErrorCode,
   readWorkflowCommitResult,
   readWorkflowCommitStatus,
   type WorkflowCommitInput,
@@ -58,7 +63,6 @@ const BRAND_NAMES: Record<string, string> = {
   slack: "Slack",
   discord: "Discord",
   telegram: "Telegram",
-  whatsapp: "WhatsApp",
   gmail: "Gmail",
   "google-calendar": "Google Calendar",
   "google-drive": "Google Drive",
@@ -140,19 +144,47 @@ function extractAppNames(doc: RawDoc): string[] {
   return [...seen];
 }
 
-export function WorkflowCommitCard({
-  part,
-  onWorkflowSelect: _onWorkflowSelect,
-}: WorkflowCommitCardProps) {
+export function WorkflowCommitCard({ part, onWorkflowSelect }: WorkflowCommitCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const startNewChat = useNewChatNavigation();
 
   const result = readWorkflowCommitResult(part);
   const status = readWorkflowCommitStatus(part);
   const error = readWorkflowCommitError(part);
+  const errorCode = readWorkflowCommitErrorCode(part);
 
   const isBuilding = status === "building";
   const isFailed = status === "failed";
+
+  useEffect(() => {
+    if (result?.workflowId) onWorkflowSelect?.(result.workflowId);
+  }, [result?.workflowId, onWorkflowSelect]);
+
+  if (isFailed && errorCode === MAX_WORKFLOWS_REACHED_CODE) {
+    return (
+      <div className="px-4 py-3.5 rounded-xl border border-border bg-card">
+        <div className="gap-3 flex items-start">
+          <div className="size-10 bg-amber-500/10 text-amber-600 dark:text-amber-400 grid shrink-0 place-items-center rounded-lg">
+            <AlertCircle className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-sm leading-snug">Workflow limit reached</div>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{error}</p>
+            <Button
+              onClick={startNewChat}
+              variant="secondary"
+              size="sm"
+              className="mt-3 h-8 gap-1.5 px-3 text-xs font-medium"
+            >
+              <Plus className="size-3.5" />
+              Start a new chat
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const doc = result?.document as RawDoc;
   const nodeCount = Array.isArray(doc?.nodes) ? doc.nodes.length : 0;

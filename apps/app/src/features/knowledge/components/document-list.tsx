@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDocumentsQuery } from "../api/queries";
 import { useDeleteDocumentMutation } from "../api/mutations";
 import { IngestDialog } from "./ingest-dialog";
@@ -113,17 +114,29 @@ export function DocumentList({ kbId }: { kbId: string }) {
                       {doc.status === "ready" ? doc.chunkCount : "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          STATUS_VARIANTS[doc.status as keyof typeof STATUS_VARIANTS] ?? "secondary"
-                        }
-                        className="capitalize"
-                      >
-                        {doc.status === "processing" && (
-                          <Loader2 className="mr-1 size-3 animate-spin" />
-                        )}
-                        {doc.status}
-                      </Badge>
+                      {doc.status === "failed" && doc.errorMessage ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="destructive" className="cursor-default capitalize">
+                              {doc.status}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>{doc.errorMessage}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Badge
+                          variant={
+                            STATUS_VARIANTS[doc.status as keyof typeof STATUS_VARIANTS] ??
+                            "secondary"
+                          }
+                          className="capitalize"
+                        >
+                          {doc.status === "processing" && (
+                            <Loader2 className="mr-1 size-3 animate-spin" />
+                          )}
+                          {doc.status}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(doc.createdAt).toLocaleDateString()}

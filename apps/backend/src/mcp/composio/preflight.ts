@@ -32,7 +32,6 @@ const APP_KEYWORD_MAP: Record<string, string> = {
   "google tasks": "googletasks",
   discord: "discord",
   telegram: "telegram",
-  whatsapp: "whatsapp",
   twitter: "twitter",
   x: "twitter",
   shopify: "shopify",

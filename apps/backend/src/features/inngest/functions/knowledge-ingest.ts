@@ -24,8 +24,19 @@ const CHARS_PER_TOKEN = 4;
 const CHUNK_TARGET_CHARS = 400 * CHARS_PER_TOKEN; // 1600
 const CHUNK_OVERLAP_CHARS = 50 * CHARS_PER_TOKEN; // 200
 
-// Timeout for all external HTTP fetches — caps worst-case step duration.
+// Timeout for "best effort" external fetches (URL scraping via Jina/direct,
+// which already race each other and have a fallback) — caps worst-case step
+// duration for the URL source type.
 const FETCH_TIMEOUT_MS = 12_000;
+
+// Timeout for downloading uploaded files (PDF/docx/xlsx/text) from Supabase
+// Storage. These are larger, single-source downloads with no fallback, so
+// they get a more generous budget than opportunistic URL scraping.
+const FILE_FETCH_TIMEOUT_MS = 60_000;
+
+// Timeout for vision-model OCR calls, which can take much longer than a
+// typical text completion for complex images.
+const VISION_TIMEOUT_MS = 45_000;
 
 export function chunkText(text: string): string[] {
   const chunks: string[] = [];
@@ -178,7 +189,7 @@ async function fetchAndParseUrl(rawUrl: string): Promise<string> {
 
 async function fetchAndParsePdf(storageKeyOrUrl: string): Promise<string> {
   const resp = await fetch(storageKeyOrUrl, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    signal: AbortSignal.timeout(FILE_FETCH_TIMEOUT_MS),
   });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching PDF`);
   const buffer = Buffer.from(await resp.arrayBuffer());
@@ -201,7 +212,7 @@ const VISION_MODEL = openai("gpt-4o-mini");
 
 async function fetchBuffer(url: string): Promise<Buffer> {
   const resp = await fetch(url, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    signal: AbortSignal.timeout(FILE_FETCH_TIMEOUT_MS),
   });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching file`);
   return Buffer.from(await resp.arrayBuffer());
@@ -211,6 +222,7 @@ async function fetchBuffer(url: string): Promise<Buffer> {
 async function transcribeImage(url: string): Promise<string> {
   const { text } = await generateText({
     model: VISION_MODEL,
+    abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
     messages: [
       {
         role: "user",
@@ -264,7 +276,7 @@ async function extractFileText(
 ): Promise<string> {
   if (looksLikeText(mediaType, fileName)) {
     const resp = await fetch(url, {
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(FILE_FETCH_TIMEOUT_MS),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching file`);
     return (await resp.text()).replace(/\s+/g, " ").trim();
@@ -289,6 +301,10 @@ export function makeKnowledgeIngestFunction(db: Database): InngestFunction.Any {
       name: "Knowledge Document Ingest",
       triggers: [knowledgeIngestEvent],
       retries: 2,
+      // Cap how many documents a single workspace can embed in parallel so a
+      // burst of uploads (e.g. several files dropped into Mirrorpilot at once)
+      // doesn't fan out into a wave of concurrent OpenAI embedding calls.
+      concurrency: [{ key: "event.data.workspaceId", limit: 3 }],
     },
     async ({ event, step }) => {
       const { documentId, kbId, workspaceId, sourceType, contentOrUrl } =
@@ -351,73 +367,83 @@ export function makeKnowledgeIngestFunction(db: Database): InngestFunction.Any {
       // Retries re-embed, but upsertChunks is idempotent on (documentId, chunkIndex)
       // and the usage row is idempotent on its key, so retries are safe.
       const result = await step.run("embed-and-write", async () => {
-        const chunks = chunkText(rawText);
+        try {
+          const chunks = chunkText(rawText);
 
-        // No extractable text (e.g. unsupported binary). Keep the document as a
-        // ready, zero-chunk record so it still lists; it just isn't searchable.
-        if (chunks.length === 0) {
+          // No extractable text (e.g. unsupported binary). Keep the document as a
+          // ready, zero-chunk record so it still lists; it just isn't searchable.
+          if (chunks.length === 0) {
+            await repo.updateDocumentStatus(db, documentId, "ready", {
+              chunkCount: 0,
+              contentHash,
+            });
+            return { chunkCount: 0, tokens: 0 };
+          }
+
+          const { embeddings, tokens } = await embedTexts(chunks);
+
+          // Drop any chunk whose embedding is missing or the wrong dimensionality
+          // rather than inserting an invalid vector(1536) and poisoning search.
+          const rows = chunks
+            .map((content, index) => ({
+              content,
+              index,
+              embedding: embeddings[index],
+            }))
+            .filter(
+              (
+                r,
+              ): r is { content: string; index: number; embedding: number[] } =>
+                Array.isArray(r.embedding) &&
+                r.embedding.length === EMBEDDING_DIMS,
+            )
+            .map((r) => ({
+              documentId,
+              kbId,
+              chunkIndex: r.index,
+              content: r.content,
+              tokenCount: estimateTokens(r.content),
+              embedding: r.embedding,
+            }));
+
+          if (rows.length === 0) {
+            await repo.updateDocumentStatus(db, documentId, "failed", {
+              contentHash,
+              errorMessage: "Embedding produced no valid vectors",
+            });
+            return { chunkCount: 0, tokens };
+          }
+
+          await repo.upsertChunks(db, rows);
           await repo.updateDocumentStatus(db, documentId, "ready", {
-            chunkCount: 0,
+            chunkCount: rows.length,
             contentHash,
           });
-          return { chunkCount: 0, tokens: 0 };
-        }
 
-        const { embeddings, tokens } = await embedTexts(chunks);
+          // Cost tracking: record embedding token spend. Idempotent per document
+          // so a step retry can't double-bill.
+          await db
+            .insert(schema.usageEvents)
+            .values({
+              workspaceId,
+              kind: "embedding",
+              quantity: tokens,
+              unit: "token",
+              model: EMBEDDING_MODEL_ID,
+              costCents: 0,
+              billable: true,
+              idempotencyKey: `kb_embed:${documentId}`,
+            })
+            .onConflictDoNothing();
 
-        // Drop any chunk whose embedding is missing or the wrong dimensionality
-        // rather than inserting an invalid vector(1536) and poisoning search.
-        const rows = chunks
-          .map((content, index) => ({
-            content,
-            index,
-            embedding: embeddings[index],
-          }))
-          .filter(
-            (r): r is { content: string; index: number; embedding: number[] } =>
-              Array.isArray(r.embedding) &&
-              r.embedding.length === EMBEDDING_DIMS,
-          )
-          .map((r) => ({
-            documentId,
-            kbId,
-            chunkIndex: r.index,
-            content: r.content,
-            tokenCount: estimateTokens(r.content),
-            embedding: r.embedding,
-          }));
-
-        if (rows.length === 0) {
+          return { chunkCount: rows.length, tokens };
+        } catch (err) {
           await repo.updateDocumentStatus(db, documentId, "failed", {
             contentHash,
-            errorMessage: "Embedding produced no valid vectors",
+            errorMessage: err instanceof Error ? err.message : String(err),
           });
-          return { chunkCount: 0, tokens };
+          throw err;
         }
-
-        await repo.upsertChunks(db, rows);
-        await repo.updateDocumentStatus(db, documentId, "ready", {
-          chunkCount: rows.length,
-          contentHash,
-        });
-
-        // Cost tracking: record embedding token spend. Idempotent per document
-        // so a step retry can't double-bill.
-        await db
-          .insert(schema.usageEvents)
-          .values({
-            workspaceId,
-            kind: "embedding",
-            quantity: tokens,
-            unit: "token",
-            model: EMBEDDING_MODEL_ID,
-            costCents: 0,
-            billable: true,
-            idempotencyKey: `kb_embed:${documentId}`,
-          })
-          .onConflictDoNothing();
-
-        return { chunkCount: rows.length, tokens };
       });
 
       // Check if this is the first ready document for the workspace and notify owner

@@ -9,7 +9,7 @@ registerTool(CONTENT_BODY_TOOL_TYPE, { label: "Preparing content editor", icon: 
 
 export type ContentBodyToolPart = ToolUIPart & { type: typeof CONTENT_BODY_TOOL_TYPE };
 
-export type ContentBodyContentType = "email" | "slack" | "sms" | "whatsapp" | "generic";
+export type ContentBodyContentType = "email" | "slack" | "sms" | "generic";
 
 export interface ContentBodyOutput {
   readonly ok: boolean;

@@ -103,7 +103,6 @@ const BRAND_ICONIFY_ID: Record<string, string> = {
   slack: "logos:slack-icon",
   discord: "logos:discord-icon",
   telegram: "logos:telegram",
-  whatsapp: "logos:whatsapp-icon",
   postgres: "logos:postgresql",
   mysql: "logos:mysql-icon",
   mongodb: "logos:mongodb-icon",

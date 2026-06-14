@@ -50,18 +50,35 @@ export function ChatWorkflowSidePanel({
     return { nodes, connections: candidate.connections } as WorkflowDocumentShape;
   }, [data]);
 
+  const closeButton = onClose && (
+    <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={onClose}>
+      <X className="size-4" />
+      <span className="sr-only">Close panel</span>
+    </Button>
+  );
+
   if (isLoading) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" />
+      <div className="flex h-full w-full flex-col">
+        <div className="flex items-center justify-end border-b border-border px-(--md,16px) py-(--sm,8px)">
+          {closeButton}
+        </div>
+        <div className="flex flex-1 items-center justify-center text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+        </div>
       </div>
     );
   }
 
   if (!data?.workflow || !doc) {
     return (
-      <div className="px-6 text-sm flex h-full w-full items-center justify-center text-center text-muted-foreground">
-        No workflow attached to this chat yet.
+      <div className="flex h-full w-full flex-col">
+        <div className="flex items-center justify-end border-b border-border px-(--md,16px) py-(--sm,8px)">
+          {closeButton}
+        </div>
+        <div className="px-6 text-sm flex flex-1 items-center justify-center text-center text-muted-foreground">
+          No workflow attached to this chat yet.
+        </div>
       </div>
     );
   }
@@ -75,12 +92,7 @@ export function ChatWorkflowSidePanel({
         </div>
         <div className="gap-1 flex shrink-0 items-center">
           <WorkflowDeployButton workflowId={workflowId} size="sm" />
-          {onClose && (
-            <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={onClose}>
-              <X className="size-4" />
-              <span className="sr-only">Close panel</span>
-            </Button>
-          )}
+          {closeButton}
         </div>
       </div>
       <div className="min-h-0 flex-1">

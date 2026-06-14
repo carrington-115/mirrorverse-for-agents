@@ -16,6 +16,8 @@ export interface PersistedWorkflow {
   readonly versionNumber: number;
 }
 
+export type ChatWorkflowSlot = "workflowId" | "secondaryWorkflowId";
+
 interface PersistArgs {
   readonly db: Database;
   readonly workspaceId: string;
@@ -24,6 +26,8 @@ interface PersistArgs {
   readonly document: WorkflowDocumentInput;
   readonly kind: WorkflowKind;
   readonly summary: string;
+  readonly startNewWorkflow: boolean;
+  readonly newWorkflowSlot?: ChatWorkflowSlot;
 }
 
 function checksumDocument(doc: WorkflowDocumentInput): string {
@@ -36,18 +40,50 @@ export interface ExistingWorkflowVersion {
   readonly document: WorkflowDocumentInput;
 }
 
-export async function getLatestVersionForChat(
+export interface ChatWorkflowSlots {
+  readonly workflowId: string | null;
+  readonly secondaryWorkflowId: string | null;
+}
+
+export type NewWorkflowSlotCheck =
+  | { readonly ok: true; readonly slot: ChatWorkflowSlot }
+  | { readonly ok: false };
+
+export async function getChatWorkflowSlots(
   db: Database,
   chatId: string,
-  workspaceId: string,
-): Promise<ExistingWorkflowVersion | null> {
+): Promise<ChatWorkflowSlots> {
   const [chat] = await db
-    .select({ workflowId: chats.workflowId })
+    .select({ workflowId: chats.workflowId, secondaryWorkflowId: chats.secondaryWorkflowId })
     .from(chats)
     .where(eq(chats.id, chatId))
     .limit(1);
-  if (!chat?.workflowId) return null;
 
+  return {
+    workflowId: chat?.workflowId ?? null,
+    secondaryWorkflowId: chat?.secondaryWorkflowId ?? null,
+  };
+}
+
+/**
+ * A chat may hold at most two distinct workflows. Returns which slot a new
+ * workflow should occupy, or `{ ok: false }` if both slots are already filled.
+ */
+export async function checkCanStartNewWorkflow(
+  db: Database,
+  chatId: string,
+): Promise<NewWorkflowSlotCheck> {
+  const slots = await getChatWorkflowSlots(db, chatId);
+  if (!slots.workflowId) return { ok: true, slot: "workflowId" };
+  if (!slots.secondaryWorkflowId) return { ok: true, slot: "secondaryWorkflowId" };
+  return { ok: false };
+}
+
+async function getLatestVersion(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+): Promise<ExistingWorkflowVersion | null> {
   const [version] = await db
     .select({
       workflowId: workflowVersions.workflowId,
@@ -57,7 +93,7 @@ export async function getLatestVersionForChat(
     .from(workflowVersions)
     .where(
       and(
-        eq(workflowVersions.workflowId, chat.workflowId),
+        eq(workflowVersions.workflowId, workflowId),
         eq(workflowVersions.workspaceId, workspaceId),
       ),
     )
@@ -72,52 +108,74 @@ export async function getLatestVersionForChat(
   };
 }
 
-export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkflow> {
-  const existing = await getLatestVersionForChat(args.db, args.chatId, args.workspaceId);
+/**
+ * The edit target for a non-`startNewWorkflow` commit: the most recently
+ * created workflow for this chat (the secondary one, if any, else the
+ * primary). Returns `null` if the chat has no workflow yet.
+ */
+export async function getLatestVersionForChat(
+  db: Database,
+  chatId: string,
+  workspaceId: string,
+): Promise<ExistingWorkflowVersion | null> {
+  const slots = await getChatWorkflowSlots(db, chatId);
+  const targetWorkflowId = slots.secondaryWorkflowId ?? slots.workflowId;
+  if (!targetWorkflowId) return null;
+
+  return getLatestVersion(db, targetWorkflowId, workspaceId);
+}
+
+async function updateExistingWorkflow(
+  args: PersistArgs,
+  existing: ExistingWorkflowVersion,
+): Promise<PersistedWorkflow> {
   const versionId = randomUUID();
+  const nextVersionNumber = existing.versionNumber + 1;
+  const docWithVersion: WorkflowDocumentInput = {
+    ...args.document,
+    id: existing.workflowId,
+    version: nextVersionNumber,
+  };
+  const checksum = checksumDocument(docWithVersion);
 
-  if (existing) {
-    const nextVersionNumber = existing.versionNumber + 1;
-    const docWithVersion: WorkflowDocumentInput = {
-      ...args.document,
-      id: existing.workflowId,
-      version: nextVersionNumber,
-    };
-    const checksum = checksumDocument(docWithVersion);
-
-    await args.db.transaction(async (tx) => {
-      await tx.insert(workflowVersions).values({
-        id: versionId,
-        workspaceId: args.workspaceId,
-        workflowId: existing.workflowId,
-        versionNumber: nextVersionNumber,
-        document: docWithVersion as unknown as WorkflowDocument,
-        compiledAgent: null,
-        createdBy: args.userId,
-        generatedByChatId: args.chatId,
-        summary: args.summary,
-        checksum,
-      });
-      await tx
-        .update(workflows)
-        .set({
-          currentVersionId: versionId,
-          name: args.document.name,
-          kind: args.kind,
-        })
-        .where(
-          and(eq(workflows.id, existing.workflowId), eq(workflows.workspaceId, args.workspaceId)),
-        );
-    });
-
-    return {
+  await args.db.transaction(async (tx) => {
+    await tx.insert(workflowVersions).values({
+      id: versionId,
+      workspaceId: args.workspaceId,
       workflowId: existing.workflowId,
-      workflowVersionId: versionId,
       versionNumber: nextVersionNumber,
-    };
-  }
+      document: docWithVersion as unknown as WorkflowDocument,
+      compiledAgent: null,
+      createdBy: args.userId,
+      generatedByChatId: args.chatId,
+      summary: args.summary,
+      checksum,
+    });
+    await tx
+      .update(workflows)
+      .set({
+        currentVersionId: versionId,
+        name: args.document.name,
+        kind: args.kind,
+      })
+      .where(
+        and(eq(workflows.id, existing.workflowId), eq(workflows.workspaceId, args.workspaceId)),
+      );
+  });
 
+  return {
+    workflowId: existing.workflowId,
+    workflowVersionId: versionId,
+    versionNumber: nextVersionNumber,
+  };
+}
+
+async function createNewWorkflow(
+  args: PersistArgs,
+  slot: ChatWorkflowSlot,
+): Promise<PersistedWorkflow> {
   const workflowId = randomUUID();
+  const versionId = randomUUID();
   const docWithVersion: WorkflowDocumentInput = {
     ...args.document,
     id: workflowId,
@@ -151,7 +209,14 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
       checksum,
     });
 
-    await tx.update(chats).set({ workflowId }).where(eq(chats.id, args.chatId));
+    if (slot === "workflowId") {
+      await tx.update(chats).set({ workflowId }).where(eq(chats.id, args.chatId));
+    } else {
+      await tx
+        .update(chats)
+        .set({ secondaryWorkflowId: workflowId })
+        .where(eq(chats.id, args.chatId));
+    }
   });
 
   return {
@@ -159,4 +224,13 @@ export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkf
     workflowVersionId: versionId,
     versionNumber: INITIAL_VERSION_NUMBER,
   };
+}
+
+export async function persistWorkflow(args: PersistArgs): Promise<PersistedWorkflow> {
+  if (!args.startNewWorkflow) {
+    const existing = await getLatestVersionForChat(args.db, args.chatId, args.workspaceId);
+    if (existing) return updateExistingWorkflow(args, existing);
+  }
+
+  return createNewWorkflow(args, args.newWorkflowSlot ?? "workflowId");
 }

@@ -2,7 +2,6 @@ export type {
   ChannelStatus,
   PhoneNumber,
   EmailChannel,
-  WhatsAppChannel,
   CallLog,
   Transcript,
   TranscriptMessage,

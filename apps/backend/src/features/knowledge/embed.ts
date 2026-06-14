@@ -7,6 +7,10 @@ const MODEL = openai.embedding(EMBEDDING_MODEL_ID);
 
 const BATCH_SIZE = 512;
 
+// Absorb transient OpenAI errors (429s, momentary 5xx) with a small retry
+// budget instead of failing the whole ingest run on the first blip.
+const EMBED_MAX_RETRIES = 2;
+
 // Dimension of text-embedding-3-small; chunks whose vector doesn't match this
 // would be rejected by the vector(1536) column, so callers validate against it.
 export const EMBEDDING_DIMS = 1536;
@@ -26,7 +30,7 @@ export async function embedTexts(texts: string[]): Promise<EmbedResult> {
 
   const results = await Promise.all(
     batches.map((batch) =>
-      embedMany({ model: MODEL, values: batch, maxRetries: 0 }),
+      embedMany({ model: MODEL, values: batch, maxRetries: EMBED_MAX_RETRIES }),
     ),
   );
 
@@ -39,7 +43,7 @@ export async function embedQuery(text: string): Promise<number[]> {
   const { embedding } = await embed({
     model: MODEL,
     value: text,
-    maxRetries: 0,
+    maxRetries: EMBED_MAX_RETRIES,
   });
   return embedding;
 }

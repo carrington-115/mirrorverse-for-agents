@@ -38,7 +38,12 @@ import { interpretAgent } from "./interpreters/agent";
 import { interpretCode } from "./interpreters/code";
 import { interpretHumanReview } from "./interpreters/human-review";
 import type { ExecutionContext, InterpretResult } from "./interpreters/types";
-import type { CostBreakdown, RunError, RunStatus } from "@mirrorverse/types";
+import type {
+  CostBreakdown,
+  RunError,
+  RunStatus,
+  RunStepLog,
+} from "@mirrorverse/types";
 
 export interface WalkResult {
   readonly status: RunStatus;
@@ -238,6 +243,17 @@ async function executeNode(
           throw new Error(`Unsupported node type: ${node.type}`);
       }
 
+      // Surface any unresolved/unrecognized `{{ }}` template expressions
+      // encountered while resolving this node's params.
+      const warningLogs: RunStepLog[] = state
+        .drainWarnings()
+        .map((message) => ({
+          ts: new Date(),
+          level: "warn",
+          message,
+          data: null,
+        }));
+
       // Write success for non-signal results.
       if (
         interpreted !== STOP_SIGNAL &&
@@ -254,7 +270,7 @@ async function executeNode(
           status: "succeeded",
           output: ir.output,
           cost: ir.cost ?? ZERO_COST,
-          logs: ir.logs ?? [],
+          logs: [...(ir.logs ?? []), ...warningLogs],
           startedAt,
         });
       } else if (interpreted === STOP_SIGNAL) {
@@ -264,6 +280,7 @@ async function executeNode(
           status: "succeeded",
           output: null,
           cost: ZERO_COST,
+          logs: warningLogs,
           startedAt,
         });
       } else {
@@ -274,6 +291,7 @@ async function executeNode(
           status: "succeeded",
           output: null,
           cost: ZERO_COST,
+          logs: warningLogs,
           startedAt,
         });
       }

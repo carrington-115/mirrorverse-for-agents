@@ -19,13 +19,6 @@ export const queryKeys = {
       detail: (id: string) => [...queryKeys.deploy.phone.all, "detail", id] as const,
       callLogs: (id: string) => [...queryKeys.deploy.phone.detail(id), "call-logs"] as const,
     },
-    whatsapp: {
-      all: ["deploy", "whatsapp"] as const,
-      list: () => [...queryKeys.deploy.whatsapp.all, "list"] as const,
-      detail: (id: string) => [...queryKeys.deploy.whatsapp.all, "detail", id] as const,
-      conversations: (id: string) =>
-        [...queryKeys.deploy.whatsapp.detail(id), "conversations"] as const,
-    },
   },
   integrations: {
     all: ["integrations"] as const,

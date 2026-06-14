@@ -29,9 +29,12 @@ export interface WorkflowCommitSuccess {
   readonly document?: unknown;
 }
 
+export const MAX_WORKFLOWS_REACHED_CODE = "MAX_WORKFLOWS_REACHED";
+
 export interface WorkflowCommitFailure {
   readonly ok: false;
   readonly error: string;
+  readonly code?: string;
 }
 
 export type WorkflowCommitOutput = WorkflowCommitSuccess | WorkflowCommitFailure;
@@ -64,6 +67,12 @@ export function readWorkflowCommitError(part: WorkflowCommitToolPart): string | 
   const output = readWorkflowCommitOutput(part);
   if (output && !output.ok) return output.error;
   if (part.state === "output-error" && part.errorText) return part.errorText;
+  return undefined;
+}
+
+export function readWorkflowCommitErrorCode(part: WorkflowCommitToolPart): string | undefined {
+  const output = readWorkflowCommitOutput(part);
+  if (output && !output.ok) return output.code;
   return undefined;
 }
 

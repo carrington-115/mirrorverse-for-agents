@@ -51,7 +51,9 @@ export type ChatPurpose =
 /**
  * One conversation between the user and the orchestrator agent. Lives
  * durably so it can pause for hours waiting on credentials or human review.
- * When the chat produces or edits a workflow, `workflowId` links it back.
+ * When the chat produces or edits a workflow, `workflowId` links it back. A
+ * chat may produce up to two distinct workflows; the second one is linked via
+ * `secondaryWorkflowId`.
  */
 export interface Chat extends Timestamps, Tenanted {
   readonly id: ChatId;
@@ -60,6 +62,7 @@ export interface Chat extends Timestamps, Tenanted {
   readonly status: ChatStatus;
   readonly title: string | null;
   readonly workflowId: WorkflowId | null;
+  readonly secondaryWorkflowId: WorkflowId | null;
   readonly inngestRunId: string | null;
   readonly model: string;
   readonly attachedSkillIds: readonly AgentSkillId[];

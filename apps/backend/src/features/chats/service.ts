@@ -91,6 +91,14 @@ export const chatsService = {
       );
     }
 
+    if (chat.secondaryWorkflowId) {
+      await workflowsRepo.deleteWorkflowForWorkspace(
+        ctx.db,
+        chat.secondaryWorkflowId,
+        chat.workspaceId,
+      );
+    }
+
     const ok = await repo.deleteChatForUser(ctx.db, input.chatId, ctx.userId);
     if (!ok) throw appError(ErrCode.NotFound, "Chat not found");
     return { id: input.chatId };

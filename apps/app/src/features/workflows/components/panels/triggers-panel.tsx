@@ -11,7 +11,6 @@ const TRIGGER_ITEMS = [
   { id: "manual", icon: Play, label: "Manual" },
   { id: "phone", icon: PhoneOutgoing, label: "Phone" },
   { id: "message", icon: MessageSquareText, label: "Message" },
-  { id: "whatsapp", label: "WhatsApp", emoji: "📱" },
   { id: "messenger", label: "Messenger", emoji: "💬" },
   { id: "telegram", label: "Telegram", emoji: "✈️" },
 ];

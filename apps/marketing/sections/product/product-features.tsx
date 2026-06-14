@@ -8,7 +8,6 @@ import {
   Search,
   FileText,
   CheckCircle2,
-  MessageCircle,
   MessageSquare,
   Mail,
   Send,
@@ -84,9 +83,9 @@ const features = [
     iconColor: "text-blue-600",
     title: "Deploy across every channel in minutes.",
     description:
-      "Connect a phone number, WhatsApp Business account, or Telegram bot and your agent is live. Manage calls, chats, and logs from one unified dashboard.",
+      "Connect a phone number or Telegram bot and your agent is live. Manage calls, chats, and logs from one unified dashboard.",
     points: [
-      "Phone, WhatsApp & Telegram",
+      "Phone & Telegram",
       "Call logs & conversation history",
       "Live agent handoff",
       "Multi-number routing",
@@ -278,12 +277,6 @@ const channelItems = [
     label: "Phone",
     detail: "+1 (555) 000-1234 · 3 active calls",
     iconCls: "text-blue-600 bg-blue-50",
-  },
-  {
-    Icon: MessageCircle,
-    label: "WhatsApp",
-    detail: "+44 7700 900123 · 12 chats",
-    iconCls: "text-emerald-600 bg-emerald-50",
   },
   {
     Icon: MessageSquare,

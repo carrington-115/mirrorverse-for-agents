@@ -5,7 +5,6 @@ import {
   OrganizationProps,
   PhoneNumber,
   EmailChannel,
-  WhatsAppChannel,
   CallLog,
   Transcript,
   Agent,
@@ -19,7 +18,6 @@ import {
   SiZendesk,
   SiSlack,
   SiMessenger,
-  SiWhatsapp,
   SiTelegram,
   SiGoogledocs,
   SiGooglesheets,
@@ -33,13 +31,13 @@ export const industries = [
     value: "ecommerce",
     label: "E-commerce & Retail",
     description:
-      "Automate order status, returns, customer support, inventory alerts, and personalized follow-ups across WhatsApp, SMS, email and voice — reducing support tickets and increasing repeat purchases.",
+      "Automate order status, returns, customer support, inventory alerts, and personalized follow-ups across SMS, email and voice — reducing support tickets and increasing repeat purchases.",
   },
   {
     value: "healthcare",
     label: "Healthcare & Telemedicine",
     description:
-      "Handle appointment booking, patient reminders, post-visit follow-ups, prescription refills, and triage via voice/WhatsApp — improving patient satisfaction and reducing no-shows.",
+      "Handle appointment booking, patient reminders, post-visit follow-ups, prescription refills, and triage via voice — improving patient satisfaction and reducing no-shows.",
   },
   {
     value: "fintech",
@@ -69,7 +67,7 @@ export const industries = [
     value: "hospitality",
     label: "Hospitality & Travel",
     description:
-      "Manage bookings, send check-in reminders, handle guest requests, process feedback, and upsell services via WhatsApp/voice — increasing guest loyalty and revenue.",
+      "Manage bookings, send check-in reminders, handle guest requests, process feedback, and upsell services via voice — increasing guest loyalty and revenue.",
   },
   {
     value: "professional-services",
@@ -129,12 +127,6 @@ export const appsList: appStructure[] = [
     icon: SiMessenger,
   },
   {
-    name: "Whatsapp",
-    description: "Whatsapp is a productivity app",
-    url: "https://whatsapp.com",
-    icon: SiWhatsapp,
-  },
-  {
     name: "Telegram",
     description: "Telegram is a productivity app",
     url: "https://telegram.com",
@@ -178,12 +170,6 @@ export const deployList: appStructure[] = [
     description: "Messenger is a productivity app",
     url: "https://messenger.com",
     icon: SiMessenger,
-  },
-  {
-    name: "Whatsapp",
-    description: "Whatsapp is a productivity app",
-    url: "https://whatsapp.com",
-    icon: SiWhatsapp,
   },
   {
     name: "Telegram",
@@ -282,10 +268,7 @@ export const sidebarData: SidebarGroup[] = [
         url: "/deploy/phone",
         icon: Megaphone,
         type: "collapsible",
-        sub: [
-          { name: "Phone", url: "/deploy/phone" },
-          { name: "WhatsApp", url: "/deploy/whatsapp" },
-        ],
+        sub: [{ name: "Phone", url: "/deploy/phone" }],
       },
       {
         name: "Integrations",
@@ -365,15 +348,6 @@ export const INTEGRATIONS: Integration[] = [
     icon: SiStripe,
     iconColor: "text-[#635BFF]",
     category: ["Ecommerce"],
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    description:
-      "Popular messaging app for business-customer text, voice, and media communication.",
-    icon: SiWhatsapp,
-    iconColor: "text-[#25D366]",
-    category: ["Messaging"],
   },
   {
     id: "google-analytics",
@@ -466,18 +440,6 @@ export const MOCK_EMAIL_CHANNELS: EmailChannel[] = [
     status: "pending",
     verified: false,
     createdAt: new Date("2024-12-01"),
-  },
-];
-
-export const MOCK_WHATSAPP_CHANNELS: WhatsAppChannel[] = [
-  {
-    id: "1",
-    wabaId: "WABA123456",
-    phoneNumber: "+1 (555) 100-2000",
-    businessName: "Mel's Place",
-    displayName: "Mel Support",
-    status: "active",
-    createdAt: new Date("2024-11-20"),
   },
 ];
 
@@ -1010,7 +972,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
     id: "t1",
     name: "Order status helper",
     description:
-      "Instantly answers customer questions about order status, tracking, and delivery delays across phone, WhatsApp, and SMS.",
+      "Instantly answers customer questions about order status, tracking, and delivery delays across phone and SMS.",
     category: ["Ecommerce"],
   },
   {
@@ -1038,7 +1000,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
     id: "t5",
     name: "Appointment Booking Agent",
     description:
-      "Schedules, reschedules, and cancels patient or client appointments via voice and WhatsApp, syncing with your calendar in real time.",
+      "Schedules, reschedules, and cancels patient or client appointments via voice, syncing with your calendar in real time.",
     category: ["Healthcare", "Reception"],
   },
   {
@@ -1052,7 +1014,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
     id: "t7",
     name: "Sales Outreach Agent",
     description:
-      "Sends personalized follow-ups via email, SMS, and WhatsApp, tracks engagement, and updates CRM records without manual input.",
+      "Sends personalized follow-ups via email and SMS, tracks engagement, and updates CRM records without manual input.",
     category: ["Sales"],
   },
   {

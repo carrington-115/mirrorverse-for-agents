@@ -25,7 +25,3 @@ export function ChannelsShellLayout({ contentWidth = "90%", children }: Channels
 export function PhoneShellLayout({ children }: { children: ReactNode }) {
   return <ChannelsShellLayout contentWidth="90%">{children}</ChannelsShellLayout>;
 }
-
-export function WhatsAppShellLayout({ children }: { children: ReactNode }) {
-  return <ChannelsShellLayout contentWidth="80%">{children}</ChannelsShellLayout>;
-}

@@ -164,16 +164,6 @@ export interface CallLog {
   duration?: string;
 }
 
-export interface WhatsAppChannel {
-  id: string;
-  wabaId: string;
-  phoneNumber: string;
-  businessName: string;
-  displayName: string;
-  status: ChannelStatus;
-  createdAt: Date;
-}
-
 export interface TranscriptMessage {
   id: string;
   role: "agent" | "customer";

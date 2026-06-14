@@ -156,7 +156,7 @@ export const featureData: featureDataProps[] = [
     icon: multichannelImage,
     title: "Multichannel support",
     description:
-      "Multichannel Support unifies automated calls, SMS, chats (WhatsApp, Telegram, Messenger), and email",
+      "Multichannel Support unifies automated calls, SMS, chats (Telegram, Messenger), and email",
   },
   {
     icon: multiuserImage,
@@ -206,7 +206,7 @@ export const darkFeatureData: featureDataProps[] = [
     icon: darkmultichannelImage,
     title: "Multichannel support",
     description:
-      "Multichannel Support unifies automated calls, SMS, chats (WhatsApp, Telegram, Messenger), and email",
+      "Multichannel Support unifies automated calls, SMS, chats (Telegram, Messenger), and email",
   },
   {
     icon: darkmultiuserImage,

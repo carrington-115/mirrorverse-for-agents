@@ -2,8 +2,8 @@
 
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useChatQuery } from "@/features/chat/api/queries";
 import { contentBlocksToUIMessage } from "@/features/chat/lib/content-blocks";
@@ -39,10 +39,17 @@ export function ChatShell({ sessionId }: ChatShellProps) {
     [data],
   );
 
-  const handleWorkflowSelect = useCallback((workflowId: string) => {
-    setSelectedWorkflowId(workflowId);
-    setIsPanelDismissed(false);
-  }, []);
+  const handleWorkflowSelect = useCallback(
+    (workflowId: string) => {
+      if (isMobile) {
+        toast.info("The workflow editor isn't available on mobile yet.");
+        return;
+      }
+      setSelectedWorkflowId(workflowId);
+      setIsPanelDismissed(false);
+    },
+    [isMobile],
+  );
 
   const handlePanelClose = useCallback(() => {
     setIsPanelDismissed(true);
@@ -111,29 +118,6 @@ export function ChatShell({ sessionId }: ChatShellProps) {
             <ChatWorkflowSidePanel workflowId={effectiveWorkflowId} onClose={handlePanelClose} />
           </div>
         </>
-      )}
-      {isMobile && (
-        <Drawer
-          open={showPanel}
-          onOpenChange={(open) => {
-            if (!open) handlePanelClose();
-          }}
-        >
-          <DrawerContent className="h-[85vh]">
-            <DrawerHeader className="sr-only">
-              <DrawerTitle>Workflow details</DrawerTitle>
-            </DrawerHeader>
-            <div className="min-h-0 flex-1">
-              {effectiveWorkflowId && (
-                <ChatWorkflowSidePanel
-                  workflowId={effectiveWorkflowId}
-                  showControls={false}
-                  onClose={handlePanelClose}
-                />
-              )}
-            </div>
-          </DrawerContent>
-        </Drawer>
       )}
     </div>
   );

@@ -1,27 +1,14 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { DashboardLayout } from "@/features/dashboard/components/dashboard-layout";
+import { useNewChatNavigation } from "@/features/chat/hooks/use-new-chat-navigation";
 
 export function ChatSessionLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const handleNewSession = () => {
-    // If Next.js thinks the current route is /mirrorpilot, the browser URL may
-    // have been silently updated via history.replaceState after the first
-    // message was sent. Use a full navigation to guarantee a fresh component
-    // tree regardless of that divergence.
-    if (pathname === "/mirrorpilot") {
-      window.location.href = "/mirrorpilot";
-    } else {
-      router.push("/mirrorpilot");
-    }
-  };
+  const handleNewSession = useNewChatNavigation();
 
   return (
     <DashboardLayout

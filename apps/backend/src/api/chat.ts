@@ -302,7 +302,7 @@ function buildContentBodyTool(): Tool {
       "Provide suggestedSubject/suggestedBody if you can draft the content from context; " +
       "leave them empty to start from a blank form. Wait for the confirmed content before calling workflow_commit.",
     inputSchema: z.object({
-      contentType: z.enum(["email", "slack", "sms", "whatsapp", "generic"]),
+      contentType: z.enum(["email", "slack", "sms", "generic"]),
       description: z
         .string()
         .describe(

@@ -12,7 +12,6 @@ import {
   Loader2,
   LogOutIcon,
   MegaphoneIcon,
-  MessageCircleIcon,
   MessageCirclePlus,
   MonitorIcon,
   MoonIcon,
@@ -441,10 +440,6 @@ function HeaderCommand() {
               <CommandItem onSelect={() => runCommand(() => router.push("/deploy/phone"))}>
                 <PhoneIcon />
                 <span>Phone agents</span>
-              </CommandItem>
-              <CommandItem onSelect={() => runCommand(() => router.push("/deploy/whatsapp"))}>
-                <MessageCircleIcon />
-                <span>WhatsApp agents</span>
               </CommandItem>
             </CommandGroup>
             <CommandSeparator />

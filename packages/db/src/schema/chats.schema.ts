@@ -27,7 +27,9 @@ import { workflows } from "./workflows.schema";
 /**
  * One conversation between the user and the orchestrator agent. Lives durably
  * so it can pause for hours waiting on credentials or human review. When the
- * chat produces or edits a workflow, `workflow_id` links it back.
+ * chat produces or edits a workflow, `workflow_id` links it back. A chat may
+ * produce up to two distinct workflows; the second one is linked via
+ * `secondary_workflow_id`.
  */
 export const chats = pgTable(
   "chats",
@@ -44,6 +46,9 @@ export const chats = pgTable(
     title: text("title"),
     isPinned: boolean("is_pinned").notNull().default(false),
     workflowId: text("workflow_id").references(() => workflows.id, { onDelete: "set null" }),
+    secondaryWorkflowId: text("secondary_workflow_id").references(() => workflows.id, {
+      onDelete: "set null",
+    }),
     inngestRunId: text("inngest_run_id"),
     model: text("model").notNull(),
     attachedSkillIds: text("attached_skill_ids")
@@ -63,6 +68,7 @@ export const chats = pgTable(
     index("chats_user_recent_idx").on(t.userId, t.lastMessageAt),
     index("chats_workspace_status_idx").on(t.workspaceId, t.status),
     index("chats_workflow_idx").on(t.workflowId),
+    index("chats_secondary_workflow_idx").on(t.secondaryWorkflowId),
     // Partial index for the resume worker: which chats are paused?
     index("chats_waiting_idx")
       .on(t.updatedAt)

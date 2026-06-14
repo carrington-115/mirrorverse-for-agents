@@ -29,7 +29,6 @@ export const env = createEnv({
     TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
     TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
     TWILIO_PHONE_NUMBER: z.string().min(1).optional(),
-    TWILIO_WHATSAPP_NUMBER: z.string().min(1).optional(),
 
     SENTRY_DSN: z.string().url().optional(),
     POSTHOG_API_KEY: z.string().min(1).optional(),
