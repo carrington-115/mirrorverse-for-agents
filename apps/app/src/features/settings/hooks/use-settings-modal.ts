@@ -11,6 +11,7 @@ export type SettingsPage =
   | "environment"
   | "channels"
   | "runs"
+  | "workflows"
   | "profile";
 
 export interface SettingsModalContextValue {

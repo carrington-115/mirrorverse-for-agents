@@ -1,53 +1,20 @@
 import type { JsonValue } from "@mirrorverse/types";
 
+import {
+  evaluateOperations,
+  getPath,
+  parseTemplateExpression,
+  type ParsedExpression,
+} from "./expression-parser";
+
 // Max serialized bytes per node output before we truncate to avoid memory bloat.
 const MAX_OUTPUT_BYTES = 256 * 1024; // 256 KB
 
-// A single property-access token: `.foo`, `["some key"]`, `['some key']`, or `[0]`.
-const PATH_TOKEN = `(?:\\.[a-zA-Z_$][\\w$]*|\\["[^"]*"\\]|\\['[^']*'\\]|\\[\\d+\\])`;
-// A property-access path: zero or more tokens, e.g. `.foo[0]["bar"]`.
-const PATH = `(?:${PATH_TOKEN})*`;
-const PATH_TOKEN_RE = new RegExp(PATH_TOKEN, "g");
-
-// {{ $json.some.path }}, {{ $json["key"] }}, or {{ $json.items[0].name }} — refers to this node's input.
-const JSON_EXPR_RE = new RegExp(`\\{\\{\\s*\\$json(${PATH})\\s*\\}\\}`, "g");
-const JSON_EXPR_SINGLE_RE = new RegExp(
-  `^\\{\\{\\s*\\$json(${PATH})\\s*\\}\\}$`,
-);
-
-// {{ $env.VAR_NAME }} — workspace environment variable.
-const ENV_EXPR_RE = /\{\{\s*\$env\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
-
-// {{ $('nodeId').item.json.some.path }} or {{ $('nodeId').item.json.items[0] }} — refers to a named node's output.
-const NODE_REF_RE = new RegExp(
-  `\\{\\{\\s*\\$\\(\\s*(['"])([^'"]+)\\1\\s*\\)\\.item\\.json(${PATH})\\s*\\}\\}`,
-  "g",
-);
-const NODE_REF_SINGLE_RE = new RegExp(
-  `^\\{\\{\\s*\\$\\(\\s*(['"])([^'"]+)\\1\\s*\\)\\.item\\.json(${PATH})\\s*\\}\\}$`,
-);
-
-// Any `{{ ... }}` block left after the patterns above have been applied —
-// an expression form the runtime doesn't support (e.g. method calls, arithmetic).
-const UNRESOLVED_EXPR_RE = /\{\{[^{}]*\}\}/g;
-
-// Extracts the key from a single path token: `.foo` -> "foo", `["foo"]` / `['foo']` -> "foo",
-// `[0]` -> "0" (numeric string keys index arrays the same as numbers in JS).
-function tokenKey(token: string): string {
-  if (token.startsWith(".")) return token.slice(1);
-  const inner = token.slice(1, -1);
-  return /^\d+$/.test(inner) ? inner : inner.slice(1, -1);
-}
-
-function getPath(obj: unknown, path: string): unknown {
-  if (path === "") return obj;
-  let cur: unknown = obj;
-  for (const token of path.match(PATH_TOKEN_RE) ?? []) {
-    if (cur == null || typeof cur !== "object") return undefined;
-    cur = (cur as Record<string, unknown>)[tokenKey(token)];
-  }
-  return cur;
-}
+// A `{{ ... }}` block that is the entire string (possibly with surrounding whitespace) —
+// resolves to the expression's native type rather than a string.
+const SINGLE_EXPR_RE = /^\{\{\s*([\s\S]+?)\s*\}\}$/;
+// Any `{{ ... }}` block, for inline (string-interpolation) replacement.
+const INLINE_EXPR_RE = /\{\{([^{}]*)\}\}/g;
 
 /**
  * Accumulates per-node outputs for a single run.
@@ -56,6 +23,9 @@ function getPath(obj: unknown, path: string): unknown {
  *  - `{{ $json.x }}` — the immediate upstream node's output
  *  - `{{ $('nodeId').item.json.x }}` — any node's output by id
  *  - `{{ $env.X }}` — workspace environment variables
+ *
+ * Both forms above also support a chained whitelist of operations
+ * (e.g. `.split(',')[0].trim()`) — see `expression-parser.ts`.
  */
 export class RunState {
   private readonly outputs = new Map<string, JsonValue>();
@@ -116,42 +86,40 @@ export class RunState {
     return getPath(this.outputs.get(nodeId) ?? null, path);
   }
 
+  private evaluateParsed(
+    parsed: ParsedExpression,
+    upstreamOutput: JsonValue,
+  ): unknown {
+    if (parsed.root.kind === "env") return this.env[parsed.root.name] ?? "";
+    const base =
+      parsed.root.kind === "json"
+        ? getPath(upstreamOutput, parsed.path)
+        : this.resolveNodeRef(parsed.root.nodeId, parsed.path);
+    return evaluateOperations(base, parsed.ops);
+  }
+
   private resolveValue(value: unknown, upstreamOutput: JsonValue): unknown {
     if (typeof value === "string") {
-      // If the whole string is a single $json expression, return native type.
-      const jsonSingle = value.match(JSON_EXPR_SINGLE_RE);
-      if (jsonSingle) return getPath(upstreamOutput, jsonSingle[1] ?? "");
-
-      // If the whole string is a single node-reference expression, return native type.
-      const nodeRefSingle = value.match(NODE_REF_SINGLE_RE);
-      if (nodeRefSingle) {
-        return this.resolveNodeRef(nodeRefSingle[2]!, nodeRefSingle[3] ?? "");
+      // If the whole string is a single `{{ ... }}` expression, return native type.
+      const singleMatch = value.match(SINGLE_EXPR_RE);
+      if (singleMatch) {
+        const parsed = parseTemplateExpression(singleMatch[1]!);
+        if (parsed) return this.evaluateParsed(parsed, upstreamOutput);
       }
 
       // Otherwise replace all recognized expressions inline (string output).
-      let resolved = value
-        .replace(JSON_EXPR_RE, (_full, path: string) => {
-          const resolvedValue = getPath(upstreamOutput, path);
-          return resolvedValue == null ? "" : String(resolvedValue);
-        })
-        .replace(
-          NODE_REF_RE,
-          (_full, _quote: string, nodeId: string, path: string) => {
-            const resolvedValue = this.resolveNodeRef(nodeId, path);
-            return resolvedValue == null ? "" : String(resolvedValue);
-          },
-        )
-        .replace(ENV_EXPR_RE, (_full, name: string) => this.env[name] ?? "");
-
-      // Anything still in `{{ ... }}` form is an unsupported expression —
-      // strip it rather than leaking the raw template into output, and
-      // surface a warning so it shows up in the run's step logs.
-      resolved = resolved.replace(UNRESOLVED_EXPR_RE, (full) => {
-        this.warnings.add(`Unresolved template expression: ${full}`);
-        return "";
+      return value.replace(INLINE_EXPR_RE, (full, inner: string) => {
+        const parsed = parseTemplateExpression(inner.trim());
+        if (!parsed) {
+          // Unsupported/leftover `{{ ... }}` — strip it rather than leaking the raw
+          // template into output, and surface a warning so it shows up in the
+          // run's step logs.
+          this.warnings.add(`Unresolved template expression: ${full}`);
+          return "";
+        }
+        const result = this.evaluateParsed(parsed, upstreamOutput);
+        return result == null ? "" : String(result);
       });
-
-      return resolved;
     }
     if (Array.isArray(value)) {
       return value.map((item) => this.resolveValue(item, upstreamOutput));

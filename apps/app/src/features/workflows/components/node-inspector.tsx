@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { lintTemplateExpressions } from "@/features/workflows/lib/lint-template-expressions";
 import { NodeIcon } from "@/features/workflows/lib/node-icon";
 import { WebhookConfig } from "@/features/webhooks/components/webhook-config";
 import { useKbsQuery } from "@/features/knowledge/api/queries";
@@ -24,6 +25,7 @@ interface NodeInspectorProps {
   readonly node: WorkflowNodeInput;
   readonly workflowId?: string;
   readonly validationErrors?: readonly string[];
+  readonly nodeTypesById?: ReadonlyMap<string, string>;
   readonly onUpdate: (patch: Partial<WorkflowNodeInput>) => void;
   readonly onClose: () => void;
 }
@@ -39,16 +41,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function FieldWarnings({ warnings }: { warnings?: string[] }) {
+  if (!warnings || warnings.length === 0) return null;
+  return (
+    <>
+      {warnings.map((warning, i) => (
+        <p key={i} className="text-amber-600 dark:text-amber-400 text-[10px]">
+          {warning}
+        </p>
+      ))}
+    </>
+  );
+}
+
 function TextInput({
   label,
   value,
   onChange,
   placeholder,
+  warnings,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  warnings?: string[];
 }) {
   return (
     <Field label={label}>
@@ -58,6 +75,7 @@ function TextInput({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
       />
+      <FieldWarnings warnings={warnings} />
     </Field>
   );
 }
@@ -68,12 +86,14 @@ function TextareaInput({
   onChange,
   placeholder,
   mono,
+  warnings,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   mono?: boolean;
+  warnings?: string[];
 }) {
   return (
     <Field label={label}>
@@ -83,6 +103,7 @@ function TextareaInput({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
       />
+      <FieldWarnings warnings={warnings} />
     </Field>
   );
 }
@@ -471,12 +492,15 @@ function WebhookTriggerForm({
 
 function AgentForm({
   node,
+  nodeTypesById,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  nodeTypesById?: ReadonlyMap<string, string>;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
+  const userPromptTemplate = str(node.params, "userPromptTemplate");
   return (
     <>
       <TextareaInput
@@ -487,9 +511,10 @@ function AgentForm({
       />
       <TextareaInput
         label="User prompt"
-        value={str(node.params, "userPromptTemplate")}
+        value={userPromptTemplate}
         onChange={(v) => p("userPromptTemplate", v)}
         placeholder="Process the input: {{ $json }}"
+        warnings={lintTemplateExpressions(userPromptTemplate, nodeTypesById ?? new Map())}
       />
       <Field label="Max iterations">
         <Input
@@ -834,12 +859,15 @@ function LanguageModelForm({
 
 function MemoryForm({
   node,
+  nodeTypesById,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  nodeTypesById?: ReadonlyMap<string, string>;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
+  const sessionKeyExpression = str(node.params, "sessionKeyExpression");
   return (
     <>
       <SelectInput
@@ -864,9 +892,10 @@ function MemoryForm({
       </Field>
       <TextInput
         label="Session key expression (optional)"
-        value={str(node.params, "sessionKeyExpression")}
+        value={sessionKeyExpression}
         onChange={(v) => p("sessionKeyExpression", v || null)}
         placeholder="{{ $json.userId }}"
+        warnings={lintTemplateExpressions(sessionKeyExpression, nodeTypesById ?? new Map())}
       />
     </>
   );
@@ -1219,19 +1248,23 @@ function SwitchForm({
 
 function LoopForm({
   node,
+  nodeTypesById,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  nodeTypesById?: ReadonlyMap<string, string>;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
+  const iterableExpression = str(node.params, "iterableExpression", "{{ $json.items }}");
   return (
     <>
       <TextInput
         label="Iterable expression"
-        value={str(node.params, "iterableExpression", "{{ $json.items }}")}
+        value={iterableExpression}
         onChange={(v) => p("iterableExpression", v)}
         placeholder="{{ $json.items }}"
+        warnings={lintTemplateExpressions(iterableExpression, nodeTypesById ?? new Map())}
       />
       <Field label="Batch size">
         <Input
@@ -1838,10 +1871,12 @@ function ToolCallForm({
 function KindForm({
   node,
   workflowId,
+  nodeTypesById,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
   workflowId?: string;
+  nodeTypesById?: ReadonlyMap<string, string>;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   switch (node.type) {
@@ -1856,13 +1891,13 @@ function KindForm({
     case "trigger.inbound_call":
       return <InboundCallTriggerForm node={node} onUpdate={onUpdate} />;
     case "ai.agent":
-      return <AgentForm node={node} onUpdate={onUpdate} />;
+      return <AgentForm node={node} nodeTypesById={nodeTypesById} onUpdate={onUpdate} />;
     case "ai.voice_agent":
       return <VoiceAgentForm node={node} onUpdate={onUpdate} />;
     case "ai.language_model":
       return <LanguageModelForm node={node} onUpdate={onUpdate} />;
     case "ai.memory":
-      return <MemoryForm node={node} onUpdate={onUpdate} />;
+      return <MemoryForm node={node} nodeTypesById={nodeTypesById} onUpdate={onUpdate} />;
     case "ai.retriever":
       return <RetrieverForm node={node} onUpdate={onUpdate} />;
     case "ai.output_parser":
@@ -1880,7 +1915,7 @@ function KindForm({
     case "flow.switch":
       return <SwitchForm node={node} onUpdate={onUpdate} />;
     case "flow.loop":
-      return <LoopForm node={node} onUpdate={onUpdate} />;
+      return <LoopForm node={node} nodeTypesById={nodeTypesById} onUpdate={onUpdate} />;
     case "flow.wait":
       return <WaitForm node={node} onUpdate={onUpdate} />;
     case "flow.merge":
@@ -1912,6 +1947,7 @@ export function NodeInspector({
   node,
   workflowId,
   validationErrors,
+  nodeTypesById,
   onUpdate,
   onClose,
 }: NodeInspectorProps) {
@@ -1944,7 +1980,12 @@ export function NodeInspector({
       {/* Kind-specific form */}
       <div className="min-h-0 px-3 py-3 flex-1 overflow-y-auto">
         <div className="gap-3 flex flex-col">
-          <KindForm node={node} workflowId={workflowId} onUpdate={onUpdate} />
+          <KindForm
+            node={node}
+            workflowId={workflowId}
+            nodeTypesById={nodeTypesById}
+            onUpdate={onUpdate}
+          />
         </div>
       </div>
     </div>

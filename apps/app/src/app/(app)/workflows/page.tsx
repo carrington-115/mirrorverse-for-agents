@@ -1,5 +1,12 @@
-import type { Metadata } from "next";
-import { WorkflowsPage, metadata as pageMetadata } from "@/features/workflows/pages/workflows-page";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { WorkflowsRedirect } from "@/features/workflows/components/workflows-redirect";
 
-export const metadata: Metadata = pageMetadata;
-export default WorkflowsPage;
+export const metadata = buildMetadata({
+  title: "Workflows",
+  description: "Browse, search, and run your agent workflows.",
+  noIndex: true,
+});
+
+export default function Page() {
+  return <WorkflowsRedirect />;
+}

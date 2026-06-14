@@ -27,7 +27,20 @@ interface WorkspaceCtx {
 
 export const workflowsService = {
   async list(ctx: WorkspaceCtx, input: ListWorkflowsInput) {
-    return repo.listWorkflowsForWorkspace(ctx.db, ctx.workspaceId, input.limit);
+    const rows = await repo.listWorkflowsForWorkspace(
+      ctx.db,
+      ctx.workspaceId,
+      input.limit,
+    );
+    const activity = await repo.getWorkflowActivityCounts(
+      ctx.db,
+      ctx.workspaceId,
+      rows.map((row) => row.id),
+    );
+    return rows.map((row) => ({
+      ...row,
+      activity: activity.get(row.id) ?? [],
+    }));
   },
 
   async get(ctx: WorkspaceCtx, input: GetWorkflowInput) {

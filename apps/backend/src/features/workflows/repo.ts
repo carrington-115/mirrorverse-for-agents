@@ -5,14 +5,18 @@ import {
   asc,
   desc,
   eq,
+  gte,
   inArray,
   schema,
+  sql,
   type Database,
 } from "@mirrorverse/db";
 import type { WorkflowDocumentInput } from "@mirrorverse/agent";
 import type { WorkflowDocument, WorkflowStatus } from "@mirrorverse/types";
 
-const { workflows, workflowVersions } = schema;
+const { workflows, workflowVersions, workflowRuns } = schema;
+
+export const WORKFLOW_ACTIVITY_DAYS = 14;
 
 function checksumDocument(doc: WorkflowDocumentInput): string {
   return createHash("sha256").update(JSON.stringify(doc)).digest("hex");
@@ -40,6 +44,63 @@ export async function listWorkflowsForWorkspace(
     .where(eq(workflows.workspaceId, workspaceId))
     .orderBy(asc(workflows.sortOrder), desc(workflows.updatedAt))
     .limit(limit);
+}
+
+// Returns, for each workflow ID, the number of runs started per day over the
+// last `WORKFLOW_ACTIVITY_DAYS` days (oldest first) — used for the small
+// activity sparkline in the workflows settings tab.
+export async function getWorkflowActivityCounts(
+  db: Database,
+  workspaceId: string,
+  workflowIds: readonly string[],
+  days: number = WORKFLOW_ACTIVITY_DAYS,
+): Promise<Map<string, number[]>> {
+  const result = new Map<string, number[]>();
+  if (workflowIds.length === 0) return result;
+
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  since.setUTCDate(since.getUTCDate() - (days - 1));
+
+  const rows = await db
+    .select({
+      workflowId: workflowRuns.workflowId,
+      day: sql<string>`date_trunc('day', ${workflowRuns.startedAt})::text`,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(workflowRuns)
+    .where(
+      and(
+        eq(workflowRuns.workspaceId, workspaceId),
+        inArray(workflowRuns.workflowId, [...workflowIds]),
+        gte(workflowRuns.startedAt, since),
+      ),
+    )
+    .groupBy(
+      workflowRuns.workflowId,
+      sql`date_trunc('day', ${workflowRuns.startedAt})`,
+    );
+
+  const countsByDay = new Map<string, Map<string, number>>();
+  for (const row of rows) {
+    const dayMap = countsByDay.get(row.workflowId) ?? new Map<string, number>();
+    dayMap.set(row.day.slice(0, 10), row.total);
+    countsByDay.set(row.workflowId, dayMap);
+  }
+
+  for (const workflowId of workflowIds) {
+    const dayMap = countsByDay.get(workflowId);
+    const counts: number[] = [];
+    const cursor = new Date(since);
+    for (let i = 0; i < days; i++) {
+      const key = cursor.toISOString().slice(0, 10);
+      counts.push(dayMap?.get(key) ?? 0);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    result.set(workflowId, counts);
+  }
+
+  return result;
 }
 
 export async function deleteWorkflowForWorkspace(

@@ -52,9 +52,24 @@ describe("RunState.resolveParams", () => {
     expect(resolved.title).toBe("European History summary");
   });
 
-  it("strips unresolved {{ }} expressions and records a warning", () => {
+  it("resolves a node-reference expression with a chained split/at op", () => {
     const state = new RunState();
-    state.set("agent_1", { output: "Some text\nMore text" });
+    state.set("agent_1", "Some text\nMore text");
+
+    const resolved = state.resolveParams(
+      {
+        title: "European History: {{ $('agent_1').item.json.split('\\n')[0] }}",
+      },
+      null,
+    );
+
+    expect(resolved.title).toBe("European History: Some text");
+    expect(state.drainWarnings()).toEqual([]);
+  });
+
+  it("resolves to empty (no warning) when an op chain is appended after a non-existent .output path", () => {
+    const state = new RunState();
+    state.set("agent_1", "Some text\nMore text");
 
     const resolved = state.resolveParams(
       {
@@ -65,8 +80,23 @@ describe("RunState.resolveParams", () => {
     );
 
     expect(resolved.title).toBe("European History: ");
+    expect(state.drainWarnings()).toEqual([]);
+  });
+
+  it("strips unresolved {{ }} expressions and records a warning", () => {
+    const state = new RunState();
+    state.set("agent_1", { output: "Some text\nMore text" });
+
+    const resolved = state.resolveParams(
+      {
+        title: "European History: {{ $('agent_1').item.json.output + 1 }}",
+      },
+      null,
+    );
+
+    expect(resolved.title).toBe("European History: ");
     expect(state.drainWarnings()).toEqual([
-      "Unresolved template expression: {{ $('agent_1').item.json.output.split('\\n')[0] }}",
+      "Unresolved template expression: {{ $('agent_1').item.json.output + 1 }}",
     ]);
   });
 
@@ -154,5 +184,32 @@ describe("RunState.resolveParams", () => {
       null,
     );
     expect(resolved).toEqual({ enabled: true, retries: 3, fallback: null });
+  });
+
+  it("resolves a single {{ $json.path.join(...) }} expression to its native type", () => {
+    const state = new RunState();
+    const resolved = state.resolveParams(
+      { text: "{{ $json.tags.join(',') }}" },
+      { tags: ["a", "b", "c"] },
+    );
+    expect(resolved.text).toBe("a,b,c");
+  });
+
+  it("resolves a single {{ $json.path.slice(...) }} expression to its native type", () => {
+    const state = new RunState();
+    const resolved = state.resolveParams(
+      { items: "{{ $json.items.slice(0, 2) }}" },
+      { items: ["a", "b", "c"] },
+    );
+    expect(resolved.items).toEqual(["a", "b"]);
+  });
+
+  it("inlines a chained op expression within a larger string", () => {
+    const state = new RunState();
+    const resolved = state.resolveParams(
+      { text: "Title: {{ $json.title.trim().toUpperCase() }}" },
+      { title: "  hello world  " },
+    );
+    expect(resolved.text).toBe("Title: HELLO WORLD");
   });
 });

@@ -90,6 +90,12 @@ export function StepDrawer({
                 </TabsTrigger>
                 <TabsTrigger value="logs" className="flex-1">
                   Logs
+                  {step.logs.some((l) => l.level === "warn") && (
+                    <span
+                      aria-label="Contains warnings"
+                      className="size-1.5 bg-amber-500 rounded-full"
+                    />
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="error" className="flex-1">
                   Error

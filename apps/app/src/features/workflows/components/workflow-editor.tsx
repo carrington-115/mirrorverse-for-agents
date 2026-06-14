@@ -172,6 +172,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
 
   const connections = displayDoc?.connections ?? [];
 
+  const nodeTypesById = useMemo(() => new Map(nodes.map((n) => [n.id, n.type])), [nodes]);
+
   const selectedNode = useMemo(
     () => workingDoc?.nodes.find((n) => n.id === selectedNodeId) ?? null,
     [workingDoc, selectedNodeId],
@@ -479,6 +481,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
             node={selectedNode}
             workflowId={workflowId}
             validationErrors={validationErrors.get(selectedNode.id)}
+            nodeTypesById={nodeTypesById}
             onUpdate={handleNodeUpdate}
             onClose={() => setSelectedNodeId(null)}
           />

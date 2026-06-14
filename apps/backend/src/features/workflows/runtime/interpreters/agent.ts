@@ -158,6 +158,7 @@ export async function interpretAgent(
     .onConflictDoNothing();
 
   return {
+    // Raw string by design — $('id').item.json resolves directly to this value in templates.
     output: text as JsonValue,
     nextPorts: ["main"],
     cost: stepCost,

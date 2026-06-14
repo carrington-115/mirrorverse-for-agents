@@ -28,6 +28,7 @@ import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { useChatsListQuery } from "@/features/chat/api/queries";
 import type { ChatListEntry } from "@/features/chat/api/server-types";
 import { ConversationSidebarItem } from "@/features/chat/components/conversation-sidebar-item";
+import { useSettingsModal } from "@/features/settings/hooks/use-settings-modal";
 import { SidebarHeaderComponent } from "./sidebar-header";
 import { SidebarProfileComponent } from "./sidebar-profile-component";
 import { SidebarActivityButton } from "./sidebar-activity-button";
@@ -56,7 +57,7 @@ export function DashboardSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <NewChatButton />
-              <SidebarActivityButton href="/workflows" name="Workflows" icon={WorkflowIcon} />
+              <WorkflowsSidebarButton />
               <SidebarActivityButton href="/knowledge" name="Knowledge" icon={BookOpen} />
               <SidebarActivityButton href="/integrations" name="Integrations" icon={Shapes} />
             </SidebarMenu>
@@ -80,6 +81,44 @@ export function DashboardSidebar() {
         </SidebarGroup>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function WorkflowsSidebarButton() {
+  const { state, setOpenMobile } = useSidebar();
+  const isCollapsed = state === "collapsed";
+  const { openSettings } = useSettingsModal();
+
+  const handleClick = () => {
+    setOpenMobile(false);
+    openSettings("workflows");
+  };
+
+  if (isCollapsed) {
+    return (
+      <SidebarMenuItem>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SidebarMenuButton
+              onClick={handleClick}
+              className="flex cursor-pointer items-center justify-center"
+            >
+              <WorkflowIcon className="size-4" />
+            </SidebarMenuButton>
+          </TooltipTrigger>
+          <TooltipContent side="right">Workflows</TooltipContent>
+        </Tooltip>
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton onClick={handleClick} className="cursor-pointer">
+        <WorkflowIcon className="size-4" />
+        <span>Workflows</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }
 

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   User,
+  Workflow,
   X,
   Zap,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import { ProfileSettingsShell } from "./settings-profile-shell";
 import { SecuritySettingsShell } from "./settings-security-shell";
 import { UsageSettingsShell } from "./settings-usage-shell";
 import { RunsSettingsShell } from "./settings-runs-shell";
+import { WorkflowsSettingsShell } from "./settings-workflows-shell";
 import { type SettingsPage, useSettingsModal } from "../hooks/use-settings-modal";
 
 type NavItem = {
@@ -46,6 +48,7 @@ const WORKSPACE_ITEMS: NavItem[] = [
   { id: "environment", label: "Environment", icon: KeyRound },
   { id: "channels", label: "Channels", icon: Megaphone },
   { id: "runs", label: "Run History", icon: History },
+  { id: "workflows", label: "Workflows", icon: Workflow },
 ];
 
 const ACCOUNT_ITEMS: NavItem[] = [{ id: "profile", label: "Profile", icon: User }];
@@ -61,6 +64,7 @@ const PAGE_CONTENT: Record<SettingsPage, React.ComponentType> = {
   environment: EnvVarsSettingsShell,
   channels: ChannelsSettingsShell,
   runs: RunsSettingsShell,
+  workflows: WorkflowsSettingsShell,
   profile: ProfileSettingsShell,
 };
 
