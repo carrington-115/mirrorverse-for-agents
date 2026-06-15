@@ -6,6 +6,7 @@ import type {
 import type { GetStepTools } from "inngest";
 
 import { inngest } from "../../inngest/client";
+import { isAiSlotPort } from "./connection-ports";
 import { CostCapExceededError, ZERO_COST } from "./cost-tracker";
 
 type StepTools = GetStepTools<typeof inngest>;
@@ -57,13 +58,19 @@ interface AdjacencyEntry {
   readonly toPort: string;
 }
 
-function buildMainAdjacency(
+/**
+ * All non-AI-slot connections drive the walker — this includes "main"/
+ * "main-out" data-flow edges as well as flow.if/flow.switch/flow.loop branch
+ * edges (whose fromPort is "true"/"false"/"0"/"1"/etc). Only AI composable-
+ * slot connections (ai_languageModel, ai_retriever, etc.) are excluded, since
+ * those are resolved separately via findSlotNode.
+ */
+export function buildMainAdjacency(
   doc: WorkflowDocument,
 ): Map<string, AdjacencyEntry[]> {
   const adj = new Map<string, AdjacencyEntry[]>();
   for (const conn of doc.connections) {
-    // Only "main" data-flow connections drive the walker.
-    if (conn.fromPort !== "main" && conn.fromPort !== "main-out") continue;
+    if (isAiSlotPort(conn.fromPort)) continue;
     const list = adj.get(conn.from) ?? [];
     list.push({
       toNodeId: conn.to,
@@ -79,11 +86,15 @@ function findNode(doc: WorkflowDocument, nodeId: string): WorkflowNode | null {
   return doc.nodes.find((n) => n.id === nodeId) ?? null;
 }
 
-/** Count how many main-flow incoming edges a node has (for merge detection). */
-function buildIncomingCount(doc: WorkflowDocument): Map<string, number> {
+/**
+ * Count how many non-AI-slot incoming edges a node has (for merge
+ * detection). Includes flow.if/flow.switch/flow.loop branch edges, since
+ * those can feed a flow.merge.
+ */
+export function buildIncomingCount(doc: WorkflowDocument): Map<string, number> {
   const count = new Map<string, number>();
   for (const conn of doc.connections) {
-    if (conn.fromPort !== "main" && conn.fromPort !== "main-out") continue;
+    if (isAiSlotPort(conn.fromPort)) continue;
     count.set(conn.to, (count.get(conn.to) ?? 0) + 1);
   }
   return count;
@@ -424,6 +435,10 @@ export async function walkGraph(
         (result as LoopSignal).kind === LOOP_SIGNAL
       ) {
         const loopResult = result as LoopSignal;
+        // Store the loop's own resolved iterable so $('loopNodeId').item.json
+        // resolves to the full array for any downstream/other-branch reference.
+        state.set(node.id, loopResult.items as JsonValue);
+
         const downstream = adj.get(node.id) ?? [];
         for (let i = 0; i < loopResult.items.length; i++) {
           const item = loopResult.items[i]!;

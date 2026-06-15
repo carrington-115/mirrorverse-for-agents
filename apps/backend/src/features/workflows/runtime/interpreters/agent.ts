@@ -11,6 +11,7 @@ import type {
 import { filterKbIdsByWorkspace } from "../../../knowledge/repo";
 import { searchAcrossKnowledgeBases } from "../../../knowledge/search";
 
+import { matchesSlotPort } from "../connection-ports";
 import type { CostTracker } from "../cost-tracker";
 import type { RunState } from "../run-state";
 import type { InterpretResult } from "./types";
@@ -45,13 +46,13 @@ function resolveModel(params: LanguageModelParams) {
   return anthropic(modelId);
 }
 
-function findSlotNode(
+export function findSlotNode(
   doc: WorkflowDocument,
   agentNodeId: string,
   slotName: string,
 ): WorkflowNode | null {
   const conn = doc.connections.find(
-    (c) => c.to === agentNodeId && c.toPort === slotName,
+    (c) => c.to === agentNodeId && matchesSlotPort(c.toPort, slotName),
   );
   if (!conn) return null;
   return doc.nodes.find((n) => n.id === conn.from) ?? null;

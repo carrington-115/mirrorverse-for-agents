@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { lintTemplateExpressions } from "@/features/workflows/lib/lint-template-expressions";
+import {
+  lintParamsObjectExpressions,
+  lintTemplateExpressions,
+} from "@/features/workflows/lib/lint-template-expressions";
 import { NodeIcon } from "@/features/workflows/lib/node-icon";
 import { WebhookConfig } from "@/features/webhooks/components/webhook-config";
 import { useKbsQuery } from "@/features/knowledge/api/queries";
@@ -995,9 +998,11 @@ function OutputParserForm({
 
 function HttpRequestForm({
   node,
+  nodeTypesById,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  nodeTypesById?: ReadonlyMap<string, string>;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
@@ -1051,6 +1056,11 @@ function HttpRequestForm({
           }}
           placeholder='{ "key": "{{ $json.value }}" }'
           mono
+          warnings={
+            Array.isArray(node.params.body)
+              ? []
+              : lintParamsObjectExpressions(asObj(node.params.body), nodeTypesById ?? new Map())
+          }
         />
       )}
     </>
@@ -1344,9 +1354,11 @@ function WaitForm({
 
 function TransformForm({
   node,
+  nodeTypesById,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  nodeTypesById?: ReadonlyMap<string, string>;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
@@ -1384,6 +1396,7 @@ function TransformForm({
           }}
           placeholder={'{\n  "status": "active",\n  "label": "{{ $json.name }}"\n}'}
           mono
+          warnings={lintParamsObjectExpressions(asObj(config.fields), nodeTypesById ?? new Map())}
         />
       )}
 
@@ -1410,6 +1423,7 @@ function TransformForm({
           }}
           placeholder={'{\n  "id": "{{ $json.id }}",\n  "title": "{{ $json.name }}"\n}'}
           mono
+          warnings={lintParamsObjectExpressions(asObj(config.fields), nodeTypesById ?? new Map())}
         />
       )}
 
@@ -1752,9 +1766,11 @@ function deriveComposioApp(toolName: string): string | null {
 
 function ToolCallForm({
   node,
+  nodeTypesById,
   onUpdate,
 }: {
   node: WorkflowNodeInput;
+  nodeTypesById?: ReadonlyMap<string, string>;
   onUpdate: NodeInspectorProps["onUpdate"];
 }) {
   const p = useParamUpdater(node, onUpdate);
@@ -1863,6 +1879,10 @@ function ToolCallForm({
         }}
         placeholder="{}"
         mono
+        warnings={lintParamsObjectExpressions(
+          asObj(node.params.parameters),
+          nodeTypesById ?? new Map(),
+        )}
       />
     </>
   );
@@ -1903,9 +1923,9 @@ function KindForm({
     case "ai.output_parser":
       return <OutputParserForm node={node} onUpdate={onUpdate} />;
     case "core.tool_call":
-      return <ToolCallForm node={node} onUpdate={onUpdate} />;
+      return <ToolCallForm node={node} nodeTypesById={nodeTypesById} onUpdate={onUpdate} />;
     case "core.http_request":
-      return <HttpRequestForm node={node} onUpdate={onUpdate} />;
+      return <HttpRequestForm node={node} nodeTypesById={nodeTypesById} onUpdate={onUpdate} />;
     case "core.code":
       return <CodeForm node={node} onUpdate={onUpdate} />;
     case "flow.if":
@@ -1929,7 +1949,7 @@ function KindForm({
     case "flow.stop":
       return <InfoPanel>Halts the run at this point. No downstream nodes will execute.</InfoPanel>;
     case "transform":
-      return <TransformForm node={node} onUpdate={onUpdate} />;
+      return <TransformForm node={node} nodeTypesById={nodeTypesById} onUpdate={onUpdate} />;
     case "human.review":
       return <HumanReviewForm node={node} onUpdate={onUpdate} />;
     case "editor.sticky_note":

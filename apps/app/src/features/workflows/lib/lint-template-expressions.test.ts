@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { lintTemplateExpressions } from "./lint-template-expressions";
+import { lintParamsObjectExpressions, lintTemplateExpressions } from "./lint-template-expressions";
 
 const NODE_TYPES = new Map<string, string>([
   ["agent_1", "ai.agent"],
@@ -67,5 +67,26 @@ describe("lintTemplateExpressions", () => {
       "Unsupported expression: {{ $json.a + 1 }}",
       `"agent_1" is an agent node; its output is the text itself — drop ".output".`,
     ]);
+  });
+});
+
+describe("lintParamsObjectExpressions", () => {
+  it("prefixes warnings with the offending key", () => {
+    expect(
+      lintParamsObjectExpressions(
+        { to: "{{ $json.email }}", body: "{{ $('agent_1').item.json.output }}" },
+        NODE_TYPES,
+      ),
+    ).toEqual([
+      `body: "agent_1" is an agent node; its output is the text itself — drop ".output".`,
+    ]);
+  });
+
+  it("ignores non-string values", () => {
+    expect(lintParamsObjectExpressions({ count: 5, flag: true }, NODE_TYPES)).toEqual([]);
+  });
+
+  it("returns no warnings for an object with only valid expressions", () => {
+    expect(lintParamsObjectExpressions({ to: "{{ $json.email }}" }, NODE_TYPES)).toEqual([]);
   });
 });

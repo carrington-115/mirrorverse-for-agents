@@ -52,3 +52,23 @@ export function lintTemplateExpressions(
 
   return warnings;
 }
+
+/**
+ * Lints every string value of a flat-ish params object (e.g. core.tool_call's
+ * `parameters`, transform's `config.fields`, core.http_request's `body`) and
+ * returns a flat warnings list prefixed with the offending key, for display
+ * under a single JSON-blob textarea.
+ */
+export function lintParamsObjectExpressions(
+  obj: Record<string, unknown>,
+  nodeTypesById: ReadonlyMap<string, string>,
+): string[] {
+  const warnings: string[] = [];
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value !== "string") continue;
+    for (const w of lintTemplateExpressions(value, nodeTypesById)) {
+      warnings.push(`${key}: ${w}`);
+    }
+  }
+  return warnings;
+}
