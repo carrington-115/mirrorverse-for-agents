@@ -134,6 +134,14 @@ export function WorkflowHeader({
     }
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/workflows");
+    }
+  };
+
   const handleShare = async () => {
     try {
       const url = `${window.location.origin}/workflows/${workflowId}`;
@@ -162,7 +170,7 @@ export function WorkflowHeader({
             variant="ghost"
             size="icon"
             className="size-6 rounded-sm"
-            onClick={() => router.push("/workflows")}
+            onClick={handleBack}
             title="Back to workflows"
           >
             <ArrowLeft className="size-4" />
