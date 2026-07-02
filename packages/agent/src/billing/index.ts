@@ -1,5 +1,6 @@
 export {
   SUPPORTED_CHAT_MODEL_IDS,
+  getEmbeddingPricePerMillionTokens,
   getModelPrice,
   isSupportedModel,
   microcentsToCents,

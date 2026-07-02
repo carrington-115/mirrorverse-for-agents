@@ -5,6 +5,7 @@ import {
   generateChatTitle,
   isSupportedModel,
   runMirrorpilot,
+  type ChatLimits,
 } from "@mirrorverse/agent";
 import { APP_EVENT_CATALOG } from "@mirrorverse/agent/schemas";
 import { randomUUID } from "node:crypto";
@@ -419,9 +420,27 @@ export async function POST(req: Request): Promise<Response> {
   const chat = await ensureChat(db, { chatId, workspaceId, userId: user.id });
   if (!chat) return jsonError(500, "Failed to ensure chat");
 
+  const activeSubscription = await getActiveSubscription(db, workspaceId).catch(
+    (err: unknown) => {
+      console.warn(
+        "[chat] failed to load active subscription, using default limits:",
+        err instanceof Error ? err.message : err,
+      );
+      return null;
+    },
+  );
+  const chatLimits: ChatLimits = {
+    maxMessagesPerChat:
+      activeSubscription?.plan.limits.maxMessagesPerChat ??
+      DEFAULT_CHAT_LIMITS.maxMessagesPerChat,
+    maxCostCentsPerChat:
+      activeSubscription?.plan.limits.maxCostCentsPerChat ??
+      DEFAULT_CHAT_LIMITS.maxCostCentsPerChat,
+  };
+
   const breach = await chatsService.checkAdmission(
     { db, userId: user.id },
-    { chatId: chat.id, limits: DEFAULT_CHAT_LIMITS },
+    { chatId: chat.id, limits: chatLimits },
   );
 
   if (breach) {
@@ -446,10 +465,11 @@ export async function POST(req: Request): Promise<Response> {
   // Workflow generation limit: only checked on the first message of a new chat.
   if (!chat.title) {
     try {
-      const sub = await getActiveSubscription(db, workspaceId);
-      const genLimit = sub?.plan.limits.maxWorkflowGenerationsPerPeriod ?? null;
+      const genLimit =
+        activeSubscription?.plan.limits.maxWorkflowGenerationsPerPeriod ?? null;
       if (genLimit !== null) {
-        const periodStart = sub?.subscription.currentPeriodStart ?? new Date(0);
+        const periodStart =
+          activeSubscription?.subscription.currentPeriodStart ?? new Date(0);
         const generationsUsed = await countGenerationsThisPeriod(
           db,
           workspaceId,

@@ -1,5 +1,6 @@
 import type { Database } from "@mirrorverse/db";
 import { schema, eq } from "@mirrorverse/db";
+import { centsToCredits } from "@mirrorverse/agent";
 import { env } from "@mirrorverse/env/backend";
 
 import { appError, ErrCode } from "../../lib/errors";
@@ -217,6 +218,7 @@ export const voiceService = {
         quantity: 1,
         unit: "number",
         costCents: phoneNum.monthlyCostCents,
+        credits: centsToCredits(phoneNum.monthlyCostCents),
         billable: true,
         idempotencyKey: `phone_activate:${voiceAgent.id}:${new Date().toISOString().slice(0, 7)}`,
       })

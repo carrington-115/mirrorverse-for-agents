@@ -45,6 +45,9 @@ export interface PlanLimits {
   readonly maxRunsPerMonth: number | null;
   readonly maxWorkflowGenerationsPerPeriod: number | null;
   readonly maxFileUploadMb: number | null;
+  /** Null falls back to the platform default (see DEFAULT_CHAT_LIMITS). */
+  readonly maxMessagesPerChat: number | null;
+  readonly maxCostCentsPerChat: number | null;
 }
 
 export interface PlanFeatures {

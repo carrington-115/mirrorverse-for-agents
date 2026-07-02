@@ -29,6 +29,18 @@ const MODEL_PRICING: Record<string, ModelPricePerMillionTokens> = {
 
 const DEFAULT_PRICE: ModelPricePerMillionTokens = MODEL_PRICING["claude-haiku-4-5"];
 
+// Published per-1M-token price in USD, input tokens only (no output/cache tiers).
+const EMBEDDING_PRICING: Record<string, number> = {
+  "text-embedding-3-small": 0.02,
+  "text-embedding-3-large": 0.13,
+};
+
+const DEFAULT_EMBEDDING_PRICE = EMBEDDING_PRICING["text-embedding-3-small"];
+
+export function getEmbeddingPricePerMillionTokens(model: string): number {
+  return EMBEDDING_PRICING[model] ?? DEFAULT_EMBEDDING_PRICE;
+}
+
 function canonicalModelId(model: string): string {
   return model.replace(/-\d{8}$/, "");
 }

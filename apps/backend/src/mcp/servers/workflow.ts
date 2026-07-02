@@ -7,6 +7,10 @@ import {
 } from "@mirrorverse/agent/schemas";
 import { z } from "zod";
 
+import {
+  countWorkflows,
+  getActiveSubscription,
+} from "../../features/billing/repo";
 import type { FirstPartyServer } from "../server-host";
 
 const { workflows, workflowVersions } = schema;
@@ -100,6 +104,17 @@ export const workflowServer: FirstPartyServer = {
           });
 
           return { workflowId, versionId, versionNumber: nextVersion };
+        }
+
+        const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+        const workflowLimit = sub?.plan.limits.maxWorkflows ?? null;
+        if (workflowLimit !== null) {
+          const used = await countWorkflows(ctx.db, ctx.workspaceId);
+          if (used >= workflowLimit) {
+            throw new Error(
+              "Workflow limit reached for your plan. Please upgrade to create more workflows.",
+            );
+          }
         }
 
         const newWorkflowId = randomUUID();

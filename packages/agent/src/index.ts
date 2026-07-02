@@ -20,9 +20,12 @@ export {
   centsToCredits,
   checkChatLimits,
   describeChatLimitBreach,
+  getEmbeddingPricePerMillionTokens,
   getModelPrice,
   isSupportedModel,
+  microcentsToCents,
   microcentsToCredits,
+  tokensToCents,
 } from "./billing";
 export type {
   AgentUsageEntry,
