@@ -8,6 +8,8 @@ import type {
   WorkflowDocument,
 } from "@mirrorverse/types";
 
+import { breakdownStepUsage } from "@mirrorverse/agent";
+
 import { filterKbIdsByWorkspace } from "../../../knowledge/repo";
 import { searchAcrossKnowledgeBases } from "../../../knowledge/search";
 
@@ -135,28 +137,44 @@ export async function interpretAgent(
   });
 
   // Record token usage for billing.
+  const breakdown = breakdownStepUsage(
+    usage,
+    lmParams.model ?? "claude-haiku-4-5",
+  );
+  const cachedTokens = breakdown.entries
+    .filter(
+      (entry) =>
+        entry.kind === "llm_input_cache_read" ||
+        entry.kind === "llm_input_cache_write",
+    )
+    .reduce((sum, entry) => sum + entry.quantity, 0);
+
   const stepCost = {
     tokensIn: usage?.inputTokens ?? 0,
-    tokensInCached: 0,
+    tokensInCached: cachedTokens,
     tokensOut: usage?.outputTokens ?? 0,
-    costCents: 0, // precise pricing resolved at aggregation time
+    costCents: breakdown.totalCostCents,
   };
   costTracker.add(stepCost);
 
-  const idempotencyKey = `run:${runId}:node:${node.id}:llm_input`;
-  await db
-    .insert(usageEvents)
-    .values({
-      workspaceId,
-      runId,
-      kind: "llm_input",
-      quantity: stepCost.tokensIn,
-      unit: "token",
-      model: lmParams.model ?? "claude-haiku-4-5",
-      costCents: 0,
-      idempotencyKey,
-    })
-    .onConflictDoNothing();
+  if (breakdown.entries.length > 0) {
+    await db
+      .insert(usageEvents)
+      .values(
+        breakdown.entries.map((entry) => ({
+          workspaceId,
+          runId,
+          kind: entry.kind,
+          quantity: entry.quantity,
+          unit: entry.unit,
+          model: entry.model,
+          costCents: entry.costCents,
+          credits: entry.credits,
+          idempotencyKey: `run:${runId}:node:${node.id}:${entry.kind}`,
+        })),
+      )
+      .onConflictDoNothing();
+  }
 
   return {
     // Raw string by design — $('id').item.json resolves directly to this value in templates.

@@ -25,11 +25,13 @@ const {
   invoices,
   usagePeriodAggregates,
   workflowRuns,
+  workflows,
   chats,
   connections,
   phoneNumbers,
   voiceAgents,
   workspaces,
+  knowledgeBases,
 } = schema;
 
 // ─── Chat usage (existing) ────────────────────────────────────────────────────
@@ -620,6 +622,28 @@ export async function countVoiceAgents(
         eq(voiceAgents.enabled, true),
       ),
     );
+  return row?.count ?? 0;
+}
+
+export async function countWorkflows(
+  db: Database,
+  workspaceId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(workflows)
+    .where(eq(workflows.workspaceId, workspaceId));
+  return row?.count ?? 0;
+}
+
+export async function countKnowledgeBases(
+  db: Database,
+  workspaceId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(knowledgeBases)
+    .where(eq(knowledgeBases.workspaceId, workspaceId));
   return row?.count ?? 0;
 }
 

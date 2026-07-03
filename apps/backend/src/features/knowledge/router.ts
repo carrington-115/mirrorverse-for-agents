@@ -1,7 +1,7 @@
 import { router } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
 import { appError, ErrCode } from "../../lib/errors";
-import { getActiveSubscription } from "../billing/repo";
+import { countKnowledgeBases, getActiveSubscription } from "../billing/repo";
 
 import {
   createKbInput,
@@ -21,12 +21,23 @@ import { knowledgeService } from "./service";
 export const knowledgeRouter = router({
   createKb: workspaceProc
     .input(createKbInput)
-    .mutation(({ ctx, input }) =>
-      knowledgeService.createKb(
+    .mutation(async ({ ctx, input }) => {
+      const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+      const limit = sub?.plan.limits.maxKnowledgeBases ?? null;
+      if (limit !== null) {
+        const used = await countKnowledgeBases(ctx.db, ctx.workspaceId);
+        if (used >= limit) {
+          throw appError(
+            ErrCode.PlanLimitReached,
+            "Knowledge base limit reached. Please upgrade your plan.",
+          );
+        }
+      }
+      return knowledgeService.createKb(
         { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
-      ),
-    ),
+      );
+    }),
 
   listKbs: workspaceProc
     .input(listKbsInput)

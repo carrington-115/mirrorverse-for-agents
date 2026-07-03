@@ -22,9 +22,13 @@ const mockDb = {
 function buildSelectChain(returnValue: unknown[]) {
   const chain: Record<string, unknown> = {};
   chain.from = vi.fn(() => chain);
+  chain.innerJoin = vi.fn(() => chain);
   chain.where = vi.fn(() => chain);
   chain.orderBy = vi.fn(() => chain);
   chain.limit = vi.fn(() => Promise.resolve(returnValue));
+  // Drizzle query builders are thenable at any point in the chain (e.g. a
+  // bare `.where(...)` with no trailing `.limit()` is awaitable directly).
+  chain.then = (resolve: (v: unknown[]) => void) => resolve(returnValue);
   return chain;
 }
 
@@ -43,6 +47,9 @@ describe("workflow server", () => {
     process.env.SKIP_ENV_VALIDATION = "true";
 
     mockDb.insert.mockReturnValue({ values: vi.fn(() => Promise.resolve()) });
+    // No active subscription by default → no workflow-limit enforcement.
+    // Tests that need a specific select() result override this.
+    mockDb.select.mockReturnValue(buildSelectChain([]));
     const updateChain: Record<string, unknown> = {};
     updateChain.set = vi.fn(() => updateChain);
     updateChain.where = vi.fn(() => Promise.resolve());
@@ -64,6 +71,31 @@ describe("workflow server", () => {
     expect(result.workflowId).toBeTruthy();
     expect(result.versionNumber).toBe(1);
     expect(mockDb.insert).toHaveBeenCalledTimes(2); // workflows + workflowVersions
+  });
+
+  it("commit throws when the workflow limit for the plan is reached", async () => {
+    mockDb.select
+      .mockReturnValueOnce(
+        buildSelectChain([
+          {
+            subscription: {
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: new Date(),
+            },
+            plan: { limits: { maxWorkflows: 1 } },
+          },
+        ]),
+      )
+      .mockReturnValueOnce(buildSelectChain([{ count: 1 }]));
+
+    const { workflowServer } = await import("../workflow");
+    await expect(
+      workflowServer.tools.commit.handler(
+        { document: sampleDoc, summary: "initial" },
+        ctx,
+      ),
+    ).rejects.toThrow(/limit/i);
+    expect(mockDb.insert).not.toHaveBeenCalled();
   });
 
   it("commit adds a new version to an existing workflow", async () => {

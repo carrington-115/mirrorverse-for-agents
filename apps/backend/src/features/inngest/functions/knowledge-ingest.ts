@@ -8,6 +8,12 @@ import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
+import {
+  centsToCredits,
+  getEmbeddingPricePerMillionTokens,
+  microcentsToCents,
+  tokensToCents,
+} from "@mirrorverse/agent";
 
 import {
   EMBEDDING_DIMS,
@@ -422,6 +428,11 @@ export function makeKnowledgeIngestFunction(db: Database): InngestFunction.Any {
 
           // Cost tracking: record embedding token spend. Idempotent per document
           // so a step retry can't double-bill.
+          const { microcents } = tokensToCents(
+            tokens,
+            getEmbeddingPricePerMillionTokens(EMBEDDING_MODEL_ID),
+          );
+          const embeddingCostCents = microcentsToCents(microcents);
           await db
             .insert(schema.usageEvents)
             .values({
@@ -430,7 +441,8 @@ export function makeKnowledgeIngestFunction(db: Database): InngestFunction.Any {
               quantity: tokens,
               unit: "token",
               model: EMBEDDING_MODEL_ID,
-              costCents: 0,
+              costCents: embeddingCostCents,
+              credits: centsToCredits(embeddingCostCents),
               billable: true,
               idempotencyKey: `kb_embed:${documentId}`,
             })
