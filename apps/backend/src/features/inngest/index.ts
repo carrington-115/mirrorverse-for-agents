@@ -6,6 +6,7 @@ import { makeChatAgentLoopFunction } from "./functions/chat-agent-loop";
 import { makeEmailCronFunctions } from "./functions/email-crons";
 import { makeKnowledgeIngestFunction } from "./functions/knowledge-ingest";
 import { makeSubscriptionRenewalFunction } from "./functions/subscription-renewal";
+import { makeWebhookLogPruneFunction } from "./functions/webhook-log-prune";
 import { makeWorkflowExecuteFunction } from "./functions/workflow-execute";
 import { makeCronDispatcherFunction } from "../workflows/runtime/cron-dispatcher";
 
@@ -33,6 +34,7 @@ export function buildInngestFunctions(
     makeBillingAggregatorFunction(db),
     makeSubscriptionRenewalFunction(db),
     makeCronDispatcherFunction(db),
+    makeWebhookLogPruneFunction(db),
     ...makeEmailCronFunctions(db),
   ];
 }

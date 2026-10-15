@@ -14,7 +14,7 @@ export interface DueCronWorkflow {
 }
 
 /**
- * Returns all active automation workflows whose current version has a
+ * Returns all active automation workflows whose deployed version has a
  * `trigger.cron` node whose expression is due to fire at `now` (within
  * the current minute boundary).
  */
@@ -32,7 +32,7 @@ export async function findDueCronWorkflows(
     .from(workflows)
     .innerJoin(
       workflowVersions,
-      eq(workflowVersions.id, workflows.currentVersionId),
+      eq(workflowVersions.id, workflows.deployedVersionId),
     )
     .where(
       and(eq(workflows.status, "active"), eq(workflows.kind, "automation")),

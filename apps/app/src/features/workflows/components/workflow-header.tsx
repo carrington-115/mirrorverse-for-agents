@@ -36,6 +36,7 @@ import {
   useDeleteWorkflowMutation,
   useRenameWorkflowMutation,
 } from "@/features/workflows/api/mutations";
+import { useWorkflowQuery } from "@/features/workflows/api/queries";
 
 import { VersionSwitcher } from "./version-switcher";
 import { WorkflowDeployButton } from "./workflow-deploy-button";
@@ -96,6 +97,10 @@ export function WorkflowHeader({
   const router = useRouter();
   const renameMutation = useRenameWorkflowMutation();
   const deleteMutation = useDeleteWorkflowMutation();
+  const { data: workflowData } = useWorkflowQuery(workflowId);
+  const deployment = workflowData?.deployment ?? null;
+  const showUndeployedBadge =
+    workflowStatus === "active" && (deployment?.hasUndeployedChanges ?? false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [draftName, setDraftName] = useState(workflowName);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -255,6 +260,15 @@ export function WorkflowHeader({
                   className="h-6 px-2 text-xs font-normal capitalize"
                 >
                   {workflowStatus}
+                </Badge>
+              ) : null}
+              {showUndeployedBadge ? (
+                <Badge
+                  variant="outline"
+                  className="h-6 px-2 text-xs font-normal text-amber-600 border-amber-500/50"
+                  title={`Live version is v${deployment?.versionNumber}. Redeploy to publish your latest changes.`}
+                >
+                  Undeployed changes
                 </Badge>
               ) : null}
               {currentVersionNumber != null ? (

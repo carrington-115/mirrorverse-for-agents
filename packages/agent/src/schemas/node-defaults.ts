@@ -352,7 +352,7 @@ export function defaultNodeForKind(args: DefaultNodeArgs): WorkflowNodeInput | n
         ...base,
         params: {
           method: "POST",
-          verifySignature: false,
+          verifySignature: true,
           responseMode: "on_received",
           endpointSlug: `webhook-${args.id.slice(0, 6)}`,
         },

@@ -381,7 +381,7 @@ AI slot port names: \`"ai_languageModel"\` | \`"ai_memory"\` | \`"ai_tool"\` | \
   "id": "trg_webhook",
   "type": "trigger.webhook",
   "position": { "x": 0, "y": 0 },
-  "params": { "method": "POST", "endpointSlug": "my-hook", "verifySignature": false, "responseMode": "on_received" }
+  "params": { "method": "POST", "endpointSlug": "my-hook", "verifySignature": true, "responseMode": "on_received" }
 }
 \`\`\`
 

@@ -24,6 +24,7 @@ import {
   useRunWorkflowMutation,
   useSetSlackAgentMutation,
 } from "@/features/workflows/api/mutations";
+import { showDeployErrorToast } from "@/features/workflows/lib/deploy-error";
 
 export const KIND_LABELS: Record<Workflow["kind"], string> = {
   automation: "Automation",
@@ -63,7 +64,7 @@ export function WorkflowActionMenuItems({
         { workflowId: w.id },
         {
           onSuccess: () => toast.success(`"${w.name}" activated`),
-          onError: (err) => toast.error(err.message || "Failed to activate workflow"),
+          onError: showDeployErrorToast,
         },
       );
     }

@@ -23,6 +23,9 @@ import {
 
 const workflowIdInput = z.object({ workflowId: z.string().min(1).max(128) });
 const setSlackAgentInput = workflowIdInput.extend({ enabled: z.boolean() });
+const deployVersionInput = workflowIdInput.extend({
+  versionNumber: z.number().int().positive(),
+});
 
 export const workflowsRouter = router({
   list: workspaceProc
@@ -101,6 +104,15 @@ export const workflowsRouter = router({
     .input(workflowIdInput)
     .mutation(({ ctx, input }) =>
       workflowsService.activate(
+        { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
+        input,
+      ),
+    ),
+
+  deployVersion: workspaceProc
+    .input(deployVersionInput)
+    .mutation(({ ctx, input }) =>
+      workflowsService.deployVersion(
         { db: ctx.db, workspaceId: ctx.workspaceId, userId: ctx.user.id },
         input,
       ),

@@ -1,7 +1,8 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { Check, ChevronDown, History } from "lucide-react";
+import { Check, ChevronDown, History, Rocket } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWorkflowVersionsQuery } from "@/features/workflows/api/queries";
+import { useDeployWorkflowVersionMutation } from "@/features/workflows/api/mutations";
+import { useWorkflowQuery, useWorkflowVersionsQuery } from "@/features/workflows/api/queries";
+import { showDeployErrorToast } from "@/features/workflows/lib/deploy-error";
 
 interface VersionSummary {
   id: string;
@@ -38,9 +41,33 @@ export function VersionSwitcher({
   onSelectVersion,
 }: VersionSwitcherProps) {
   const { data, isLoading } = useWorkflowVersionsQuery(workflowId);
+  const { data: workflowData } = useWorkflowQuery(workflowId);
+  const deployVersion = useDeployWorkflowVersionMutation();
   const versions = (data?.versions ?? []) as VersionSummary[];
   const latestVersionNumber = versions[0]?.versionNumber ?? currentVersionNumber;
   const isViewingLatest = currentVersionNumber === latestVersionNumber;
+  const deployedVersionNumber =
+    workflowData?.workflow?.status === "active"
+      ? (workflowData.deployment?.versionNumber ?? null)
+      : null;
+  const canDeployViewed = currentVersionNumber !== deployedVersionNumber;
+
+  const handleDeployViewed = () => {
+    const isRollback =
+      deployedVersionNumber !== null && currentVersionNumber < deployedVersionNumber;
+    deployVersion.mutate(
+      { workflowId, versionNumber: currentVersionNumber },
+      {
+        onSuccess: () =>
+          toast.success(
+            isRollback
+              ? `Rolled back to v${currentVersionNumber}`
+              : `Deployed v${currentVersionNumber}`,
+          ),
+        onError: showDeployErrorToast,
+      },
+    );
+  };
 
   return (
     <DropdownMenu>
@@ -62,6 +89,7 @@ export function VersionSwitcher({
         {versions.map((v) => {
           const isSelected = v.versionNumber === currentVersionNumber;
           const isLatest = v.versionNumber === latestVersionNumber;
+          const isDeployed = v.versionNumber === deployedVersionNumber;
           return (
             <DropdownMenuItem
               key={v.id}
@@ -73,6 +101,9 @@ export function VersionSwitcher({
                   v{v.versionNumber}
                   {isLatest ? (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">latest</span>
+                  ) : null}
+                  {isDeployed ? (
+                    <span className="ml-2 text-xs font-normal text-primary">live</span>
                   ) : null}
                 </span>
                 <span className="gap-2 flex items-center">
@@ -88,6 +119,21 @@ export function VersionSwitcher({
             </DropdownMenuItem>
           );
         })}
+        {canDeployViewed && versions.length > 0 ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleDeployViewed}
+              disabled={deployVersion.isPending}
+              className="gap-2 text-xs"
+            >
+              <Rocket className="size-3" />
+              {deployedVersionNumber !== null && currentVersionNumber < deployedVersionNumber
+                ? `Roll back to v${currentVersionNumber}`
+                : `Deploy v${currentVersionNumber}`}
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

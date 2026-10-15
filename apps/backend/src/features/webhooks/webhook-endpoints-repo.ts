@@ -1,6 +1,16 @@
 import { randomBytes } from "node:crypto";
 
-import { and, eq, schema, sql, type Database } from "@mirrorverse/db";
+import {
+  and,
+  eq,
+  inArray,
+  lt,
+  ne,
+  notInArray,
+  schema,
+  sql,
+  type Database,
+} from "@mirrorverse/db";
 import type { JsonValue } from "@mirrorverse/types";
 
 type WebhookInboundStatus = "dispatched" | "duplicate" | "rejected";
@@ -38,9 +48,10 @@ export async function createOrReactivateEndpoint(
     })
     .onConflictDoUpdate({
       target: [webhookEndpoints.workflowId, webhookEndpoints.triggerNodeId],
+      // Keep the existing secret so callers' signing keys survive a redeploy;
+      // rotate explicitly via regenerateEndpointSecret.
       set: {
         slug,
-        secret,
         verifySignature,
         enabled: true,
         updatedAt: new Date(),
@@ -48,6 +59,57 @@ export async function createOrReactivateEndpoint(
     })
     .returning();
   return row!;
+}
+
+// Slugs (from `slugs`) already claimed by endpoints of a different workflow.
+export async function listSlugsTakenByOtherWorkflows(
+  db: Database,
+  workflowId: string,
+  slugs: readonly string[],
+): Promise<Set<string>> {
+  if (slugs.length === 0) return new Set();
+  const rows = await db
+    .select({ slug: webhookEndpoints.slug })
+    .from(webhookEndpoints)
+    .where(
+      and(
+        inArray(webhookEndpoints.slug, [...slugs]),
+        ne(webhookEndpoints.workflowId, workflowId),
+      ),
+    );
+  return new Set(rows.map((r) => r.slug));
+}
+
+// Disables endpoints for trigger nodes that no longer exist in the deployed
+// version, so removed webhooks stop accepting traffic.
+export async function disableStaleEndpoints(
+  db: Database,
+  workspaceId: string,
+  workflowId: string,
+  activeTriggerNodeIds: readonly string[],
+) {
+  await db
+    .update(webhookEndpoints)
+    .set({ enabled: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(webhookEndpoints.workflowId, workflowId),
+        eq(webhookEndpoints.workspaceId, workspaceId),
+        activeTriggerNodeIds.length > 0
+          ? notInArray(webhookEndpoints.triggerNodeId, [
+              ...activeTriggerNodeIds,
+            ])
+          : undefined,
+      ),
+    );
+}
+
+export async function pruneInboundLog(db: Database, olderThan: Date) {
+  const rows = await db
+    .delete(webhookInboundLog)
+    .where(lt(webhookInboundLog.receivedAt, olderThan))
+    .returning({ id: webhookInboundLog.id });
+  return rows.length;
 }
 
 export async function disableEndpointsByWorkflowId(
