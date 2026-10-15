@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import type { InngestFunction } from "inngest";
 import { load } from "cheerio";
 import { count, eq, schema, type Database } from "@mirrorverse/db";
-import { PDFParse } from "pdf-parse";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import mammoth from "mammoth";
@@ -193,13 +192,25 @@ async function fetchAndParseUrl(rawUrl: string): Promise<string> {
   throw new Error(`Could not extract text from URL: ${rawUrl}`);
 }
 
+// pdf-parse (pdfjs-dist v5) needs browser globals like DOMMatrix, which
+// `pdf-parse/worker` polyfills via @napi-rs/canvas — it must load first.
+// Loaded lazily so a PDF-runtime problem can't crash the whole Inngest
+// serve route at import time (it did on Vercel: "DOMMatrix is not defined").
+async function loadPdfParse() {
+  const { CanvasFactory, getData } = await import("pdf-parse/worker");
+  const { PDFParse } = await import("pdf-parse");
+  PDFParse.setWorker(getData());
+  return { PDFParse, CanvasFactory };
+}
+
 async function fetchAndParsePdf(storageKeyOrUrl: string): Promise<string> {
   const resp = await fetch(storageKeyOrUrl, {
     signal: AbortSignal.timeout(FILE_FETCH_TIMEOUT_MS),
   });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching PDF`);
   const buffer = Buffer.from(await resp.arrayBuffer());
-  const parser = new PDFParse({ data: buffer });
+  const { PDFParse, CanvasFactory } = await loadPdfParse();
+  const parser = new PDFParse({ data: buffer, CanvasFactory });
   try {
     const result = await parser.getText();
     return result.text.replace(/\s+/g, " ").trim();

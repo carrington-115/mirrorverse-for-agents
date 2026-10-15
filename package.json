@@ -1,6 +1,7 @@
 {
   "name": "mirrorverse",
   "private": true,
+  "license": "MIT",
   "packageManager": "pnpm@10.27.0",
   "scripts": {
     "build": "turbo run build",

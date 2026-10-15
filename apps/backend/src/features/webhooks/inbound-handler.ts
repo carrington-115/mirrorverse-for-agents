@@ -42,7 +42,8 @@ export async function inboundWebhookHandler(
         requestId,
         request.method,
         headersRecord,
-        null,
+        // body is NOT NULL; never store an unverified payload.
+        { rejected: "invalid_signature" },
         "rejected",
       );
       return Response.json({ error: "Invalid signature" }, { status: 401 });
@@ -63,7 +64,7 @@ export async function inboundWebhookHandler(
     requestId,
     request.method,
     headersRecord,
-    body,
+    body ?? {},
     "dispatched",
   );
 

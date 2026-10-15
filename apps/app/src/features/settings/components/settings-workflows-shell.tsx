@@ -48,6 +48,7 @@ import {
   KIND_LABELS,
   WorkflowActionMenuItems,
 } from "@/features/workflows/components/workflow-action-menu-items";
+import { showDeployErrorToast } from "@/features/workflows/lib/deploy-error";
 import { useSettingsModal } from "../hooks/use-settings-modal";
 
 type WorkflowWithActivity = Workflow & { createdAt: Date; activity: number[] };
@@ -139,7 +140,7 @@ function WorkflowItem({
         { workflowId: w.id },
         {
           onSuccess: () => toast.success(`"${w.name}" activated`),
-          onError: (err) => toast.error(err.message || "Failed to activate workflow"),
+          onError: showDeployErrorToast,
         },
       );
     }
