@@ -28,3 +28,8 @@ export function useDailyCreditUsageQuery() {
   const trpc = useTRPC();
   return useQuery(trpc.billing.dailyCreditUsage.queryOptions());
 }
+
+export function usePromoRedemptionsQuery() {
+  const trpc = useTRPC();
+  return useQuery(trpc.billing.listPromoRedemptions.queryOptions());
+}

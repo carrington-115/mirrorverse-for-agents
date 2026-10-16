@@ -127,6 +127,20 @@
       "when": 1781322060547,
       "tag": "0017_bent_turbo",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792038234705,
+      "tag": "0018_clumsy_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792038250464,
+      "tag": "0019_seed_hacktoberfest_promo",
+      "breakpoints": true
     }
   ]
 }
