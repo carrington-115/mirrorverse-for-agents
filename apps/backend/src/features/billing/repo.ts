@@ -128,15 +128,31 @@ export async function recordSandboxUsage(
 // knowledge routers). Short TTL bounds staleness; writers below invalidate.
 const ACTIVE_SUBSCRIPTION_TTL_SECONDS = 60;
 
+// Stripe identifiers and the payment-method id never go to Redis. Code that
+// needs them (the billing settings page) reads Postgres directly through
+// getActiveSubscriptionUncached.
 export async function getActiveSubscription(db: Database, workspaceId: string) {
   return cached(
     cacheKeys.activeSubscription(workspaceId),
     ACTIVE_SUBSCRIPTION_TTL_SECONDS,
-    () => loadActiveSubscription(db, workspaceId),
+    async () => {
+      const row = await getActiveSubscriptionUncached(db, workspaceId);
+      if (!row) return null;
+      const {
+        stripeSubscriptionId: _stripeSubscriptionId,
+        stripeCustomerId: _stripeCustomerId,
+        defaultPaymentMethod: _defaultPaymentMethod,
+        ...subscription
+      } = row.subscription;
+      return { plan: row.plan, subscription };
+    },
   );
 }
 
-async function loadActiveSubscription(db: Database, workspaceId: string) {
+export async function getActiveSubscriptionUncached(
+  db: Database,
+  workspaceId: string,
+) {
   const [row] = await db
     .select({
       subscription: subscriptions,

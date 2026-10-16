@@ -25,7 +25,7 @@ Mirrroverse empowers every department with agents that think, adapt, and execute
 Node.js >= 18.x
 Python >= 3.10 (for AI services)
 PostgreSQL >= 14
-Redis >= 7.0
+Upstash Redis (optional — cache, rate limiting & quota counters)
 ```
 
 ### Installation
@@ -158,7 +158,7 @@ Role-based access control:
 - Node.js / Express (API server)
 - Python / FastAPI (AI services)
 - PostgreSQL (primary database)
-- Redis (caching & queues)
+- Upstash Redis (optional cache, rate limiting & quota counters; background jobs run on Inngest)
 - Prisma ORM
 
 ### AI & Voice

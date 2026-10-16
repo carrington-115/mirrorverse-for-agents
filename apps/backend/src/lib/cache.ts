@@ -9,8 +9,12 @@ let client: Redis | null | undefined;
 
 function getClient(): Redis | null {
   if (client !== undefined) return client;
+  // Tests never reach a real Redis, even with Upstash credentials in the
+  // shell; they inject a fake through setCacheClient instead.
   client =
-    env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
+    env.NODE_ENV !== "test" &&
+    env.UPSTASH_REDIS_REST_URL &&
+    env.UPSTASH_REDIS_REST_TOKEN
       ? new Redis({
           url: env.UPSTASH_REDIS_REST_URL,
           token: env.UPSTASH_REDIS_REST_TOKEN,
@@ -121,4 +125,93 @@ export async function cached<T>(
   const value = await load();
   if (value !== null) await cacheSet(key, value, ttlSeconds);
   return value;
+}
+
+// ─── Counters ─────────────────────────────────────────────────────────────────
+// Integer counters stored as plain Redis strings. Like the cache ops above they
+// fail open: `null` means "no answer from Redis", and callers fall back to
+// Postgres.
+
+function toCount(raw: unknown): number | null {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return raw === null || raw === undefined || !Number.isFinite(n) ? null : n;
+}
+
+export async function getCounter(key: string): Promise<number | null> {
+  const redis = getClient();
+  if (!redis) return null;
+  try {
+    return toCount(await redis.get<number | string>(KEY_PREFIX + key));
+  } catch (err) {
+    warn("get", key, err);
+    return null;
+  }
+}
+
+/**
+ * INCRBY + EXPIRE in one round trip, creating the counter at 0 if missing.
+ * Returns the new value. Use for counters that start empty (e.g. rate-limit
+ * style tallies), not for ones that must be seeded from Postgres first.
+ */
+export async function cacheIncrBy(
+  key: string,
+  amount: number,
+  ttlSeconds: number,
+): Promise<number | null> {
+  const redis = getClient();
+  if (!redis) return null;
+  try {
+    const [value] = await redis
+      .pipeline()
+      .incrby(KEY_PREFIX + key, amount)
+      .expire(KEY_PREFIX + key, ttlSeconds)
+      .exec<[number, number]>();
+    return toCount(value);
+  } catch (err) {
+    warn("incrby", key, err);
+    return null;
+  }
+}
+
+// Increments only an existing counter, so a counter that was never seeded (or
+// has expired) stays missing and the next read re-seeds it from Postgres
+// rather than starting from an undercounted 0.
+const INCR_IF_EXISTS = `if redis.call("EXISTS", KEYS[1]) == 1 then return redis.call("INCRBY", KEYS[1], ARGV[1]) end return nil`;
+
+export async function incrementCounterIfPresent(
+  key: string,
+  amount: number,
+): Promise<number | null> {
+  const redis = getClient();
+  if (!redis) return null;
+  try {
+    return toCount(
+      await redis.eval(INCR_IF_EXISTS, [KEY_PREFIX + key], [String(amount)]),
+    );
+  } catch (err) {
+    warn("incrby", key, err);
+    return null;
+  }
+}
+
+/**
+ * Seeds a counter with a value computed from Postgres. With `overwrite: false`
+ * (the default) an existing counter is left alone, so a seed computed before a
+ * concurrent increment can't roll the counter back.
+ */
+export async function seedCounter(
+  key: string,
+  value: number,
+  ttlSeconds: number,
+  { overwrite = false }: { overwrite?: boolean } = {},
+): Promise<void> {
+  const redis = getClient();
+  if (!redis) return;
+  try {
+    await (overwrite
+      ? redis.set(KEY_PREFIX + key, value, { ex: ttlSeconds })
+      : redis.set(KEY_PREFIX + key, value, { ex: ttlSeconds, nx: true }));
+  } catch (err) {
+    warn("set", key, err);
+  }
 }
