@@ -1,7 +1,11 @@
 import { getDb } from "@mirrorverse/db";
 
 import { router } from "../../trpc/init";
-import { protectedProc, workspaceProc } from "../../trpc/middleware";
+import {
+  protectedProc,
+  rateLimited,
+  workspaceProc,
+} from "../../trpc/middleware";
 
 import { completeOnboardingInput, syncProfileInput } from "./inputs";
 import { authService } from "./service";
@@ -14,6 +18,7 @@ import { authService } from "./service";
 // and `completeOnboarding` purely to resolve ctx.workspaceId.
 export const authRouter = router({
   syncProfile: protectedProc
+    .use(rateLimited("authMutation"))
     .input(syncProfileInput)
     .mutation(({ ctx, input }) =>
       authService.syncProfile({ db: ctx.db, userId: ctx.user.id }, input),
@@ -29,6 +34,7 @@ export const authRouter = router({
   ),
 
   completeOnboarding: workspaceProc
+    .use(rateLimited("authMutation"))
     .input(completeOnboardingInput)
     .mutation(({ ctx, input }) =>
       authService.completeOnboarding(

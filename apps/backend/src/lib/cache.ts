@@ -28,6 +28,11 @@ export function setCacheClient(next: Redis | null): void {
   client = next;
 }
 
+/** The shared Upstash client, or null when Redis isn't configured. */
+export function getRedisClient(): Redis | null {
+  return getClient();
+}
+
 export function isCacheEnabled(): boolean {
   return getClient() !== null;
 }

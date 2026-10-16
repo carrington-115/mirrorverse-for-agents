@@ -1,6 +1,7 @@
 import { withTenantContext } from "@mirrorverse/db";
 
 import { ensureUserWorkspace } from "../features/tenancy/repo";
+import { checkRateLimit, type RateLimitName } from "../lib/rate-limit";
 import { middleware, publicProcedure, TRPCError } from "./init";
 
 const timing = middleware(async ({ ctx, path, type, next }) => {
@@ -61,3 +62,17 @@ const ensureWorkspace = middleware(async ({ ctx, next }) => {
 export const publicProc = publicProcedure.use(timing);
 export const protectedProc = publicProcedure.use(timing).use(enforceUser);
 export const workspaceProc = publicProcedure.use(timing).use(ensureWorkspace);
+
+/** Per-user rate limit for a procedure. Chain after an auth middleware. */
+export function rateLimited(name: RateLimitName) {
+  return middleware(async ({ ctx, next }) => {
+    const result = await checkRateLimit(name, ctx.user?.id ?? "anonymous");
+    if (!result.ok) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: `Too many requests. Try again in ${result.retryAfterSeconds}s.`,
+      });
+    }
+    return next();
+  });
+}
