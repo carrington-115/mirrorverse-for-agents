@@ -14,6 +14,8 @@ export const RATE_LIMITS = {
   voiceWebhook: { requests: 120, window: "1 m" },
   /** Slack app mentions handled, per Slack team. */
   slackEvents: { requests: 30, window: "1 m" },
+  /** Speech-to-text transcriptions (paid per call), per user. */
+  speechTranscribe: { requests: 10, window: "1 m" },
   /** Auth-adjacent tRPC mutations (profile sync, onboarding), per user. */
   authMutation: { requests: 10, window: "1 m" },
 } as const satisfies Record<string, { requests: number; window: Duration }>;
