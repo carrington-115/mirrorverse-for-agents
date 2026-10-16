@@ -3,6 +3,7 @@ import {
   DEFAULT_CHAT_LIMITS,
   describeChatLimitBreach,
   generateChatTitle,
+  isProOnlyModel,
   isSupportedModel,
   runMirrorpilot,
   type ChatLimits,
@@ -437,6 +438,21 @@ export async function POST(req: Request): Promise<Response> {
       activeSubscription?.plan.limits.maxCostCentsPerChat ??
       DEFAULT_CHAT_LIMITS.maxCostCentsPerChat,
   };
+
+  // Pro-only models are rejected server-side; the picker's "Pro" badge is UI only.
+  const isFreePlan = (activeSubscription?.plan.id ?? "free") === "free";
+  const requestedBuilder =
+    typeof body.builderModel === "string" ? body.builderModel : undefined;
+  if (
+    isFreePlan &&
+    ((requestedModel && isProOnlyModel(requestedModel)) ||
+      (requestedBuilder && isProOnlyModel(requestedBuilder)))
+  ) {
+    return jsonError(
+      403,
+      "This model is available on paid plans. Upgrade to use it.",
+    );
+  }
 
   const breach = await chatsService.checkAdmission(
     { db, userId: user.id },
