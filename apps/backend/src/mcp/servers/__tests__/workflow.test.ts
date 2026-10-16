@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, beforeAll } from "vitest";
 
 import type { WorkflowDocumentInput } from "@mirrorverse/agent/schemas";
 
@@ -40,6 +40,14 @@ function buildDeleteChain(returnValue: unknown[]) {
 }
 
 describe("workflow server", () => {
+  // The first import of the server module loads the whole runtime graph,
+  // which can take several seconds on a loaded machine. Load it once here,
+  // outside the 5s per-test timeout.
+  beforeAll(async () => {
+    process.env.SKIP_ENV_VALIDATION = "true";
+    await import("../workflow");
+  }, 30_000);
+
   const ctx = { db: mockDb as never, workspaceId: "ws-1", userId: "u-1" };
 
   beforeEach(() => {

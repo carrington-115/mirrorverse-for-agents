@@ -20,6 +20,14 @@ function buildSelectChain(returnValue: unknown[]) {
 }
 
 describe("vault server", () => {
+  // The first import of the server module loads the whole runtime graph,
+  // which can take several seconds on a loaded machine. Load it once here,
+  // outside the 5s per-test timeout.
+  beforeAll(async () => {
+    process.env.SKIP_ENV_VALIDATION = "true";
+    await import("../vault");
+  }, 30_000);
+
   const ctx = { db: mockDb as never, workspaceId: "ws-1", userId: "u-1" };
 
   beforeEach(() => {
