@@ -165,3 +165,75 @@ export const usageEvents = pgTable(
     tenantPolicy("usage_events"),
   ],
 );
+
+// Global promo codes (e.g. HACKTOBERFEST-26). Not tenant-scoped, like `plans`.
+// `valueCents` is the dollar value granted; it is converted to credits at
+// redemption time with the same `centsToCredits` rate used for usage.
+export const promoCodes = pgTable(
+  "promo_codes",
+  {
+    id: text("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()::text`),
+    code: text("code").notNull(), // stored uppercase
+    valueCents: integer("value_cents").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    maxRedemptions: integer("max_redemptions"),
+    redemptionCount: integer("redemption_count").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [uniqueIndex("promo_codes_code_idx").on(t.code)],
+);
+
+export const promoRedemptions = pgTable(
+  "promo_redemptions",
+  {
+    id: text("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()::text`),
+    promoCodeId: text("promo_code_id")
+      .notNull()
+      .references(() => promoCodes.id, { onDelete: "cascade" }),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    redeemedByUserId: text("redeemed_by_user_id").notNull(),
+    credits: integer("credits").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // One redemption of a given code per workspace.
+    uniqueIndex("promo_redemptions_code_workspace_idx").on(t.promoCodeId, t.workspaceId),
+    index("promo_redemptions_workspace_idx").on(t.workspaceId),
+    tenantPolicy("promo_redemptions"),
+  ],
+);
+
+// Per-workspace pool of one-off bonus credits (from promo redemptions). Bonus
+// credits are spent only by usage beyond the plan's hard cap. Consumption is
+// settled lazily: when the credit period rolls over, the tracked period's
+// overage is moved into `consumedCredits`.
+export const workspaceBonusCredits = pgTable(
+  "workspace_bonus_credits",
+  {
+    workspaceId: text("workspace_id")
+      .primaryKey()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    grantedCredits: integer("granted_credits").notNull().default(0),
+    consumedCredits: integer("consumed_credits").notNull().default(0),
+    trackedPeriodStart: timestamp("tracked_period_start", { withTimezone: true }).notNull(),
+    trackedPeriodEnd: timestamp("tracked_period_end", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  () => [tenantPolicy("workspace_bonus_credits")],
+);

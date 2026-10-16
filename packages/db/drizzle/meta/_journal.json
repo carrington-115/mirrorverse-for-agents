@@ -134,6 +134,20 @@
       "when": 1792029070282,
       "tag": "0018_dark_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792043607640,
+      "tag": "0019_promo_codes",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792043612346,
+      "tag": "0020_seed_hacktoberfest_promo",
+      "breakpoints": true
     }
   ]
 }

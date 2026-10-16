@@ -126,6 +126,7 @@ export function UsageSettingsShell() {
   const voiceMinutesUsed = usageMap.get("voice_minute")?.quantity ?? 0;
   const sandboxSecondsUsed = usageMap.get("sandbox_second")?.quantity ?? 0;
   const totalCreditsUsed = [...usageMap.values()].reduce((sum, u) => sum + u.credits, 0);
+  const bonusCredits = usageData?.bonusCredits;
 
   const isLoading = planLoading || usageLoading || capacityLoading;
 
@@ -243,6 +244,12 @@ export function UsageSettingsShell() {
                   limit={limits.includedCredits}
                   formatValue={fmtCredits}
                   onUpgrade={upgrade}
+                />
+              )}
+              {bonusCredits && bonusCredits.granted > 0 && (
+                <InfoRow
+                  label="Bonus credits remaining"
+                  value={`${fmtCredits(bonusCredits.remaining)} / ${fmtCredits(bonusCredits.granted)}`}
                 />
               )}
               {limits && limits.includedVoiceMinutes > 0 && (
