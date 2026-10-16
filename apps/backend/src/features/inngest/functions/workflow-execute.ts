@@ -11,6 +11,7 @@ import {
   sendFirstWorkflowEmail,
   sendWorkflowFailureEmail,
 } from "../../notifications/email";
+import { recordRunStarted } from "../../billing/run-limits";
 
 const {
   workflowRuns,
@@ -76,6 +77,7 @@ export function makeWorkflowExecuteFunction(db: Database): InngestFunction.Any {
           .returning({ id: workflowRuns.id });
 
         if (!row) throw new Error("workflow.execute: failed to insert run row");
+        await recordRunStarted(db, workspaceId);
 
         const envRows = await db
           .select({

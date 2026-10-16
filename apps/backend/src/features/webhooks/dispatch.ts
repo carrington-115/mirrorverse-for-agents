@@ -3,8 +3,18 @@ import type { JsonValue } from "@mirrorverse/types";
 
 import { inngest } from "../inngest/client";
 import { workflowExecuteEvent } from "../inngest/events";
+import { checkRunLimit } from "../billing/run-limits";
 
 const { workflows } = schema;
+
+export type DispatchResult =
+  | { readonly dispatched: true }
+  | { readonly dispatched: false; readonly reason: "inactive" }
+  | {
+      readonly dispatched: false;
+      readonly reason: "run_limit";
+      readonly message: string;
+    };
 
 export async function dispatchWebhookRun(
   db: Database,
@@ -15,7 +25,7 @@ export async function dispatchWebhookRun(
     triggerNodeId: string;
   },
   triggerPayload: JsonValue,
-): Promise<void> {
+): Promise<DispatchResult> {
   const [workflow] = await db
     .select({
       deployedVersionId: workflows.deployedVersionId,
@@ -26,7 +36,18 @@ export async function dispatchWebhookRun(
     .limit(1);
 
   // Only the pinned deployed version runs; unsaved/undeployed edits never do.
-  if (workflow?.status !== "active" || !workflow.deployedVersionId) return;
+  if (workflow?.status !== "active" || !workflow.deployedVersionId) {
+    return { dispatched: false, reason: "inactive" };
+  }
+
+  const runLimit = await checkRunLimit(db, endpoint.workspaceId);
+  if (!runLimit.ok) {
+    return {
+      dispatched: false,
+      reason: "run_limit",
+      message: runLimit.message,
+    };
+  }
 
   await inngest.send(
     workflowExecuteEvent.create({
@@ -39,4 +60,5 @@ export async function dispatchWebhookRun(
       initiatedBy: "trigger.webhook",
     }),
   );
+  return { dispatched: true };
 }

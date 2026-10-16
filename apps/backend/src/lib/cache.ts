@@ -44,6 +44,10 @@ export const cacheKeys = {
   activeSubscription: (workspaceId: string) => `sub:${workspaceId}`,
   creditsUsed: (workspaceId: string, periodStart: Date) =>
     `credits:${workspaceId}:${periodStart.getTime()}`,
+  runsDay: (workspaceId: string, dayStart: Date) =>
+    `runs:day:${workspaceId}:${dayStart.getTime()}`,
+  runsPeriod: (workspaceId: string, periodStart: Date) =>
+    `runs:period:${workspaceId}:${periodStart.getTime()}`,
 } as const;
 
 function warn(op: string, key: string, err: unknown): void {

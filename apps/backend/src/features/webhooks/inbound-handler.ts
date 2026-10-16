@@ -72,9 +72,13 @@ export async function inboundWebhookHandler(
     return Response.json({ ok: true, duplicate: true }, { status: 200 });
   }
 
-  await dispatchWebhookRun(db, endpoint, body);
+  const dispatch = await dispatchWebhookRun(db, endpoint, body);
 
   void incrementCallCount(db, endpoint.id);
+
+  if (!dispatch.dispatched && dispatch.reason === "run_limit") {
+    return Response.json({ error: dispatch.message }, { status: 429 });
+  }
 
   return Response.json({ ok: true }, { status: 200 });
 }
