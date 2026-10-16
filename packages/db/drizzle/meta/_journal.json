@@ -138,14 +138,14 @@
     {
       "idx": 19,
       "version": "7",
-      "when": 1792043607640,
-      "tag": "0019_promo_codes",
+      "when": 1792038234705,
+      "tag": "0019_clumsy_susan_delgado",
       "breakpoints": true
     },
     {
       "idx": 20,
       "version": "7",
-      "when": 1792043612346,
+      "when": 1792038250464,
       "tag": "0020_seed_hacktoberfest_promo",
       "breakpoints": true
     }

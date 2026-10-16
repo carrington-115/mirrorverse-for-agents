@@ -1,6 +1,6 @@
 {
-  "id": "9a9085f0-db02-4994-ac5d-812a8a53feb3",
-  "prevId": "9d984bb5-da1a-46e9-a80c-2c5f5a2756e5",
+  "id": "56a02b1c-2dd3-4338-ac58-1b855ae78a69",
+  "prevId": "2d0661e9-70e0-41a5-8c56-723bd8a1336d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2655,9 +2655,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "workflows_workspace_kind_idx": {
           "name": "workflows_workspace_kind_idx",
@@ -2676,9 +2676,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "workflows_workspace_created_idx": {
           "name": "workflows_workspace_created_idx",
@@ -2697,9 +2697,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "workflows_slack_agent_unique_idx": {
           "name": "workflows_slack_agent_unique_idx",
@@ -2712,21 +2712,21 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "responds_to_slack_mentions = true",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
         "workflows_workspace_id_workspaces_id_fk": {
           "name": "workflows_workspace_id_workspaces_id_fk",
           "tableFrom": "workflows",
-          "columnsFrom": ["workspace_id"],
           "tableTo": "workspaces",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
