@@ -14,7 +14,12 @@ import { centsToCredits } from "@mirrorverse/agent";
 import { bonusOverage } from "./enforcement";
 import { getTotalCreditsByPeriod } from "./repo";
 
-const { promoCodes, promoRedemptions, workspaceBonusCredits } = schema;
+const {
+  promoCodeAllowedEmails,
+  promoCodes,
+  promoRedemptions,
+  workspaceBonusCredits,
+} = schema;
 
 interface CreditPeriod {
   readonly periodStart: Date;
@@ -25,6 +30,7 @@ export type PromoCodeErrorReason =
   | "not_found"
   | "not_started"
   | "expired"
+  | "not_eligible"
   | "exhausted"
   | "already_redeemed";
 
@@ -37,6 +43,10 @@ export class PromoCodeError extends Error {
 
 export function normalizePromoCode(code: string): string {
   return code.trim().toUpperCase();
+}
+
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 // Moves the previous period's overage (usage beyond the plan's hard cap) into
@@ -98,6 +108,7 @@ export async function redeemPromoCode(
   input: {
     workspaceId: string;
     userId: string;
+    email: string;
     code: string;
     includedCredits: number;
     period: CreditPeriod;
@@ -115,6 +126,20 @@ export async function redeemPromoCode(
   if (promo.startsAt > now) throw new PromoCodeError("not_started");
   if (promo.expiresAt && promo.expiresAt <= now)
     throw new PromoCodeError("expired");
+
+  if (promo.restrictToAllowlist) {
+    const [allowed] = await db
+      .select({ email: promoCodeAllowedEmails.email })
+      .from(promoCodeAllowedEmails)
+      .where(
+        and(
+          eq(promoCodeAllowedEmails.promoCodeId, promo.id),
+          eq(promoCodeAllowedEmails.email, normalizeEmail(input.email)),
+        ),
+      )
+      .limit(1);
+    if (!allowed) throw new PromoCodeError("not_eligible");
+  }
 
   const [existing] = await db
     .select({ id: promoRedemptions.id })

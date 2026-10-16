@@ -31,6 +31,7 @@
     "db:verify": "node scripts/verify.mjs",
     "db:sync-directory": "node scripts/sync-directory.mjs",
     "db:seed-plans": "node scripts/seed-plans.mjs",
+    "db:import-promo-allowlist": "node scripts/import-promo-allowlist.mjs",
     "db:setup-stripe-products": "node scripts/setup-stripe-products.mjs"
   },
   "dependencies": {

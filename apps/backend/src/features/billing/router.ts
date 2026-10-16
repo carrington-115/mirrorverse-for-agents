@@ -33,7 +33,10 @@ const { plans } = schema;
 
 const PROMO_ERRORS: Record<
   PromoCodeErrorReason,
-  { code: "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT"; message: string }
+  {
+    code: "NOT_FOUND" | "BAD_REQUEST" | "FORBIDDEN" | "CONFLICT";
+    message: string;
+  }
 > = {
   not_found: { code: "NOT_FOUND", message: "That promo code isn't valid." },
   not_started: {
@@ -41,6 +44,11 @@ const PROMO_ERRORS: Record<
     message: "That promo code isn't active yet.",
   },
   expired: { code: "BAD_REQUEST", message: "That promo code has expired." },
+  not_eligible: {
+    code: "FORBIDDEN",
+    message:
+      "That promo code is only for registered event participants. Sign in with the email you registered with.",
+  },
   exhausted: {
     code: "BAD_REQUEST",
     message: "That promo code has reached its redemption limit.",
@@ -199,6 +207,7 @@ export const billingRouter = router({
         return await redeemPromoCode(ctx.db, {
           workspaceId: ctx.workspaceId,
           userId: ctx.user.id,
+          email: ctx.user.email,
           code: input.code,
           includedCredits: sub?.plan.limits.includedCredits ?? 0,
           period,
