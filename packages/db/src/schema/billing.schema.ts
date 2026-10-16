@@ -15,7 +15,7 @@ import {
 import type { PlanFeatures, PlanLimits, SubscriptionStatus, UsageKind } from "@mirrorverse/types";
 
 import { chats } from "./chats.schema";
-import { tenantPolicy } from "./rls";
+import { runtimePolicy, tenantPolicy } from "./rls";
 import { workflowRuns } from "./runs.schema";
 import { workspaces } from "./tenancy.schema";
 
@@ -190,7 +190,12 @@ export const promoCodes = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [uniqueIndex("promo_codes_code_idx").on(t.code)],
+  (t) => [
+    uniqueIndex("promo_codes_code_idx").on(t.code),
+    runtimePolicy("promo_codes", "select"),
+    // Redemption increments `redemption_count`.
+    runtimePolicy("promo_codes", "update"),
+  ],
 );
 
 // Emails eligible to redeem an allowlist-restricted promo code (e.g. event
@@ -205,7 +210,10 @@ export const promoCodeAllowedEmails = pgTable(
     email: text("email").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.promoCodeId, t.email] })],
+  (t) => [
+    primaryKey({ columns: [t.promoCodeId, t.email] }),
+    runtimePolicy("promo_code_allowed_emails", "select"),
+  ],
 );
 
 export const promoRedemptions = pgTable(
