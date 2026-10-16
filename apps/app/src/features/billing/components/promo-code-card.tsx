@@ -45,7 +45,7 @@ export function PromoCodeCard() {
             <FieldLabel htmlFor="promo-code">Code</FieldLabel>
             <Input
               id="promo-code"
-              placeholder="HACKTOBERFEST-26"
+              placeholder="Promo code"
               autoComplete="off"
               spellCheck={false}
               value={code}

@@ -62,3 +62,20 @@ export function transitivePolicy(table: string, using: SQL, withCheck: SQL = usi
 
 /** The active-workspace GUC expression, for composing transitive predicates. */
 export const activeWorkspaceSql = currentWorkspace;
+
+/**
+ * Access for global (non-tenant) tables the backend reads or updates at
+ * runtime, e.g. `promo_codes`. Supabase's `ensure_rls` event trigger enables
+ * RLS on every new public table, which hides all rows from `app_user` unless a
+ * policy grants them. Scoped to `app_user` only so Supabase's `anon` /
+ * `authenticated` API roles still see nothing.
+ */
+export function runtimePolicy(table: string, operation: "select" | "update") {
+  return pgPolicy(`${table}_runtime_${operation}`, {
+    as: "permissive",
+    for: operation,
+    to: "app_user",
+    using: sql`true`,
+    ...(operation === "update" ? { withCheck: sql`true` } : {}),
+  });
+}
