@@ -1,7 +1,8 @@
 import type { Database } from "@mirrorverse/db";
 import type { PlanLimits, UsageKind } from "@mirrorverse/types";
 
-import { getActiveSubscription, getTotalCreditsByPeriod } from "./repo";
+import { getCreditsUsed } from "./credit-counter";
+import { getActiveSubscription } from "./repo";
 
 interface SubscriptionPeriod {
   readonly currentPeriodStart: Date;
@@ -68,12 +69,10 @@ export async function checkCreditQuota(
     row?.subscription,
   );
 
-  const usedCredits = await getTotalCreditsByPeriod(
-    db,
-    workspaceId,
+  const usedCredits = await getCreditsUsed(db, workspaceId, {
     periodStart,
     periodEnd,
-  );
+  });
   const ratio = usedCredits / includedCredits;
 
   if (ratio >= 1.5) {

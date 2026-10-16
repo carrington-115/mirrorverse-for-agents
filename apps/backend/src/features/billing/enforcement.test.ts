@@ -7,6 +7,7 @@ vi.mock("./repo", () => ({
   getActiveSubscription: vi.fn(),
   getTotalCreditsByPeriod: vi.fn(),
 }));
+vi.mock("./credit-counter", () => ({ getCreditsUsed: vi.fn() }));
 
 import { addPeriod, getCreditPeriodBounds } from "./enforcement";
 

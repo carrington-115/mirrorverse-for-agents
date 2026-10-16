@@ -5,6 +5,10 @@ import type { WorkflowDocument, WorkflowNode } from "@mirrorverse/types";
 // knowledge repo/search modules — none of which findSlotNode touches. Stub
 // them out so importing this module doesn't require real env vars.
 vi.mock("@mirrorverse/db", () => ({ schema: {} }));
+vi.mock("../../../billing/credit-counter", () => ({
+  addCreditsUsed: vi.fn(),
+  sumCredits: vi.fn(() => 0),
+}));
 vi.mock("../../../knowledge/repo", () => ({ filterKbIdsByWorkspace: vi.fn() }));
 vi.mock("../../../knowledge/search", () => ({
   searchAcrossKnowledgeBases: vi.fn(),

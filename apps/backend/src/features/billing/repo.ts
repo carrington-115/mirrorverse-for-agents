@@ -16,6 +16,7 @@ import type { UsageKind } from "@mirrorverse/types";
 import { env } from "@mirrorverse/env/backend";
 
 import { cacheDel, cacheKeys, cached } from "../../lib/cache";
+import { addCreditsUsed, sumCredits } from "./credit-counter";
 import { addPeriod } from "./enforcement";
 import { stripe } from "./stripe-client";
 
@@ -90,7 +91,12 @@ export async function recordChatUsage(
 ): Promise<void> {
   const rows = rowsFromBreakdown(input);
   if (rows.length === 0) return;
-  await input.db.insert(usageEvents).values(rows).onConflictDoNothing();
+  const inserted = await input.db
+    .insert(usageEvents)
+    .values(rows)
+    .onConflictDoNothing()
+    .returning({ credits: usageEvents.credits });
+  await addCreditsUsed(input.db, input.workspaceId, sumCredits(inserted));
 }
 
 // ─── Sandbox usage (code node) ───────────────────────────────────────────────
@@ -105,7 +111,7 @@ export async function recordSandboxUsage(
     costCents: number;
   },
 ): Promise<void> {
-  await db
+  const inserted = await db
     .insert(usageEvents)
     .values({
       workspaceId: input.workspaceId,
@@ -119,7 +125,9 @@ export async function recordSandboxUsage(
       billable: true,
       idempotencyKey: `${input.runId}:${input.nodeId}:sandbox`,
     })
-    .onConflictDoNothing();
+    .onConflictDoNothing()
+    .returning({ credits: usageEvents.credits });
+  await addCreditsUsed(db, input.workspaceId, sumCredits(inserted));
 }
 
 // ─── Plan & subscription ──────────────────────────────────────────────────────

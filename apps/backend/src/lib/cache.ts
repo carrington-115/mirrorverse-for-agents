@@ -37,6 +37,8 @@ const KEY_PREFIX = "mv:v1:";
 
 export const cacheKeys = {
   activeSubscription: (workspaceId: string) => `sub:${workspaceId}`,
+  creditsUsed: (workspaceId: string, periodStart: Date) =>
+    `credits:${workspaceId}:${periodStart.getTime()}`,
 } as const;
 
 function warn(op: string, key: string, err: unknown): void {
