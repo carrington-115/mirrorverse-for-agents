@@ -1,6 +1,7 @@
 import type { InngestFunction, GetStepTools } from "inngest";
 import type { Database } from "@mirrorverse/db";
 
+import { reseedCreditsUsed } from "../../billing/credit-counter";
 import { stripe } from "../../billing/stripe-client";
 import {
   getDailyUsageSince,
@@ -32,12 +33,12 @@ export function makeBillingAggregatorFunction(
       retries: 2,
     },
     async ({ step }: { step: StepTools }) => {
-      await step.run("aggregate-usage", async () => {
+      const activeWorkspaceIds = await step.run("aggregate-usage", async () => {
         const now = new Date();
         const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
         const rows = await getHourlyUsageSince(db, hourAgo, now);
-        if (rows.length === 0) return;
+        if (rows.length === 0) return [];
 
         await upsertUsagePeriodAggregates(
           db,
@@ -100,6 +101,23 @@ export function makeBillingAggregatorFunction(
           } catch (err) {
             console.error(
               `[billing-aggregator] failed to report meter event for ${row.workspaceId}:`,
+              err,
+            );
+          }
+        }
+
+        return [...new Set(rows.map((r) => r.workspaceId))];
+      });
+
+      // Re-seed the Redis credits-used counters of workspaces that had usage
+      // this hour from Postgres, so any counter drift self-heals.
+      await step.run("reconcile-credit-counters", async () => {
+        for (const workspaceId of activeWorkspaceIds) {
+          try {
+            await reseedCreditsUsed(db, workspaceId);
+          } catch (err) {
+            console.error(
+              `[billing-aggregator] failed to reconcile credit counter for ${workspaceId}:`,
               err,
             );
           }

@@ -10,6 +10,7 @@ import type {
 
 import { breakdownStepUsage } from "@mirrorverse/agent";
 
+import { addCreditsUsed, sumCredits } from "../../../billing/credit-counter";
 import { filterKbIdsByWorkspace } from "../../../knowledge/repo";
 import { searchAcrossKnowledgeBases } from "../../../knowledge/search";
 
@@ -158,7 +159,7 @@ export async function interpretAgent(
   costTracker.add(stepCost);
 
   if (breakdown.entries.length > 0) {
-    await db
+    const inserted = await db
       .insert(usageEvents)
       .values(
         breakdown.entries.map((entry) => ({
@@ -173,7 +174,9 @@ export async function interpretAgent(
           idempotencyKey: `run:${runId}:node:${node.id}:${entry.kind}`,
         })),
       )
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ credits: usageEvents.credits });
+    await addCreditsUsed(db, workspaceId, sumCredits(inserted));
   }
 
   return {

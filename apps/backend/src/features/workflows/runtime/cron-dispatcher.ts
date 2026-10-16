@@ -4,6 +4,7 @@ import type { Database } from "@mirrorverse/db";
 import { inngest } from "../../inngest/client";
 import { workflowExecuteEvent } from "../../inngest/events";
 import { findDueCronWorkflows } from "./cron-repo";
+import { checkRunLimit } from "../../billing/run-limits";
 
 /**
  * Runs every minute. Queries for active automation workflows whose cron
@@ -35,10 +36,25 @@ export function makeCronDispatcherFunction(db: Database): InngestFunction.Any {
 
         if (dueWorkflows.length === 0) return { dispatched: 0 };
 
+        // One run-limit check per workspace, not per workflow.
+        const allowed = new Map<string, boolean>();
+        for (const workspaceId of new Set(
+          dueWorkflows.map((w) => w.workspaceId),
+        )) {
+          const runLimit = await checkRunLimit(db, workspaceId);
+          allowed.set(workspaceId, runLimit.ok);
+          if (!runLimit.ok) {
+            console.warn(
+              `[cron-dispatch] skipped workspace=${workspaceId}: ${runLimit.message}`,
+            );
+          }
+        }
+        const runnable = dueWorkflows.filter((w) => allowed.get(w.workspaceId));
+
         const epochMinute = Math.floor(now.getTime() / 60_000);
 
         await Promise.all(
-          dueWorkflows.map((w) =>
+          runnable.map((w) =>
             inngest.send({
               ...workflowExecuteEvent.create({
                 workspaceId: w.workspaceId,
@@ -58,7 +74,10 @@ export function makeCronDispatcherFunction(db: Database): InngestFunction.Any {
           ),
         );
 
-        return { dispatched: dueWorkflows.length };
+        return {
+          dispatched: runnable.length,
+          skipped: dueWorkflows.length - runnable.length,
+        };
       });
     },
   );

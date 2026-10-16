@@ -1,8 +1,9 @@
 import type { Database } from "@mirrorverse/db";
 import type { PlanLimits, UsageKind } from "@mirrorverse/types";
 
+import { getCreditsUsed } from "./credit-counter";
 import { settleBonusCredits } from "./promo-repo";
-import { getActiveSubscription, getTotalCreditsByPeriod } from "./repo";
+import { getActiveSubscription } from "./repo";
 
 // Usage may run up to this multiple of `includedCredits` before work is
 // refused. Bonus credits are only spent beyond this hard cap.
@@ -94,8 +95,10 @@ export async function checkCreditQuota(
     row?.subscription,
   );
 
+  // usedCredits comes from the Redis-backed counter (Postgres on a miss);
+  // bonus settlement writes, so it always runs against Postgres.
   const [usedCredits, bonusPool] = await Promise.all([
-    getTotalCreditsByPeriod(db, workspaceId, periodStart, periodEnd),
+    getCreditsUsed(db, workspaceId, { periodStart, periodEnd }),
     settleBonusCredits(db, workspaceId, includedCredits, {
       periodStart,
       periodEnd,

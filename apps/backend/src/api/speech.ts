@@ -1,6 +1,7 @@
 import { env } from "@mirrorverse/env/backend";
 
 import { authenticateRequest } from "../lib/auth";
+import { checkRateLimit, rateLimitedResponse } from "../lib/rate-limit";
 
 function jsonError(status: number, message: string): Response {
   return new Response(JSON.stringify({ error: message }), {
@@ -12,6 +13,9 @@ function jsonError(status: number, message: string): Response {
 export async function POST(req: Request): Promise<Response> {
   const user = await authenticateRequest(req);
   if (!user) return jsonError(401, "Authentication required");
+
+  const rateLimit = await checkRateLimit("speechTranscribe", user.id);
+  if (!rateLimit.ok) return rateLimitedResponse(rateLimit.retryAfterSeconds);
 
   if (!env.ELEVENLABS_API_KEY) {
     return jsonError(503, "Speech-to-text not configured");

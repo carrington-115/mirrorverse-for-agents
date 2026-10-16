@@ -17,6 +17,7 @@ import {
 import { stripe } from "./stripe-client";
 import {
   getActiveSubscription,
+  getActiveSubscriptionUncached,
   getDailyUsageAggregates,
   getDailyCreditUsage,
   listInvoices,
@@ -60,11 +61,13 @@ const PROMO_ERRORS: Record<
 };
 
 export const billingRouter = router({
+  // Uncached: the settings page shows the payment method and Stripe ids, which
+  // are kept out of the subscription cache.
   getCurrentPlan: workspaceProc.query(async ({ ctx }) => {
-    let row = await getActiveSubscription(ctx.db, ctx.workspaceId);
+    let row = await getActiveSubscriptionUncached(ctx.db, ctx.workspaceId);
     if (!row) {
       await ensureWorkspaceFreeSubscription(ctx.db, ctx.workspaceId);
-      row = await getActiveSubscription(ctx.db, ctx.workspaceId);
+      row = await getActiveSubscriptionUncached(ctx.db, ctx.workspaceId);
     }
     if (!row) {
       return { plan: null, subscription: null, limits: null };

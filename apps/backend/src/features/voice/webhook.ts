@@ -20,6 +20,7 @@ import {
 } from "../knowledge/search";
 import { KNOWLEDGE_SEARCH_TOOL_NAME } from "./compile";
 import * as repo from "./repo";
+import { checkRateLimit, rateLimitedResponse } from "../../lib/rate-limit";
 
 type VoiceAgentRow = NonNullable<
   Awaited<ReturnType<typeof repo.getVoiceAgentByExternalAssistantId>>
@@ -167,6 +168,16 @@ export async function vapiWebhookHandler(req: Request): Promise<Response> {
       headers: { "content-type": "application/json" },
     });
   }
+
+  const assistantId =
+    "call" in message
+      ? (message as { call?: { assistantId?: string } }).call?.assistantId
+      : undefined;
+  const rateLimit = await checkRateLimit(
+    "voiceWebhook",
+    assistantId ?? "unknown",
+  );
+  if (!rateLimit.ok) return rateLimitedResponse(rateLimit.retryAfterSeconds);
 
   if (message.type === "tool-calls") {
     return handleToolCalls(message as VapiToolCallMessage);

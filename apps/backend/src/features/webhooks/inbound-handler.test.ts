@@ -55,7 +55,7 @@ function makeRequest(body: unknown, headers: Record<string, string> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockLog.mockResolvedValue(true);
-  mockDispatch.mockResolvedValue(undefined);
+  mockDispatch.mockResolvedValue({ dispatched: true });
   mockIncrement.mockResolvedValue(undefined);
 });
 
@@ -89,6 +89,23 @@ describe("inboundWebhookHandler", () => {
     expect(mockDispatch).toHaveBeenCalledOnce();
     const body = (await res.json()) as { ok: boolean };
     expect(body.ok).toBe(true);
+  });
+
+  it("returns 429 when the workspace has hit its run limit", async () => {
+    mockGetEndpoint.mockResolvedValue(baseEndpoint);
+    mockDispatch.mockResolvedValue({
+      dispatched: false,
+      reason: "run_limit",
+      message: "Daily run limit reached. Please upgrade your plan.",
+    });
+    const res = await inboundWebhookHandler(
+      makeRequest({ event: "order.created" }),
+      "my-hook",
+    );
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({
+      error: "Daily run limit reached. Please upgrade your plan.",
+    });
   });
 
   it("returns 200 without dispatching on duplicate request-id", async () => {

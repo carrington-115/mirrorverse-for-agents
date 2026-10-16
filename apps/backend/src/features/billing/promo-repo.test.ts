@@ -19,6 +19,9 @@ vi.mock("@mirrorverse/db", () => {
 vi.mock("./repo", () => ({
   getTotalCreditsByPeriod: vi.fn(),
 }));
+// promo-repo -> enforcement -> credit-counter -> lib/cache reads the backend
+// env; stub it so the cache stays disabled and nothing validates at import.
+vi.mock("@mirrorverse/env/backend", () => ({ env: { NODE_ENV: "test" } }));
 
 import type { Database } from "@mirrorverse/db";
 

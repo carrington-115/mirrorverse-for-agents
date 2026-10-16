@@ -74,6 +74,7 @@ import { createConnectionRequest } from "../mcp/composio/auth";
 import { runPreflightCheck } from "../mcp/composio/preflight";
 import { makeFirstPartyAiTools } from "../mcp/agent-tools";
 import { flushTracing } from "../lib/tracing";
+import { checkRateLimit, rateLimitedResponse } from "../lib/rate-limit";
 import type { Database } from "@mirrorverse/db";
 
 async function safeAppendChatEvent(
@@ -418,6 +419,10 @@ export async function POST(req: Request): Promise<Response> {
   // workspace and filters every query by it explicitly. See packages/db/README.
   const db = getDb();
   const workspaceId = await ensureUserWorkspace(db, user.id);
+
+  const rateLimit = await checkRateLimit("chat", `${user.id}:${workspaceId}`);
+  if (!rateLimit.ok) return rateLimitedResponse(rateLimit.retryAfterSeconds);
+
   const chat = await ensureChat(db, { chatId, workspaceId, userId: user.id });
   if (!chat) return jsonError(500, "Failed to ensure chat");
 

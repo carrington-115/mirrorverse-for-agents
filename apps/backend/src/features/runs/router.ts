@@ -14,6 +14,8 @@ import {
   humanReviewRespondedEvent,
   workflowExecuteEvent,
 } from "../inngest/events";
+import { appError, ErrCode } from "../../lib/errors";
+import { checkRunLimit } from "../billing/run-limits";
 
 export const runsRouter = router({
   resumeHumanReview: workspaceProc
@@ -300,6 +302,10 @@ export const runsRouter = router({
         });
       }
 
+      const runLimit = await checkRunLimit(ctx.db, ctx.workspaceId);
+      if (!runLimit.ok)
+        throw appError(ErrCode.PlanLimitReached, runLimit.message);
+
       await inngest.send(
         workflowExecuteEvent.create({
           workspaceId: run.workspaceId,
@@ -362,6 +368,10 @@ export const runsRouter = router({
           message: "Workflow has no manual trigger node",
         });
       }
+
+      const runLimit = await checkRunLimit(ctx.db, ctx.workspaceId);
+      if (!runLimit.ok)
+        throw appError(ErrCode.PlanLimitReached, runLimit.message);
 
       await inngest.send(
         workflowExecuteEvent.create({

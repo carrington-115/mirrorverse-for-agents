@@ -4,6 +4,7 @@ import { env } from "@mirrorverse/env/backend";
 import { runSlackAgent } from "./agent-runner";
 import { postSlackMessage } from "./client";
 import { verifySlackSignature } from "./verify";
+import { checkRateLimit } from "../../lib/rate-limit";
 
 interface SlackAppMentionEvent {
   readonly type: "app_mention";
@@ -16,6 +17,7 @@ interface SlackAppMentionEvent {
 
 interface SlackEventCallbackPayload {
   readonly type: "event_callback";
+  readonly team_id?: string;
   readonly event:
     | SlackAppMentionEvent
     | { readonly type: string; readonly bot_id?: string };
@@ -108,6 +110,18 @@ export async function slackEventsHandler(request: Request): Promise<Response> {
     }
 
     if (event.type === "app_mention" && !event.bot_id) {
+      // Over the limit: ack without replying. A 429 would only make Slack
+      // retry (retries are dropped above) and count against the app's
+      // delivery health.
+      const { team_id: teamId } = payload as SlackEventCallbackPayload;
+      const rateLimit = await checkRateLimit(
+        "slackEvents",
+        teamId ?? "unknown",
+      );
+      if (!rateLimit.ok) {
+        console.warn(`[slack] rate limited team=${teamId ?? "unknown"}`);
+        return jsonResponse({ ok: true });
+      }
       void replyToMention(event as SlackAppMentionEvent, botToken);
     }
 

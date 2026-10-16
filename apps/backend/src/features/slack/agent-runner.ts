@@ -4,6 +4,7 @@ import { CostTracker, RunState, ZERO_COST } from "../workflows/runtime";
 import { interpretAgent } from "../workflows/runtime/interpreters/agent";
 import { serializeError } from "../workflows/runtime/step-writer";
 import * as repo from "../workflows/repo";
+import { checkRunLimit, recordRunStarted } from "../billing/run-limits";
 
 const { workflowRuns } = schema;
 
@@ -22,6 +23,9 @@ export async function runSlackAgent(
   const agentNode = document.nodes.find((n) => n.type === "ai.agent");
   if (!agentNode) return null;
 
+  const runLimit = await checkRunLimit(db, workspaceId);
+  if (!runLimit.ok) return runLimit.message;
+
   const startedAt = new Date();
   const [run] = await db
     .insert(workflowRuns)
@@ -39,6 +43,7 @@ export async function runSlackAgent(
     .returning({ id: workflowRuns.id });
 
   if (!run) return null;
+  await recordRunStarted(db, workspaceId);
 
   const costTracker = new CostTracker();
 

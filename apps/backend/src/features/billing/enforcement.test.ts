@@ -10,6 +10,9 @@ vi.mock("./repo", () => ({
 vi.mock("./promo-repo", () => ({
   settleBonusCredits: vi.fn(),
 }));
+// The real credit counter runs with Redis disabled (NODE_ENV=test), so
+// checkCreditQuota reads the mocked Postgres total below.
+vi.mock("@mirrorverse/env/backend", () => ({ env: { NODE_ENV: "test" } }));
 
 import type { Database } from "@mirrorverse/db";
 

@@ -15,6 +15,8 @@ import type { UsageKind } from "@mirrorverse/types";
 
 import { env } from "@mirrorverse/env/backend";
 
+import { cacheDel, cacheKeys, cached } from "../../lib/cache";
+import { addCreditsUsed, sumCredits } from "./credit-counter";
 import { addPeriod } from "./enforcement";
 import { stripe } from "./stripe-client";
 
@@ -89,7 +91,12 @@ export async function recordChatUsage(
 ): Promise<void> {
   const rows = rowsFromBreakdown(input);
   if (rows.length === 0) return;
-  await input.db.insert(usageEvents).values(rows).onConflictDoNothing();
+  const inserted = await input.db
+    .insert(usageEvents)
+    .values(rows)
+    .onConflictDoNothing()
+    .returning({ credits: usageEvents.credits });
+  await addCreditsUsed(input.db, input.workspaceId, sumCredits(inserted));
 }
 
 // ─── Sandbox usage (code node) ───────────────────────────────────────────────
@@ -104,7 +111,7 @@ export async function recordSandboxUsage(
     costCents: number;
   },
 ): Promise<void> {
-  await db
+  const inserted = await db
     .insert(usageEvents)
     .values({
       workspaceId: input.workspaceId,
@@ -118,12 +125,42 @@ export async function recordSandboxUsage(
       billable: true,
       idempotencyKey: `${input.runId}:${input.nodeId}:sandbox`,
     })
-    .onConflictDoNothing();
+    .onConflictDoNothing()
+    .returning({ credits: usageEvents.credits });
+  await addCreditsUsed(db, input.workspaceId, sumCredits(inserted));
 }
 
 // ─── Plan & subscription ──────────────────────────────────────────────────────
 
+// Plan/subscription is read on nearly every request (chat, workflow, voice and
+// knowledge routers). Short TTL bounds staleness; writers below invalidate.
+const ACTIVE_SUBSCRIPTION_TTL_SECONDS = 60;
+
+// Stripe identifiers and the payment-method id never go to Redis. Code that
+// needs them (the billing settings page) reads Postgres directly through
+// getActiveSubscriptionUncached.
 export async function getActiveSubscription(db: Database, workspaceId: string) {
+  return cached(
+    cacheKeys.activeSubscription(workspaceId),
+    ACTIVE_SUBSCRIPTION_TTL_SECONDS,
+    async () => {
+      const row = await getActiveSubscriptionUncached(db, workspaceId);
+      if (!row) return null;
+      const {
+        stripeSubscriptionId: _stripeSubscriptionId,
+        stripeCustomerId: _stripeCustomerId,
+        defaultPaymentMethod: _defaultPaymentMethod,
+        ...subscription
+      } = row.subscription;
+      return { plan: row.plan, subscription };
+    },
+  );
+}
+
+export async function getActiveSubscriptionUncached(
+  db: Database,
+  workspaceId: string,
+) {
   const [row] = await db
     .select({
       subscription: subscriptions,
@@ -165,14 +202,16 @@ export async function renewSubscriptionPeriod(
   periodStart: Date,
   periodEnd: Date,
 ): Promise<void> {
-  await db
+  const [row] = await db
     .update(subscriptions)
     .set({
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
       updatedAt: new Date(),
     })
-    .where(eq(subscriptions.id, subscriptionId));
+    .where(eq(subscriptions.id, subscriptionId))
+    .returning({ workspaceId: subscriptions.workspaceId });
+  if (row) await cacheDel(cacheKeys.activeSubscription(row.workspaceId));
 }
 
 export interface UpsertSubscriptionInput {
@@ -219,15 +258,22 @@ export async function upsertSubscription(
         updatedAt: new Date(),
       },
     });
+  await cacheDel(cacheKeys.activeSubscription(input.workspaceId));
 }
 
+// Plans are seeded by migrations and never written at runtime, so a TTL is
+// the only invalidation needed.
+const FREE_PLAN_TTL_SECONDS = 10 * 60;
+
 export async function getFreePlan(db: Database) {
-  const [plan] = await db
-    .select()
-    .from(plans)
-    .where(eq(plans.id, "free"))
-    .limit(1);
-  return plan ?? null;
+  return cached(cacheKeys.freePlan(), FREE_PLAN_TTL_SECONDS, async () => {
+    const [plan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, "free"))
+      .limit(1);
+    return plan ?? null;
+  });
 }
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────
