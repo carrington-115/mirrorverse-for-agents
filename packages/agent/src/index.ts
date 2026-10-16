@@ -22,6 +22,7 @@ export {
   describeChatLimitBreach,
   getEmbeddingPricePerMillionTokens,
   getModelPrice,
+  isProOnlyModel,
   isSupportedModel,
   microcentsToCents,
   microcentsToCredits,
