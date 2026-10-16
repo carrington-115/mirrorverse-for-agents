@@ -134,6 +134,34 @@
       "when": 1792029070282,
       "tag": "0018_dark_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792038234705,
+      "tag": "0019_clumsy_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792038250464,
+      "tag": "0020_seed_hacktoberfest_promo",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792161517453,
+      "tag": "0021_promo_allowlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792161521511,
+      "tag": "0022_restrict_hacktoberfest_to_participants",
+      "breakpoints": true
     }
   ]
 }

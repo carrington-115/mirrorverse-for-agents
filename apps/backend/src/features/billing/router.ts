@@ -4,9 +4,16 @@ import { eq, schema } from "@mirrorverse/db";
 
 import { env } from "@mirrorverse/env/backend";
 
-import { router } from "../../trpc/init";
+import { router, TRPCError } from "../../trpc/init";
 import { workspaceProc } from "../../trpc/middleware";
-import { getCreditPeriodBounds } from "./enforcement";
+import { getCreditPeriodBounds, remainingBonusCredits } from "./enforcement";
+import {
+  listPromoRedemptions,
+  PromoCodeError,
+  redeemPromoCode,
+  settleBonusCredits,
+  type PromoCodeErrorReason,
+} from "./promo-repo";
 import { stripe } from "./stripe-client";
 import {
   getActiveSubscription,
@@ -24,6 +31,34 @@ import {
 } from "./repo";
 
 const { plans } = schema;
+
+const PROMO_ERRORS: Record<
+  PromoCodeErrorReason,
+  {
+    code: "NOT_FOUND" | "BAD_REQUEST" | "FORBIDDEN" | "CONFLICT";
+    message: string;
+  }
+> = {
+  not_found: { code: "NOT_FOUND", message: "That promo code isn't valid." },
+  not_started: {
+    code: "BAD_REQUEST",
+    message: "That promo code isn't active yet.",
+  },
+  expired: { code: "BAD_REQUEST", message: "That promo code has expired." },
+  not_eligible: {
+    code: "FORBIDDEN",
+    message:
+      "That promo code is only for registered event participants. Sign in with the email you registered with.",
+  },
+  exhausted: {
+    code: "BAD_REQUEST",
+    message: "That promo code has reached its redemption limit.",
+  },
+  already_redeemed: {
+    code: "CONFLICT",
+    message: "This workspace has already redeemed that promo code.",
+  },
+};
 
 export const billingRouter = router({
   // Uncached: the settings page shows the payment method and Stripe ids, which
@@ -144,13 +179,52 @@ export const billingRouter = router({
       sub?.plan.limits,
       sub?.subscription,
     );
-    const usage = await getUsageThisPeriod(
-      ctx.db,
-      ctx.workspaceId,
-      periodStart,
-      periodEnd,
-    );
-    return { periodStart, periodEnd, usage };
+    const includedCredits = sub?.plan.limits.includedCredits ?? 0;
+    const [usage, bonusPool] = await Promise.all([
+      getUsageThisPeriod(ctx.db, ctx.workspaceId, periodStart, periodEnd),
+      settleBonusCredits(ctx.db, ctx.workspaceId, includedCredits, {
+        periodStart,
+        periodEnd,
+      }),
+    ]);
+    const usedCredits = usage.reduce((sum, u) => sum + u.totalCredits, 0);
+    const bonusCredits = bonusPool
+      ? {
+          granted: bonusPool.grantedCredits,
+          remaining: remainingBonusCredits(
+            bonusPool,
+            usedCredits,
+            includedCredits,
+          ),
+        }
+      : null;
+    return { periodStart, periodEnd, usage, bonusCredits };
+  }),
+
+  redeemPromoCode: workspaceProc
+    .input(z.object({ code: z.string().trim().min(1).max(64) }))
+    .mutation(async ({ ctx, input }) => {
+      const sub = await getActiveSubscription(ctx.db, ctx.workspaceId);
+      const period = getCreditPeriodBounds(sub?.plan.limits, sub?.subscription);
+      try {
+        return await redeemPromoCode(ctx.db, {
+          workspaceId: ctx.workspaceId,
+          userId: ctx.user.id,
+          email: ctx.user.email,
+          code: input.code,
+          includedCredits: sub?.plan.limits.includedCredits ?? 0,
+          period,
+        });
+      } catch (err) {
+        if (err instanceof PromoCodeError) {
+          throw new TRPCError(PROMO_ERRORS[err.reason]);
+        }
+        throw err;
+      }
+    }),
+
+  listPromoRedemptions: workspaceProc.query(async ({ ctx }) => {
+    return listPromoRedemptions(ctx.db, ctx.workspaceId);
   }),
 
   dailyCreditUsage: workspaceProc.query(async ({ ctx }) => {

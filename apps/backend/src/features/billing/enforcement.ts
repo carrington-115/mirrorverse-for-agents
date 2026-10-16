@@ -2,7 +2,12 @@ import type { Database } from "@mirrorverse/db";
 import type { PlanLimits, UsageKind } from "@mirrorverse/types";
 
 import { getCreditsUsed } from "./credit-counter";
+import { settleBonusCredits } from "./promo-repo";
 import { getActiveSubscription } from "./repo";
+
+// Usage may run up to this multiple of `includedCredits` before work is
+// refused. Bonus credits are only spent beyond this hard cap.
+export const CREDIT_HARD_CAP_RATIO = 1.5;
 
 interface SubscriptionPeriod {
   readonly currentPeriodStart: Date;
@@ -56,6 +61,27 @@ export class QuotaExceededError extends Error {
   }
 }
 
+/** Credits used beyond the plan's hard cap — the portion bonus credits pay for. */
+export function bonusOverage(
+  usedCredits: number,
+  includedCredits: number,
+): number {
+  return Math.max(0, usedCredits - includedCredits * CREDIT_HARD_CAP_RATIO);
+}
+
+/**
+ * Bonus credits still available after the current period's overage, given the
+ * pool's granted/consumed totals as of the start of the period.
+ */
+export function remainingBonusCredits(
+  pool: { readonly grantedCredits: number; readonly consumedCredits: number },
+  usedCredits: number,
+  includedCredits: number,
+): number {
+  const available = Math.max(0, pool.grantedCredits - pool.consumedCredits);
+  return Math.max(0, available - bonusOverage(usedCredits, includedCredits));
+}
+
 export async function checkCreditQuota(
   db: Database,
   workspaceId: string,
@@ -69,13 +95,21 @@ export async function checkCreditQuota(
     row?.subscription,
   );
 
-  const usedCredits = await getCreditsUsed(db, workspaceId, {
-    periodStart,
-    periodEnd,
-  });
-  const ratio = usedCredits / includedCredits;
+  // usedCredits comes from the Redis-backed counter (Postgres on a miss);
+  // bonus settlement writes, so it always runs against Postgres.
+  const [usedCredits, bonusPool] = await Promise.all([
+    getCreditsUsed(db, workspaceId, { periodStart, periodEnd }),
+    settleBonusCredits(db, workspaceId, includedCredits, {
+      periodStart,
+      periodEnd,
+    }),
+  ]);
 
-  if (ratio >= 1.5) {
+  const availableBonus = bonusPool
+    ? Math.max(0, bonusPool.grantedCredits - bonusPool.consumedCredits)
+    : 0;
+
+  if (usedCredits >= includedCredits * CREDIT_HARD_CAP_RATIO + availableBonus) {
     throw new QuotaExceededError("llm_input", usedCredits, includedCredits);
   }
 }

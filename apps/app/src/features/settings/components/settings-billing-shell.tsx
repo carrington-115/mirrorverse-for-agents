@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSupabaseUser } from "@/features/auth/hooks/use-supabase-user";
 import { useCurrentPlanQuery, useInvoicesQuery } from "@/features/billing/api/queries";
 import { useOpenPortalMutation } from "@/features/billing/api/mutations";
+import { PromoCodeCard } from "@/features/billing/components/promo-code-card";
 import { useSettingsModal } from "../hooks/use-settings-modal";
 
 function formatDate(date: Date | string | null | undefined): string {
@@ -139,6 +140,8 @@ export function BillingSettingsShell() {
           )}
         </CardFooter>
       </Card>
+
+      <PromoCodeCard />
 
       <Card>
         <CardHeader>

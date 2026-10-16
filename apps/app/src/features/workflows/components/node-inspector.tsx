@@ -1,5 +1,6 @@
 "use client";
 
+import { CHAT_MODELS } from "@/features/chat/config";
 import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,12 @@ import { useKbsQuery } from "@/features/knowledge/api/queries";
 import { useComposioAppsQuery } from "@/features/workflows/api/queries";
 import { APP_EVENT_CATALOG } from "@mirrorverse/agent/schemas";
 import type { WorkflowNodeInput } from "@mirrorverse/agent/schemas";
+
+const AGENT_MODEL_OPTIONS = CHAT_MODELS.map((m) => ({
+  value: m.id,
+  label: m.name,
+  pro: "pro" in m ? m.pro : undefined,
+}));
 
 interface NodeInspectorProps {
   readonly node: WorkflowNodeInput;
@@ -825,15 +832,7 @@ function LanguageModelForm({
       <SelectInput
         label="Model"
         value={str(node.params, "model", "claude-haiku-4-5")}
-        options={[
-          { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
-          { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-          { value: "claude-opus-4-7", label: "Claude Opus 4.7", pro: true },
-          { value: "claude-opus-4-8", label: "Claude Opus 4.8", pro: true },
-          { value: "gpt-4o-mini", label: "GPT-4o mini" },
-          { value: "gpt-4o", label: "GPT-4o" },
-          { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-        ]}
+        options={AGENT_MODEL_OPTIONS}
         onChange={(v) => p("model", v)}
       />
       <Field label="Temperature">
