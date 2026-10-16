@@ -182,6 +182,8 @@ export const promoCodes = pgTable(
     maxRedemptions: integer("max_redemptions"),
     redemptionCount: integer("redemption_count").notNull().default(0),
     isActive: boolean("is_active").notNull().default(true),
+    // When true, only emails listed in `promo_code_allowed_emails` may redeem.
+    restrictToAllowlist: boolean("restrict_to_allowlist").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -189,6 +191,21 @@ export const promoCodes = pgTable(
       .$onUpdate(() => new Date()),
   },
   (t) => [uniqueIndex("promo_codes_code_idx").on(t.code)],
+);
+
+// Emails eligible to redeem an allowlist-restricted promo code (e.g. event
+// participants). Stored lowercase. Loaded with
+// `packages/db/scripts/import-promo-allowlist.mjs`; never committed to the repo.
+export const promoCodeAllowedEmails = pgTable(
+  "promo_code_allowed_emails",
+  {
+    promoCodeId: text("promo_code_id")
+      .notNull()
+      .references(() => promoCodes.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.promoCodeId, t.email] })],
 );
 
 export const promoRedemptions = pgTable(
