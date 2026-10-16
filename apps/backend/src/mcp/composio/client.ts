@@ -3,6 +3,7 @@ import { tool } from "ai";
 import { env } from "@mirrorverse/env/backend";
 import type { Tool } from "ai";
 import { and, eq, isNull, schema, type Database } from "@mirrorverse/db";
+import { cacheKeys, cached } from "../../lib/cache";
 
 function makeClient(): Composio | null {
   if (!env.COMPOSIO_API_KEY) return null;
@@ -57,20 +58,31 @@ export async function listComposioTools(
   return result;
 }
 
+// The global Composio row is seeded once and never rewritten at runtime
+// (workspace-supplied servers always have a workspaceId), so a TTL is the
+// only invalidation needed. A missing row isn't cached.
+const COMPOSIO_SERVER_ID_TTL_SECONDS = 30 * 60;
+
 export async function lookupComposioMcpServerId(
   db: Database,
 ): Promise<string | null> {
-  const [row] = await db
-    .select({ id: schema.mcpServers.id })
-    .from(schema.mcpServers)
-    .where(
-      and(
-        eq(schema.mcpServers.slug, "composio"),
-        isNull(schema.mcpServers.workspaceId),
-      ),
-    )
-    .limit(1);
-  return row?.id ?? null;
+  return cached(
+    cacheKeys.composioMcpServerId(),
+    COMPOSIO_SERVER_ID_TTL_SECONDS,
+    async () => {
+      const [row] = await db
+        .select({ id: schema.mcpServers.id })
+        .from(schema.mcpServers)
+        .where(
+          and(
+            eq(schema.mcpServers.slug, "composio"),
+            isNull(schema.mcpServers.workspaceId),
+          ),
+        )
+        .limit(1);
+      return row?.id ?? null;
+    },
+  );
 }
 
 export async function listConnectedApps(
@@ -96,30 +108,41 @@ export interface ToolkitInfo {
   readonly toolsCount: number | null;
 }
 
+const TOOLKIT_METADATA_TTL_SECONDS = 60 * 60;
+
 export async function getToolkitMetadata(
   slugs: string[],
 ): Promise<ToolkitInfo[]> {
   const composio = getComposioInstance();
   const results = await Promise.allSettled(
-    slugs.map(async (slug) => {
-      const tk = await composio.toolkits.get(slug);
-      const meta = tk.meta as
-        | { logo?: string; description?: string; toolsCount?: number }
-        | undefined;
-      return {
-        slug,
-        name: tk.name ?? slug,
-        logoUrl: meta?.logo ?? null,
-        description: meta?.description ?? null,
-        toolsCount: meta?.toolsCount ?? null,
-      };
-    }),
+    slugs.map((slug) =>
+      // Public catalog metadata (name, logo, description); nothing
+      // workspace-specific, so it is shared across workspaces.
+      cached<ToolkitInfo>(
+        cacheKeys.composioToolkit(slug),
+        TOOLKIT_METADATA_TTL_SECONDS,
+        async () => {
+          const tk = await composio.toolkits.get(slug);
+          const meta = tk.meta as
+            | { logo?: string; description?: string; toolsCount?: number }
+            | undefined;
+          return {
+            slug,
+            name: tk.name ?? slug,
+            logoUrl: meta?.logo ?? null,
+            description: meta?.description ?? null,
+            toolsCount: meta?.toolsCount ?? null,
+          };
+        },
+      ),
+    ),
   );
   return results
     .filter(
-      (r): r is PromiseFulfilledResult<ToolkitInfo> => r.status === "fulfilled",
+      (r): r is PromiseFulfilledResult<ToolkitInfo | null> =>
+        r.status === "fulfilled",
     )
-    .map((r) => r.value);
+    .flatMap((r) => (r.value ? [r.value] : []));
 }
 
 export interface ComposioIntegrationTool {

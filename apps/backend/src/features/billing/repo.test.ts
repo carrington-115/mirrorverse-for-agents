@@ -30,6 +30,7 @@ import { setCacheClient } from "../../lib/cache";
 import {
   getActiveSubscription,
   getActiveSubscriptionUncached,
+  getFreePlan,
   renewSubscriptionPeriod,
   upsertSubscription,
 } from "./repo";
@@ -150,5 +151,21 @@ describe("getActiveSubscription", () => {
 
     expect(redis.del).toHaveBeenCalledWith("mv:v1:sub:ws1");
     expect(limit).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("getFreePlan", () => {
+  it("caches the free plan row", async () => {
+    const limit = vi.fn(async () => [{ id: "free", createdAt: new Date() }]);
+    const db = {
+      select: () => ({ from: () => ({ where: () => ({ limit }) }) }),
+    } as unknown as Database;
+
+    await getFreePlan(db);
+    const plan = await getFreePlan(db);
+
+    expect(limit).toHaveBeenCalledTimes(1);
+    expect(plan?.id).toBe("free");
+    expect(plan?.createdAt).toBeInstanceOf(Date);
   });
 });

@@ -261,13 +261,19 @@ export async function upsertSubscription(
   await cacheDel(cacheKeys.activeSubscription(input.workspaceId));
 }
 
+// Plans are seeded by migrations and never written at runtime, so a TTL is
+// the only invalidation needed.
+const FREE_PLAN_TTL_SECONDS = 10 * 60;
+
 export async function getFreePlan(db: Database) {
-  const [plan] = await db
-    .select()
-    .from(plans)
-    .where(eq(plans.id, "free"))
-    .limit(1);
-  return plan ?? null;
+  return cached(cacheKeys.freePlan(), FREE_PLAN_TTL_SECONDS, async () => {
+    const [plan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, "free"))
+      .limit(1);
+    return plan ?? null;
+  });
 }
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────

@@ -42,6 +42,9 @@ const KEY_PREFIX = "mv:v1:";
 
 export const cacheKeys = {
   activeSubscription: (workspaceId: string) => `sub:${workspaceId}`,
+  freePlan: () => "plan:free",
+  composioMcpServerId: () => "mcp:composio-server-id",
+  composioToolkit: (slug: string) => `composio:toolkit:${slug}`,
   creditsUsed: (workspaceId: string, periodStart: Date) =>
     `credits:${workspaceId}:${periodStart.getTime()}`,
   runsDay: (workspaceId: string, dayStart: Date) =>
