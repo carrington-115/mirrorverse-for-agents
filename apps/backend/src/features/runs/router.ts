@@ -320,7 +320,7 @@ export const runsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const [workflow] = await ctx.db
         .select({
-          currentVersionId: schema.workflows.currentVersionId,
+          deployedVersionId: schema.workflows.deployedVersionId,
           status: schema.workflows.status,
         })
         .from(schema.workflows)
@@ -339,17 +339,17 @@ export const runsRouter = router({
           message: "Workflow is not active",
         });
       }
-      if (!workflow.currentVersionId) {
+      if (!workflow.deployedVersionId) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: "Workflow has no current version",
+          message: "Workflow has no deployed version",
         });
       }
 
       const [version] = await ctx.db
         .select({ document: schema.workflowVersions.document })
         .from(schema.workflowVersions)
-        .where(eq(schema.workflowVersions.id, workflow.currentVersionId))
+        .where(eq(schema.workflowVersions.id, workflow.deployedVersionId))
         .limit(1);
 
       if (!version) throw new TRPCError({ code: "NOT_FOUND" });
@@ -367,7 +367,7 @@ export const runsRouter = router({
         workflowExecuteEvent.create({
           workspaceId: ctx.workspaceId,
           workflowId: input.workflowId,
-          workflowVersionId: workflow.currentVersionId,
+          workflowVersionId: workflow.deployedVersionId,
           triggerNodeId: triggerNode.id,
           triggerKind: "trigger.manual",
           triggerPayload: {},

@@ -99,7 +99,12 @@ export const scheduleServer: FirstPartyServer = {
           });
           await tx
             .update(workflows)
-            .set({ currentVersionId: newVersionId, status: "active" })
+            .set({
+              currentVersionId: newVersionId,
+              deployedVersionId: newVersionId,
+              deployedAt: new Date(),
+              status: "active",
+            })
             .where(
               and(
                 eq(workflows.id, workflowId),

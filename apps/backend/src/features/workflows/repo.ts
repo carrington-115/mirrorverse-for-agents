@@ -14,7 +14,13 @@ import {
 import type { WorkflowDocumentInput } from "@mirrorverse/agent";
 import type { WorkflowDocument, WorkflowStatus } from "@mirrorverse/types";
 
-const { workflows, workflowVersions, workflowRuns } = schema;
+const {
+  workflows,
+  workflowVersions,
+  workflowRuns,
+  connections,
+  workspaceEnvVars,
+} = schema;
 
 export const WORKFLOW_ACTIVITY_DAYS = 14;
 
@@ -284,6 +290,78 @@ export async function setWorkflowStatus(
   return row ?? null;
 }
 
+// Activates a workflow and pins the version that triggers will execute.
+export async function markWorkflowDeployed(
+  db: Database,
+  workflowId: string,
+  workspaceId: string,
+  versionId: string,
+) {
+  const [row] = await db
+    .update(workflows)
+    .set({
+      status: "active",
+      deployedVersionId: versionId,
+      deployedAt: new Date(),
+    })
+    .where(
+      and(eq(workflows.id, workflowId), eq(workflows.workspaceId, workspaceId)),
+    )
+    .returning({
+      id: workflows.id,
+      status: workflows.status,
+      deployedVersionId: workflows.deployedVersionId,
+      deployedAt: workflows.deployedAt,
+    });
+  return row ?? null;
+}
+
+export async function getVersionById(
+  db: Database,
+  versionId: string,
+  workspaceId: string,
+) {
+  const [row] = await db
+    .select()
+    .from(workflowVersions)
+    .where(
+      and(
+        eq(workflowVersions.id, versionId),
+        eq(workflowVersions.workspaceId, workspaceId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+// Lower-cased app slugs with an active connection, for deploy validation.
+export async function listConnectedAppSlugs(
+  db: Database,
+  workspaceId: string,
+): Promise<Set<string>> {
+  const rows = await db
+    .select({ appSlug: connections.appSlug })
+    .from(connections)
+    .where(
+      and(
+        eq(connections.workspaceId, workspaceId),
+        eq(connections.status, "active"),
+      ),
+    );
+  return new Set(rows.map((r) => r.appSlug.toLowerCase()));
+}
+
+export async function listEnvVarNames(
+  db: Database,
+  workspaceId: string,
+): Promise<Set<string>> {
+  const rows = await db
+    .select({ name: workspaceEnvVars.name })
+    .from(workspaceEnvVars)
+    .where(eq(workspaceEnvVars.workspaceId, workspaceId));
+  return new Set(rows.map((r) => r.name));
+}
+
 export async function setSlackAgentWorkflow(
   db: Database,
   workflowId: string,
@@ -334,8 +412,8 @@ export async function setSlackAgentWorkflow(
 }
 
 // Privileged lookup (no workspace filter) for the Slack Events webhook: finds
-// whichever workflow is currently flagged to answer Slack mentions and
-// returns its current document, regardless of which workspace owns it.
+// whichever active workflow is flagged to answer Slack mentions and returns
+// its deployed document, regardless of which workspace owns it.
 export async function getSlackAgentWorkflowDocument(db: Database): Promise<{
   workspaceId: string;
   workflowId: string;
@@ -352,9 +430,14 @@ export async function getSlackAgentWorkflowDocument(db: Database): Promise<{
     .from(workflows)
     .innerJoin(
       workflowVersions,
-      eq(workflows.currentVersionId, workflowVersions.id),
+      eq(workflows.deployedVersionId, workflowVersions.id),
     )
-    .where(eq(workflows.respondsToSlackMentions, true))
+    .where(
+      and(
+        eq(workflows.respondsToSlackMentions, true),
+        eq(workflows.status, "active"),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

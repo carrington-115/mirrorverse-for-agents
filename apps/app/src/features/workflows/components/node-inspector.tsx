@@ -486,7 +486,7 @@ function WebhookTriggerForm({
       />
       <ToggleInput
         label="Verify signature"
-        value={bool(node.params, "verifySignature", false)}
+        value={bool(node.params, "verifySignature", true)}
         onChange={(v) => p("verifySignature", v)}
       />
       {endpointSlug && workflowId && (

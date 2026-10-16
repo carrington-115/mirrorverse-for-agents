@@ -122,8 +122,24 @@ describe("inboundWebhookHandler", () => {
       null,
       "POST",
       expect.any(Object),
-      null,
+      // body column is NOT NULL — a null here made the insert throw (500).
+      { rejected: "invalid_signature" },
       "rejected",
+    );
+  });
+
+  it("logs an empty object for an empty body", async () => {
+    mockGetEndpoint.mockResolvedValue(baseEndpoint);
+    const res = await inboundWebhookHandler(
+      new Request("http://localhost/api/webhooks/my-hook", { method: "POST" }),
+      "my-hook",
+    );
+    expect(res.status).toBe(200);
+    expect(mockLog.mock.calls[0]?.[6]).toEqual({});
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.anything(),
+      baseEndpoint,
+      null,
     );
   });
 

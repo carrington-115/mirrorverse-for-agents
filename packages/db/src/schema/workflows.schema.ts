@@ -20,8 +20,9 @@ import { workspaces } from "./tenancy.schema";
 
 /**
  * Workflow root entity. Stable identity across versions; the canvas/document
- * lives on `workflow_versions`. `current_version_id` points at the version
- * that's currently active or being edited.
+ * lives on `workflow_versions`. `current_version_id` points at the latest
+ * edited version; `deployed_version_id` pins the snapshot that triggers
+ * (cron, webhook, Slack, manual runs) actually execute while active.
  */
 export const workflows = pgTable(
   "workflows",
@@ -38,6 +39,8 @@ export const workflows = pgTable(
     status: text("status").$type<WorkflowStatus>().notNull().default("draft"),
     respondsToSlackMentions: boolean("responds_to_slack_mentions").notNull().default(false),
     currentVersionId: text("current_version_id"),
+    deployedVersionId: text("deployed_version_id"),
+    deployedAt: timestamp("deployed_at", { withTimezone: true }),
     createdBy: text("created_by").notNull(),
     tags: text("tags")
       .array()

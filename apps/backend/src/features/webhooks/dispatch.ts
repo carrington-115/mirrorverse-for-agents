@@ -17,18 +17,22 @@ export async function dispatchWebhookRun(
   triggerPayload: JsonValue,
 ): Promise<void> {
   const [workflow] = await db
-    .select({ currentVersionId: workflows.currentVersionId })
+    .select({
+      deployedVersionId: workflows.deployedVersionId,
+      status: workflows.status,
+    })
     .from(workflows)
     .where(eq(workflows.id, endpoint.workflowId))
     .limit(1);
 
-  if (!workflow?.currentVersionId) return;
+  // Only the pinned deployed version runs; unsaved/undeployed edits never do.
+  if (workflow?.status !== "active" || !workflow.deployedVersionId) return;
 
   await inngest.send(
     workflowExecuteEvent.create({
       workspaceId: endpoint.workspaceId,
       workflowId: endpoint.workflowId,
-      workflowVersionId: workflow.currentVersionId,
+      workflowVersionId: workflow.deployedVersionId,
       triggerNodeId: endpoint.triggerNodeId,
       triggerKind: "trigger.webhook",
       triggerPayload,

@@ -3,10 +3,15 @@ import type { Database } from "@mirrorverse/db";
 import { appError, ErrCode } from "../../lib/errors";
 import { inngest } from "../inngest/client";
 import { workflowExecuteEvent } from "../inngest/events";
+import type { WorkflowKind } from "@mirrorverse/types";
+
 import {
   createOrReactivateEndpoint,
   disableEndpointsByWorkflowId,
+  disableStaleEndpoints,
+  listSlugsTakenByOtherWorkflows,
 } from "../webhooks/webhook-endpoints-repo";
+import { validateDeployDocument } from "./deploy-validation";
 import * as repo from "./repo";
 import type {
   DeleteWorkflowInput,
@@ -23,6 +28,122 @@ interface WorkspaceCtx {
   readonly db: Database;
   readonly workspaceId: string;
   readonly userId: string;
+}
+
+interface DeployableWorkflow {
+  readonly id: string;
+  readonly kind: WorkflowKind;
+}
+
+type WorkflowVersionRow = NonNullable<
+  Awaited<ReturnType<typeof repo.getLatestVersion>>
+>;
+
+function webhookSlug(params: Record<string, unknown>): string {
+  return typeof params.endpointSlug === "string"
+    ? params.endpointSlug.trim()
+    : "";
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  // Drizzle wraps driver errors; walk the cause chain for the PG code.
+  let cur: unknown = err;
+  for (let i = 0; i < 3 && cur !== null && typeof cur === "object"; i++) {
+    if ((cur as { code?: unknown }).code === "23505") return true;
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+async function validateForDeploy(
+  ctx: WorkspaceCtx,
+  workflow: DeployableWorkflow,
+  version: WorkflowVersionRow,
+) {
+  const slugs = version.document.nodes
+    .filter((n) => n.type === "trigger.webhook")
+    .map((n) => webhookSlug(n.params))
+    .filter(Boolean);
+  const [takenWebhookSlugs, connectedAppSlugs, envVarNames] = await Promise.all(
+    [
+      listSlugsTakenByOtherWorkflows(ctx.db, workflow.id, slugs),
+      repo.listConnectedAppSlugs(ctx.db, ctx.workspaceId),
+      repo.listEnvVarNames(ctx.db, ctx.workspaceId),
+    ],
+  );
+  const issues = validateDeployDocument(version.document, workflow.kind, {
+    takenWebhookSlugs,
+    connectedAppSlugs,
+    envVarNames,
+  });
+  const [first] = issues;
+  if (first) {
+    const more = issues.length > 1 ? ` (+${issues.length - 1} more)` : "";
+    throw appError(ErrCode.BadInput, `Can't deploy: ${first.message}${more}`, {
+      issues,
+    });
+  }
+}
+
+// Validates `version`, registers its trigger endpoints, then pins it as the
+// deployed version and marks the workflow active.
+async function deploy(
+  ctx: WorkspaceCtx,
+  workflow: DeployableWorkflow,
+  version: WorkflowVersionRow,
+) {
+  await validateForDeploy(ctx, workflow, version);
+
+  const webhookNodes = version.document.nodes.filter(
+    (n) => n.type === "trigger.webhook",
+  );
+
+  let endpoints;
+  try {
+    endpoints = await Promise.all(
+      webhookNodes.map((node) =>
+        createOrReactivateEndpoint(
+          ctx.db,
+          ctx.workspaceId,
+          workflow.id,
+          node.id,
+          webhookSlug(node.params),
+          // Signature verification is on unless explicitly disabled.
+          node.params.verifySignature !== false,
+        ),
+      ),
+    );
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw appError(
+        ErrCode.Conflict,
+        "That webhook URL is already used by another workflow. Choose a different slug.",
+      );
+    }
+    throw err;
+  }
+
+  await disableStaleEndpoints(
+    ctx.db,
+    ctx.workspaceId,
+    workflow.id,
+    webhookNodes.map((n) => n.id),
+  );
+
+  const deployed = await repo.markWorkflowDeployed(
+    ctx.db,
+    workflow.id,
+    ctx.workspaceId,
+    version.id,
+  );
+
+  return {
+    workflowId: workflow.id,
+    deployedVersionId: version.id,
+    deployedVersionNumber: version.versionNumber,
+    deployedAt: deployed?.deployedAt ?? new Date(),
+    endpoints,
+  };
 }
 
 export const workflowsService = {
@@ -49,12 +170,35 @@ export const workflowsService = {
       input.workflowId,
       ctx.workspaceId,
     );
-    if (!workflow) return { workflow: null, version: null, originChatId: null };
-    const [version, originChatId] = await Promise.all([
+    if (!workflow) {
+      return {
+        workflow: null,
+        version: null,
+        originChatId: null,
+        deployment: null,
+      };
+    }
+    const [version, originChatId, deployedVersion] = await Promise.all([
       repo.getLatestVersion(ctx.db, workflow.id, ctx.workspaceId),
       repo.getOriginChatId(ctx.db, workflow.id, ctx.workspaceId),
+      workflow.deployedVersionId
+        ? repo.getVersionById(
+            ctx.db,
+            workflow.deployedVersionId,
+            ctx.workspaceId,
+          )
+        : Promise.resolve(null),
     ]);
-    return { workflow, version, originChatId };
+    const deployment = deployedVersion
+      ? {
+          versionId: deployedVersion.id,
+          versionNumber: deployedVersion.versionNumber,
+          deployedAt: workflow.deployedAt,
+          hasUndeployedChanges:
+            version !== null && version.id !== deployedVersion.id,
+        }
+      : null;
+    return { workflow, version, originChatId, deployment };
   },
 
   async delete(ctx: WorkspaceCtx, input: DeleteWorkflowInput) {
@@ -130,6 +274,7 @@ export const workflowsService = {
     return result;
   },
 
+  // Deploys the latest saved version.
   async activate(ctx: WorkspaceCtx, input: { workflowId: string }) {
     const [workflow, version] = await Promise.all([
       repo.getWorkflowForWorkspace(ctx.db, input.workflowId, ctx.workspaceId),
@@ -138,41 +283,27 @@ export const workflowsService = {
     if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
     if (!version)
       throw appError(ErrCode.BadInput, "Save the workflow before activating");
+    return deploy(ctx, workflow, version);
+  },
 
-    const webhookNodes = version.document.nodes.filter(
-      (n) => n.type === "trigger.webhook",
-    );
-
-    const endpoints = await Promise.all(
-      webhookNodes.map((node) => {
-        const slug =
-          typeof node.params.endpointSlug === "string"
-            ? node.params.endpointSlug
-            : "";
-        const verifySignature = node.params.verifySignature === true;
-        if (!slug) return null;
-        return createOrReactivateEndpoint(
-          ctx.db,
-          ctx.workspaceId,
-          input.workflowId,
-          node.id,
-          slug,
-          verifySignature,
-        );
-      }),
-    );
-
-    await repo.setWorkflowStatus(
-      ctx.db,
-      input.workflowId,
-      ctx.workspaceId,
-      "active",
-    );
-
-    return {
-      workflowId: input.workflowId,
-      endpoints: endpoints.filter(Boolean),
-    };
+  // Deploys a specific saved version: rollback, or redeploying an older
+  // snapshot without touching the editor's latest version.
+  async deployVersion(
+    ctx: WorkspaceCtx,
+    input: { workflowId: string; versionNumber: number },
+  ) {
+    const [workflow, version] = await Promise.all([
+      repo.getWorkflowForWorkspace(ctx.db, input.workflowId, ctx.workspaceId),
+      repo.getVersionByNumber(
+        ctx.db,
+        input.workflowId,
+        ctx.workspaceId,
+        input.versionNumber,
+      ),
+    ]);
+    if (!workflow) throw appError(ErrCode.NotFound, "Workflow not found");
+    if (!version) throw appError(ErrCode.NotFound, "Version not found");
+    return deploy(ctx, workflow, version);
   },
 
   async deactivate(ctx: WorkspaceCtx, input: { workflowId: string }) {
@@ -249,7 +380,9 @@ export const workflowsService = {
     return { ok: true as const };
   },
 
-  // Re-register all triggers by cycling deactivate → activate.
+  // Re-register all triggers for the deployed version. deploy() is idempotent
+  // (upserts endpoints, disables stale ones), so no deactivate step is needed
+  // and a failed validation leaves the workflow running as before.
   // Only active workflows need this; inactive/draft workflows should be activated normally.
   async restart(ctx: WorkspaceCtx, input: { workflowId: string }) {
     const workflow = await repo.getWorkflowForWorkspace(
@@ -264,7 +397,14 @@ export const workflowsService = {
         "Only active workflows can be restarted. Activate the workflow first.",
       );
 
-    await workflowsService.deactivate(ctx, input);
+    const version = workflow.deployedVersionId
+      ? await repo.getVersionById(
+          ctx.db,
+          workflow.deployedVersionId,
+          ctx.workspaceId,
+        )
+      : null;
+    if (version) return deploy(ctx, workflow, version);
     return workflowsService.activate(ctx, input);
   },
 };
